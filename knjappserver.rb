@@ -24,6 +24,18 @@ class Knjappserver
 	end
 end
 
+def _get
+	return Knjappserver.data[:get]
+end
+
+def _post
+	return Knjappserver.data[:post]
+end
+
+def _session
+	return Knjappserver.data[:session].data
+end
+
 #query_str = "show[4][1][test]=hmm1&show[5][2][test]=hmm2&show[array][]=test1&show[array][]=test2"
 #get = Web.parse_urlquery(query_str)
 #Php.print_r(get)

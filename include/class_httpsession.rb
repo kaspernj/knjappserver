@@ -1,5 +1,8 @@
 class Knjappserver::Httpsession
+	attr_accessor :data
+	
 	def initialize(httpserver, socket)
+		@data = {}
 		@socket = socket
 		@httpserver = httpserver
 		@kas = httpserver.kas
@@ -29,6 +32,8 @@ class Knjappserver::Httpsession
 				end
 			rescue WEBrick::HTTPStatus::RequestTimeout => e
 				self.close
+			rescue WEBrick::HTTPStatus::EOFError => e
+				self.close
 			end
 		end
 	end
@@ -45,8 +50,6 @@ class Knjappserver::Httpsession
 		if page_filepath.length <= 0 or page_filepath == "/"
 			page_filepath = @kas.config[:default_page]
 		end
-		
-		print "Page-filepath: #{page_filepath}\n"
 		
 		page_path = "#{@kas.config[:doc_root]}/#{page_filepath}"
 		pinfo = Php.pathinfo(page_path)
@@ -117,8 +120,7 @@ class Knjappserver::Httpsession
 	
 	def convert_webrick_post(seton, webrick_post, args = {})
 		webrick_post.each do |varname, value|
-			match = varname.match(/(.+)\[(.*?)\]/)
-			if match
+			if match = varname.match(/(.+)\[(.*?)\]/)
 				namepos = varname.index(match[0])
 				name = match[1]
 				secname, secname_empty = Web.parse_secname(seton, match[2], args)
@@ -133,15 +135,14 @@ class Knjappserver::Httpsession
 					seton[name][secname] = value
 				end
 			else
-				seton[name] = value
+				seton[varname] = value
 			end
 		end
 	end
 	
-	def convert_webrick_post_second()
+	def convert_webrick_post_second
 		webrick_post.each do |varname, value|
-			match = varname.match(/\[(.*?)\]/)
-			if match
+			if match = varname.match(/\[(.*?)\]/)
 				namepos = varname.index(match[0])
 				name = match[1]
 				secname, secname_empty = Web.parse_secname(seton, match[1], args)
@@ -162,7 +163,6 @@ class Knjappserver::Httpsession
 	
 	def serve_internal(request)
 		match = request.match(/^GET (.+) HTTP\/1\.1\s*/)
-		
 		raise "Could not parse request." if !match
 		
 		headers = {}
