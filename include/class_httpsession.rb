@@ -1,5 +1,6 @@
 class Knjappserver::Httpsession
 	attr_accessor :data
+	attr_reader :session, :session_id, :kas
 	
 	def initialize(httpserver, socket)
 		@data = {}
@@ -42,7 +43,7 @@ class Knjappserver::Httpsession
 		res = WEBrick::HTTPResponse.new({
 			:HTTPVersion => WEBrick::HTTPVersion.new("1.1")
 		})
-		res.status = 202
+		res.status = 200
 		
 		meta = request.meta_vars
 		
@@ -57,16 +58,24 @@ class Knjappserver::Httpsession
 		
 		ctype = @kas.config[:default_filetype]
 		ctype = @kas.config[:filetypes][ext.to_sym] if @kas.config[:filetypes][ext.to_sym]
-		res.content_type = ctype
+		
+		if !@session
+			@session_id = Php.md5("#{meta["HTTP_HOST"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}")
+			@session = @kas.session_fromid(@session_id)
+		end
 		
 		@get = Web.parse_urlquery(meta["QUERY_STRING"])
 		@post = {}
 		
 		if meta["REQUEST_METHOD"] == "POST"
+			#print "Test: #{request.query["filepicture"].class.name}\n"
+			#Php.print_r(request.query)
+			#exit
 			self.convert_webrick_post(@post, request.query)
 		end
 		
 		serv_data = self.serve_real(
+			:meta => meta,
 			:request => request,
 			:headers => {},
 			:page_path => page_path,
@@ -75,20 +84,22 @@ class Knjappserver::Httpsession
 			:ext => ext
 		)
 		
-		serv_data[:headers].each do |key,valarr|
+		serv_data[:headers].each do |key, valarr|
 			valarr.each do |val|
 				if key.to_s.strip.downcase.match(/^Set-Cookie/i)
-					if !match = val.match(/^(.+):\s*(.+)(;|$)/)
-						raise "Could not parse cookie: #{val}"
-					end
-					
+					raise "Could not parse cookie: #{val}" if !match = val.match(/^(.+):\s*(.+)(;|$)/)
 					cookie = WEBrick::Cookie.new(match[0], match[1])
 					res.cookies << cookie
+				elsif key.to_s.strip.downcase.match(/^Content-Type/i)
+					raise "Could not parse content-type: '#{val}'." if !match = val.match(/^(.+?)(;|$)/)
+					ctype = match[1]
 				else
 					res.header[key] = val
 				end
 			end
 		end
+		
+		res.content_type = ctype
 		
 		if @kas.config[:debug]
 			Php.print_r(request.header)
@@ -132,10 +143,10 @@ class Knjappserver::Httpsession
 					seton[name][secname] = {} if !seton.has_key?(secname)
 					self.convert_webrick_post(seton[secname], restname, value, args)
 				else
-					seton[name][secname] = value
+					seton[name][secname] = value.to_s
 				end
 			else
-				seton[varname] = value
+				seton[varname] = value.to_s
 			end
 		end
 	end
@@ -267,8 +278,11 @@ class Knjappserver::Httpsession
 					ret = Php.call_user_func(handler_info[:callback], {
 						:get => @get,
 						:post => @post,
+						:httpsession => self,
+						:session => @session,
+						:session_id => @session_id,
 						:request => request,
-						:session => self,
+						:meta => details[:meta],
 						:filepath => details[:page_path],
 						:server => {
 							:host => details[:host],
@@ -279,9 +293,11 @@ class Knjappserver::Httpsession
 					cont = ret[:content] if ret[:content]
 					
 					if ret[:headers]
-						ret[:headers].each do |key, val|
-							details[:headers][key] << val if headers[key]
-							details[:headers][key] = [val] if !headers[key]
+						ret[:headers].each do |key, valarr|
+							valarr.each do |val|
+								headers[key] << val if headers[key]
+								headers[key] = [val] if !headers[key]
+							end
 						end
 					end
 				else
