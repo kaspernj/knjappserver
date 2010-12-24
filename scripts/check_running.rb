@@ -10,7 +10,14 @@ procs = Knj::Unix_proc.list(
 	"grep" => "knjappserver"
 )
 
-if procs.empty?
+count = 0
+procs.each do |proc|
+	if proc.data["app"] != "check_running.rb"
+		count += 1
+	end
+end
+
+if count <= 0
 	filepath = Php.realpath("../knjappserver.rb")
 	exec("ruby #{Strings.unixsafe(filepath)}") if fork.nil?
 end

@@ -90,6 +90,10 @@ def _session
 	return Knjappserver.data[:httpsession].session.accessor
 end
 
+def _server
+	return Knjappserver.data[:meta]
+end
+
 def _httpsession
 	return Knjappserver.data[:httpsession]
 end
