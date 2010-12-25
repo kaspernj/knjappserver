@@ -1,6 +1,10 @@
 #!/usr/bin/env ruby
 
-require "knj/autoload"
+require "active_support"
+require "active_support/core_ext"
+
+$knjfwpath = "/home/kaspernj/Ruby/sc2replays.dk_test/include/"
+require "#{$knjfwpath}knj/autoload"
 include Knj
 
 $knjappserver = {
@@ -76,6 +80,10 @@ class Knjappserver
 	def trans_del(obj)
 		_kas.translations.delete(obj)
 	end
+end
+
+def _cookie
+	return Knjappserver.data[:cookie]
 end
 
 def _get

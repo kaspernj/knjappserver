@@ -66,12 +66,17 @@ class Knjappserver::Httpsession
 		
 		@get = Web.parse_urlquery(meta["QUERY_STRING"])
 		@post = {}
+		@cookie = {}
 		
 		if meta["REQUEST_METHOD"] == "POST"
 			#print "Test: #{request.query["filepicture"].class.name}\n"
 			#Php.print_r(request.query)
 			#exit
 			self.convert_webrick_post(@post, request.query)
+		end
+		
+		request.cookies.each do |cookie|
+			@cookie[cookie.name] = cookie.value
 		end
 		
 		serv_data = self.serve_real(
@@ -278,6 +283,7 @@ class Knjappserver::Httpsession
 					ret = Php.call_user_func(handler_info[:callback], {
 						:get => @get,
 						:post => @post,
+						:cookie => @cookie,
 						:httpsession => self,
 						:session => @session,
 						:session_id => @session_id,
