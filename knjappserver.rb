@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 
+require "rubygems"
 require "active_support"
 require "active_support/core_ext"
 
@@ -7,6 +8,7 @@ $knjfwpath = "/home/kaspernj/Ruby/"
 require "#{$knjfwpath}knj/autoload"
 require "#{$knjfwpath}knj/event_filemod"
 include Knj
+require "gettext"
 
 $knjappserver = {
 	:path => Php.realpath(File.dirname(__FILE__))
