@@ -164,6 +164,12 @@ class Knjappserver::Httpsession
 	
 	def convert_webrick_post(seton, webrick_post, args = {})
 		webrick_post.each do |varname, value|
+			if value.respond_to?(:filename) and value.filename
+				realvalue = value
+			else
+				realvalue = value.to_s
+			end
+			
 			if match = varname.match(/(.+)\[(.*?)\]/)
 				namepos = varname.index(match[0])
 				name = match[1]
@@ -176,16 +182,22 @@ class Knjappserver::Httpsession
 					seton[name][secname] = {} if !seton.has_key?(secname)
 					self.convert_webrick_post(seton[secname], restname, value, args)
 				else
-					seton[name][secname] = value.to_s
+					seton[name][secname] = realvalue
 				end
 			else
-				seton[varname] = value.to_s
+				seton[varname] = realvalue
 			end
 		end
 	end
 	
 	def convert_webrick_post_second
 		webrick_post.each do |varname, value|
+			if value.respond_to?(:filename) and value.filename
+				realvalue = value
+			else
+				realvalue = value.to_s
+			end
+			
 			if match = varname.match(/\[(.*?)\]/)
 				namepos = varname.index(match[0])
 				name = match[1]
@@ -197,10 +209,10 @@ class Knjappserver::Httpsession
 					seton[secname] = {} if !seton.has_key?(secname)
 					self.convert_webrick_post(seton[secname], restname, value, args)
 				else
-					seton[secname] = value
+					seton[secname] = realvalue
 				end
 			else
-				seton[varname] = value
+				seton[varname] = realvalue
 			end
 		end
 	end

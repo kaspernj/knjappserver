@@ -3,7 +3,7 @@
 require "active_support"
 require "active_support/core_ext"
 
-$knjfwpath = "/home/kaspernj/Ruby/sc2replays.dk_test/include/"
+$knjfwpath = "/home/kaspernj/Ruby/"
 require "#{$knjfwpath}knj/autoload"
 require "#{$knjfwpath}knj/event_filemod"
 include Knj
@@ -20,7 +20,7 @@ class Knjappserver
 	autoload :Session, "#{$knjappserver[:path]}/include/class_session"
 	autoload :Session_accessor, "#{$knjappserver[:path]}/include/class_session_accessor"
 	
-	attr_reader :config, :httpserv, :db, :ob, :translations, :cleaner, :should_restart
+	attr_reader :config, :httpserv, :db, :ob, :translations, :cleaner, :should_restart, :mod_event
 	
 	def initialize(config)
 		@should_restart = false
