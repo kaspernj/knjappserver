@@ -1,6 +1,6 @@
 class Knjappserver::Httpsession
 	attr_accessor :data
-	attr_reader :session, :session_id, :kas
+	attr_reader :session, :session_id, :kas, :working, :active
 	
 	def initialize(httpserver, socket)
 		@data = {}
@@ -8,15 +8,19 @@ class Knjappserver::Httpsession
 		@httpserver = httpserver
 		@kas = httpserver.kas
 		@active = true
+		@working = true
 		
 		require "webrick"
 		
 		Knj::Thread.new do
 			begin
 				while @active
+					@working = false
+					
 					if @kas.config[:engine_webrick]
 						req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP) if @kas.config[:engine_webrick]
 						req.parse(@socket)
+						@working = true
 						self.serve_webrick(req)
 					else
 						req_read = ""
@@ -32,11 +36,32 @@ class Knjappserver::Httpsession
 					end
 				end
 			rescue WEBrick::HTTPStatus::RequestTimeout => e
+				self.destruct
 				self.close
 			rescue WEBrick::HTTPStatus::EOFError => e
+				self.destruct
+				self.close
+			rescue => e
+				puts e.inspect
+				puts e.backtrace
+				
+				self.destruct
 				self.close
 			end
 		end
+	end
+	
+	def destruct
+		@httpserver.http_sessions.delete(self)
+		@data = nil
+		@socket = nil
+		@kas = nil
+		@active = false
+		@working = false
+		@session = nil
+		@session_id = nil
+		
+		#print "Destructed.\n"
 	end
 	
 	def serve_webrick(request)
@@ -60,7 +85,7 @@ class Knjappserver::Httpsession
 		ctype = @kas.config[:filetypes][ext.to_sym] if @kas.config[:filetypes][ext.to_sym]
 		
 		if !@session
-			@session_id = Php.md5("#{meta["HTTP_HOST"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}")
+			@session_id = Php.md5("#{meta["HTTP_HOST"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}")
 			@session = @kas.session_fromid(@session_id)
 		end
 		
@@ -92,9 +117,9 @@ class Knjappserver::Httpsession
 		serv_data[:headers].each do |key, valarr|
 			valarr.each do |val|
 				if key.to_s.strip.downcase.match(/^Set-Cookie/i)
-					raise "Could not parse cookie: #{val}" if !match = val.match(/^(.+):\s*(.+)(;|$)/)
-					cookie = WEBrick::Cookie.new(match[0], match[1])
-					res.cookies << cookie
+					WEBrick::Cookie.parse(val).each do |cook|
+						res.cookies << cook
+					end
 				elsif key.to_s.strip.downcase.match(/^Content-Type/i)
 					raise "Could not parse content-type: '#{val}'." if !match = val.match(/^(.+?)(;|$)/)
 					ctype = match[1]

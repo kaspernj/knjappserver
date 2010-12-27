@@ -1,8 +1,9 @@
 class Knjappserver::Session < Db_row
-	attr_reader :kas, :accessor
+	attr_reader :kas, :accessor, :edata
 	
 	def initialize(data, kas)
 		@kas = kas
+		@edata = {}
 		super(:objects => @kas.ob, :db => @kas.db, :data => data, :table => :sessions)
 		
 		if self[:sess_data].length > 0

@@ -1,5 +1,5 @@
 class Knjappserver::Httpserver
-	attr_reader :kas
+	attr_reader :kas, :http_sessions
 	
 	def initialize(kas)
 		@kas = kas
@@ -12,5 +12,9 @@ class Knjappserver::Httpserver
 		loop do
 			@http_sessions << Knjappserver::Httpsession.new(self, @server.accept)
 		end
+	end
+	
+	def stop
+		@server.close
 	end
 end

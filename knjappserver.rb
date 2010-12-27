@@ -5,6 +5,7 @@ require "active_support/core_ext"
 
 $knjfwpath = "/home/kaspernj/Ruby/sc2replays.dk_test/include/"
 require "#{$knjfwpath}knj/autoload"
+require "#{$knjfwpath}knj/event_filemod"
 include Knj
 
 $knjappserver = {
@@ -13,17 +14,28 @@ $knjappserver = {
 
 Os.chdir_file(Php.realpath(__FILE__))
 
-
-
 class Knjappserver
 	autoload :Httpserver, "#{$knjappserver[:path]}/include/class_httpserver"
 	autoload :Httpsession, "#{$knjappserver[:path]}/include/class_httpsession"
 	autoload :Session, "#{$knjappserver[:path]}/include/class_session"
 	autoload :Session_accessor, "#{$knjappserver[:path]}/include/class_session_accessor"
 	
-	attr_reader :config, :httpserv, :db, :ob, :translations
+	attr_reader :config, :httpserv, :db, :ob, :translations, :cleaner, :should_restart
 	
 	def initialize(config)
+		@should_restart = false
+		@mod_events = {}
+		
+		@mod_files = {}
+		@mod_event = Event_filemod.new(:wait => 2, :paths => [Php.realpath(__FILE__)]) do |event, path|
+			print "File changed - restart server: #{path}\n"
+			@should_restart = true
+			@mod_event.destroy
+		end
+		
+		self.loadfile "#{$knjappserver[:path]}/include/class_cleaner.rb"
+		self.loadfile "#{$knjappserver[:path]}/include/class_session_accessor.rb"
+		
 		@config = config
 		@db = @config[:db]
 		@ob = Objects.new(
@@ -39,14 +51,35 @@ class Knjappserver
 		end
 		
 		@httpserv = Httpserver.new(self)
-		
 		@translations = Knj::Translations.new(
 			:db => @db
 		)
+		@cleaner = Cleaner.new(self)
+	end
+	
+	def loadfile(fpath)
+		rpath = Php.realpath(fpath)
+		if !rpath or !File.exists?(rpath)
+			raise "No such filepath: #{fpath}"
+		end
+		
+		if @mod_files[rpath]
+			return true
+		end
+		
+		@mod_event.args[:paths] << rpath
+		@mod_files = rpath
+		
+		require rpath
+		return false
 	end
 	
 	def start
 		@httpserv.start
+	end
+	
+	def stop
+		@httpserv.stop
 	end
 	
 	def self.data
@@ -120,5 +153,5 @@ end
 #print get["show"][4][1]["test"] + "\n"
 
 
-
+print "Starting knjAppServer.\n"
 require "./conf/conf"
