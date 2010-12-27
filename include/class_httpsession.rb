@@ -1,6 +1,6 @@
 class Knjappserver::Httpsession
 	attr_accessor :data
-	attr_reader :session, :session_id, :kas, :working, :active
+	attr_reader :session, :session_id, :kas, :working, :active, :out
 	
 	def initialize(httpserver, socket)
 		@data = {}
@@ -9,6 +9,7 @@ class Knjappserver::Httpsession
 		@kas = httpserver.kas
 		@active = true
 		@working = true
+		@out = StringIO.new
 		
 		require "webrick"
 		
@@ -94,9 +95,6 @@ class Knjappserver::Httpsession
 		@cookie = {}
 		
 		if meta["REQUEST_METHOD"] == "POST"
-			#print "Test: #{request.query["filepicture"].class.name}\n"
-			#Php.print_r(request.query)
-			#exit
 			self.convert_webrick_post(@post, request.query)
 		end
 		
@@ -139,7 +137,12 @@ class Knjappserver::Httpsession
 			print "\n"
 		end
 		
-		res.body = serv_data[:content]
+		if serv_data[:content]
+			res.body = serv_data[:content]
+		else
+			@out.rewind
+			res.body = @out.read
+		end
 		
 		if serv_data[:lastmod]
 			res["Last-Modified"] = serv_data[:lastmod].time

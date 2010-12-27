@@ -147,6 +147,30 @@ def _kas
 	return Knjappserver.data[:httpsession].kas
 end
 
+#Lets hack the $stdout to make it possible to have many running threads that all uses print.
+class Knjappserver::CustomIO < StringIO
+	def print(str)
+		thread = Thread.current
+		
+		if thread and thread[:knjappserver]
+			#STDOUT.print("Print: " + str)
+			return thread[:knjappserver][:httpsession].out.print(str)
+		else
+			return STDOUT.print(str)
+		end
+	end
+	
+	def <<(str)
+		self.print(str)
+	end
+	
+	def write(str)
+		self.print(str)
+	end
+end
+
+$stdout = Knjappserver::CustomIO.new
+
 #query_str = "show[4][1][test]=hmm1&show[5][2][test]=hmm2&show[array][]=test1&show[array][]=test2"
 #get = Web.parse_urlquery(query_str)
 #Php.print_r(get)
