@@ -3,12 +3,13 @@
 require "rubygems"
 require "active_support"
 require "active_support/core_ext"
+require "gettext"
 
-$knjfwpath = "/home/kaspernj/Ruby/"
+$knjfwpath = "/home/kaspernj/Ruby/sc2replays.dk_test/include/"
 require "#{$knjfwpath}knj/autoload"
 require "#{$knjfwpath}knj/event_filemod"
 include Knj
-require "gettext"
+
 
 $knjappserver = {
 	:path => Php.realpath(File.dirname(__FILE__))

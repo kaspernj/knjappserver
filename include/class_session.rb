@@ -7,7 +7,11 @@ class Knjappserver::Session < Db_row
 		super(:objects => @kas.ob, :db => @kas.db, :data => data, :table => :sessions)
 		
 		if self[:sess_data].length > 0
-			@sess_data = Marshal.load(self[:sess_data])
+			begin
+				@sess_data = Marshal.load(self[:sess_data])
+			rescue ArgumentError
+				@sess_data = {}
+			end
 		else
 			@sess_data = {}
 		end
