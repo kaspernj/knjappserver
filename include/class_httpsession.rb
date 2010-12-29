@@ -1,6 +1,6 @@
 class Knjappserver::Httpsession
 	attr_accessor :data
-	attr_reader :session, :session_id, :kas, :working, :active, :out
+	attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out
 	
 	def initialize(httpserver, socket)
 		@data = {}
@@ -43,8 +43,8 @@ class Knjappserver::Httpsession
 				self.destruct
 				self.close
 			rescue => e
-				puts e.inspect
-				puts e.backtrace
+				STDOUT.puts e.inspect
+				STDOUT.puts e.backtrace
 				
 				self.destruct
 				self.close
@@ -86,8 +86,10 @@ class Knjappserver::Httpsession
 		ctype = @kas.config[:filetypes][ext.to_sym] if @kas.config[:filetypes][ext.to_sym]
 		
 		if !@session
-			@session_id = Php.md5("#{meta["HTTP_HOST"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}")
-			@session = @kas.session_fromid(@session_id)
+			@session_id = Php.md5("#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}")
+			session = @kas.session_fromid(@session_id)
+			@session = session[:dbobj]
+			@session_hash = session[:hash]
 		end
 		
 		@get = Web.parse_urlquery(meta["QUERY_STRING"])

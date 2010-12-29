@@ -5,11 +5,9 @@ require "active_support"
 require "active_support/core_ext"
 require "gettext"
 
-$knjfwpath = "/home/kaspernj/Ruby/sc2replays.dk_test/include/"
-require "#{$knjfwpath}knj/autoload"
-require "#{$knjfwpath}knj/event_filemod"
+require "./conf/conf_vars"
+require "#{$knjappserver_config["knjrbfw"]}knj/autoload"
 include Knj
-
 
 $knjappserver = {
 	:path => Php.realpath(File.dirname(__FILE__))
@@ -18,11 +16,6 @@ $knjappserver = {
 Os.chdir_file(Php.realpath(__FILE__))
 
 class Knjappserver
-	autoload :Httpserver, "#{$knjappserver[:path]}/include/class_httpserver"
-	autoload :Httpsession, "#{$knjappserver[:path]}/include/class_httpsession"
-	autoload :Session, "#{$knjappserver[:path]}/include/class_session"
-	autoload :Session_accessor, "#{$knjappserver[:path]}/include/class_session_accessor"
-	
 	attr_reader :config, :httpserv, :db, :ob, :translations, :cleaner, :should_restart, :mod_event
 	
 	def initialize(config)
@@ -38,6 +31,10 @@ class Knjappserver
 		
 		self.loadfile "#{$knjappserver[:path]}/include/class_cleaner.rb"
 		self.loadfile "#{$knjappserver[:path]}/include/class_session_accessor.rb"
+		self.loadfile "#{$knjappserver[:path]}/include/class_httpserver.rb"
+		self.loadfile "#{$knjappserver[:path]}/include/class_httpsession.rb"
+		self.loadfile "#{$knjappserver[:path]}/include/class_session.rb"
+		self.loadfile "#{$knjappserver[:path]}/include/class_session_accessor.rb"
 		
 		@config = config
 		@db = @config[:db]
@@ -50,7 +47,10 @@ class Knjappserver
 		
 		@sessions = {}
 		@ob.list(:Session).each do |session|
-			@sessions[session[:idhash]] = session
+			@sessions[session[:idhash]] = {
+				:dbobj => session,
+				:hash => {}
+			}
 		end
 		
 		@httpserv = Httpserver.new(self)
@@ -91,9 +91,12 @@ class Knjappserver
 	
 	def session_fromid(idhash)
 		if !@sessions[idhash]
-			@sessions[idhash] = Knjappserver::Session.add(self, {
-				:idhash => idhash
-			})
+			@sessions[idhash] = {
+				:dbobj => Knjappserver::Session.add(self, {
+					:idhash => idhash
+				}),
+				:hash => {}
+			}
 		end
 		
 		return @sessions[idhash]
@@ -116,38 +119,6 @@ class Knjappserver
 	def trans_del(obj)
 		_kas.translations.delete(obj)
 	end
-end
-
-def _cookie
-	return Knjappserver.data[:cookie]
-end
-
-def _get
-	return Knjappserver.data[:get]
-end
-
-def _post
-	return Knjappserver.data[:post]
-end
-
-def _session
-	return Knjappserver.data[:httpsession].session.accessor
-end
-
-def _server
-	return Knjappserver.data[:meta]
-end
-
-def _httpsession
-	return Knjappserver.data[:httpsession]
-end
-
-def _meta
-	return Knjappserver.data[:meta]
-end
-
-def _kas
-	return Knjappserver.data[:httpsession].kas
 end
 
 #Lets hack the $stdout to make it possible to have many running threads that all uses print.
@@ -179,6 +150,6 @@ $stdout = Knjappserver::CustomIO.new
 #Php.print_r(get)
 #print get["show"][4][1]["test"] + "\n"
 
-
 print "Starting knjAppServer.\n"
+require "./include/magic_methods.rb"
 require "./conf/conf"
