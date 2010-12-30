@@ -22,6 +22,12 @@ class Knjappserver::Httpsession
 						req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP) if @kas.config[:engine_webrick]
 						req.parse(@socket)
 						@working = true
+						
+						# Check if we should be waiting with executing the pending request.
+						while @kas.paused?
+							sleep 0.1
+						end
+						
 						self.serve_webrick(req)
 					else
 						req_read = ""

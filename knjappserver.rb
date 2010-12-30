@@ -5,7 +5,7 @@ require "active_support"
 require "active_support/core_ext"
 require "gettext"
 
-require "./conf/conf_vars"
+require File.dirname(__FILE__) + "/conf/conf_vars"
 require "#{$knjappserver_config["knjrbfw"]}knj/autoload"
 include Knj
 
@@ -16,9 +16,10 @@ $knjappserver = {
 Os.chdir_file(Php.realpath(__FILE__))
 
 class Knjappserver
-	attr_reader :config, :httpserv, :db, :ob, :translations, :cleaner, :should_restart, :mod_event
+	attr_reader :config, :httpserv, :db, :ob, :translations, :cleaner, :should_restart, :mod_event, :paused
 	
 	def initialize(config)
+		@paused = 0
 		@should_restart = false
 		@mod_events = {}
 		
@@ -85,6 +86,34 @@ class Knjappserver
 		@httpserv.stop
 	end
 	
+	# Stop running any more http requests - make them wait.
+	def pause
+		@paused += 1
+	end
+	
+	def unpause
+		@paused -= 1
+	end
+	
+	def paused?
+		if @paused > 0
+			return true
+		end
+		
+		return false
+	end
+	
+	def working?
+		sess_arr = @httpserv.http_sessions
+		sess_arr.each do |sess|
+			if sess.working
+				return true
+			end
+		end
+		
+		return false
+	end
+	
 	def self.data
 		return Thread.current[:knjappserver]
 	end
@@ -144,11 +173,6 @@ class Knjappserver::CustomIO < StringIO
 end
 
 $stdout = Knjappserver::CustomIO.new
-
-#query_str = "show[4][1][test]=hmm1&show[5][2][test]=hmm2&show[array][]=test1&show[array][]=test2"
-#get = Web.parse_urlquery(query_str)
-#Php.print_r(get)
-#print get["show"][4][1]["test"] + "\n"
 
 print "Starting knjAppServer.\n"
 require "./include/magic_methods.rb"
