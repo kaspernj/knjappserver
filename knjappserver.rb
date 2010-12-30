@@ -36,6 +36,7 @@ class Knjappserver
 		self.loadfile "#{$knjappserver[:path]}/include/class_httpsession.rb"
 		self.loadfile "#{$knjappserver[:path]}/include/class_session.rb"
 		self.loadfile "#{$knjappserver[:path]}/include/class_session_accessor.rb"
+		self.loadfile "#{$knjappserver_config["knjrbfw"]}knj/objects.rb"
 		
 		@config = config
 		@db = @config[:db]
