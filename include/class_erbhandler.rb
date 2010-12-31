@@ -6,6 +6,7 @@ class Knjappserver::ERBHandler
 		
 		#Hack the Knj::Thread to accept data - this is how get, post and etc. are set.
 		Thread.current.data[:knjappserver] = data
+		Thread.current.data[:knjappserver][:db] = data[:httpsession].db
 		
 		cont = KnjEruby.load_return(data[:filepath], {
 			:with_headers => false,

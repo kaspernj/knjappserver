@@ -4,7 +4,7 @@ class Knjappserver::Session < Db_row
 	def initialize(data, kas)
 		@kas = kas
 		@edata = {}
-		super(:objects => @kas.ob, :db => @kas.db, :data => data, :table => :sessions)
+		super(:objects => @kas.ob, :db => @kas.db, :data => data, :table => :sessions, :force_selfdb => true)
 		
 		if self[:sess_data].length > 0
 			begin

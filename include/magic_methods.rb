@@ -33,3 +33,7 @@ end
 def _kas
 	return Knjappserver.data[:httpsession].kas
 end
+
+def _db
+	return Knjappserver.data[:db]
+end

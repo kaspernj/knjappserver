@@ -1,6 +1,6 @@
 class Knjappserver::Httpsession
 	attr_accessor :data
-	attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out
+	attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :db
 	
 	def initialize(httpserver, socket)
 		@data = {}
@@ -28,7 +28,9 @@ class Knjappserver::Httpsession
 							sleep 0.1
 						end
 						
+						@db = @kas.db_handler.get_and_lock
 						self.serve_webrick(req)
+						@kas.db_handler.free(@db)
 					else
 						req_read = ""
 						
