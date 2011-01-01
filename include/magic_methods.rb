@@ -35,5 +35,6 @@ def _kas
 end
 
 def _db
-	return Knjappserver.data[:db]
+	return Knjappserver.data[:db] if Knjappserver.data
+	return $db #return the global database object, if we are not running in a thread with one.
 end

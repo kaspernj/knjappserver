@@ -109,7 +109,7 @@ class Knjappserver::Httpsession
 		end
 		
 		request.cookies.each do |cookie|
-			@cookie[cookie.name] = cookie.value
+			@cookie[cookie.name] = Php.urldecode(cookie.value)
 		end
 		
 		serv_data = self.serve_real(
