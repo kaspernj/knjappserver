@@ -45,36 +45,40 @@ class Knjappserver::Httpsession
 					end
 				end
 			rescue WEBrick::HTTPStatus::RequestTimeout => e
-				STDOUT.print "Request Timeout\n"
-				
-				self.destruct
 				self.close
+				self.destruct
 			rescue WEBrick::HTTPStatus::EOFError => e
-				STDOUT.print "EOF\n"
-				
-				self.destruct
 				self.close
+				self.destruct
 			rescue => e
 				STDOUT.puts e.inspect
 				STDOUT.puts e.backtrace
 				
-				self.destruct
 				self.close
+				self.destruct
 			end
 		end
 	end
 	
 	def destruct
 		@httpserver.http_sessions.delete(self)
+		@httpserver = nil
 		@data = nil
-		@socket = nil
 		@kas = nil
-		@active = false
-		@working = false
+		@active = nil
+		@working = nil
 		@session = nil
 		@session_id = nil
+		@out = nil
 		
-		#print "Destructed.\n"
+		@cookie = nil
+		@get = nil
+		@post = nil
+	end
+	
+	def close
+		@socket.close if @socket
+		@socket = nil
 	end
 	
 	def serve_webrick(request)
@@ -394,13 +398,5 @@ class Knjappserver::Httpsession
 			:lastmod => lastmod,
 			:cache => cache
 		}
-	end
-	
-	def close
-		@socket.close if @socket
-		@socket = nil
-		@httpserver = nil
-		@kas = nil
-		@active = nil
 	end
 end
