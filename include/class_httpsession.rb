@@ -9,7 +9,6 @@ class Knjappserver::Httpsession
 		@kas = httpserver.kas
 		@active = true
 		@working = true
-		@out = StringIO.new
 		
 		require "webrick"
 		
@@ -19,6 +18,7 @@ class Knjappserver::Httpsession
 					@working = false
 					
 					if @kas.config[:engine_webrick]
+						@out = StringIO.new
 						req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP) if @kas.config[:engine_webrick]
 						req.parse(@socket)
 						@working = true
@@ -45,9 +45,13 @@ class Knjappserver::Httpsession
 					end
 				end
 			rescue WEBrick::HTTPStatus::RequestTimeout => e
+				STDOUT.print "Request Timeout\n"
+				
 				self.destruct
 				self.close
 			rescue WEBrick::HTTPStatus::EOFError => e
+				STDOUT.print "EOF\n"
+				
 				self.destruct
 				self.close
 			rescue => e

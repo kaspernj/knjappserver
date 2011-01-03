@@ -13,7 +13,6 @@ class Knjappserver::ERBHandler
 			:io => data[:httpsession].out,
 			:custom_io => true
 		})
-		
 		headers = KnjEruby.headers
 		KnjEruby.reset_headers
 		
