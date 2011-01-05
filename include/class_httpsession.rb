@@ -21,16 +21,18 @@ class Knjappserver::Httpsession
 						@out = StringIO.new
 						req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP) if @kas.config[:engine_webrick]
 						req.parse(@socket)
-						@working = true
 						
 						# Check if we should be waiting with executing the pending request.
 						while @kas.paused?
 							sleep 0.1
 						end
 						
+						@working = true
+						
 						@db = @kas.db_handler.get_and_lock
 						self.serve_webrick(req)
 						@kas.db_handler.free(@db)
+						req = nil
 					else
 						req_read = ""
 						
@@ -70,15 +72,14 @@ class Knjappserver::Httpsession
 		@session = nil
 		@session_id = nil
 		@out = nil
-		
 		@cookie = nil
 		@get = nil
 		@post = nil
+		@socket = nil
 	end
 	
 	def close
 		@socket.close if @socket
-		@socket = nil
 	end
 	
 	def serve_webrick(request)
@@ -132,11 +133,11 @@ class Knjappserver::Httpsession
 		
 		serv_data[:headers].each do |key, valarr|
 			valarr.each do |val|
-				if key.to_s.strip.downcase.match(/^Set-Cookie/i)
-					WEBrick::Cookie.parse(val).each do |cook|
-						res.cookies << cook
+				if key.to_s.strip.downcase.match(/^set-cookie/i)
+					WEBrick::Cookie.parse_set_cookies(val).each do |cookie|
+						res.cookies << cookie
 					end
-				elsif key.to_s.strip.downcase.match(/^Content-Type/i)
+				elsif key.to_s.strip.downcase.match(/^content-type/i)
 					raise "Could not parse content-type: '#{val}'." if !match = val.match(/^(.+?)(;|$)/)
 					ctype = match[1]
 				else
