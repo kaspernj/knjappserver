@@ -9,7 +9,7 @@ class Knjappserver::Cleaner
 					sess_arr = @kas.httpserv.http_sessions
 					sess_arr.each do |sess|
 						if sess.working
-							print "Someone is working - wait one sec and try to restart again!\n"
+							print "Someone is working - wait two sec and try to restart again!\n"
 							dostop = false
 							break
 						end
@@ -19,11 +19,11 @@ class Knjappserver::Cleaner
 						@kas.stop
 						fpath = Php.realpath(File.dirname(__FILE__) + "/../knjappserver.rb")
 						print "Restarting knjAppServer...\n"
-						exec "ruby \"#{fpath}\""
+						exec("ruby \"#{fpath}\" >> /dev/null 2>&1 &")
 					end
 				end
 				
-				sleep 1
+				sleep 2
 			end
 		end
 	end
