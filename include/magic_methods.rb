@@ -1,40 +1,40 @@
 def _cookie
-	return Knjappserver.data[:cookie]
+	return Thread.current[:knjappserver][:cookie]
 end
 
 def _get
-	return Knjappserver.data[:get]
+	return Thread.current[:knjappserver][:get]
 end
 
 def _post
-	return Knjappserver.data[:post]
+	return Thread.current[:knjappserver][:post]
 end
 
 def _session
-	return Knjappserver.data[:httpsession].session.accessor
+	return Thread.current[:knjappserver][:httpsession].session.accessor
 end
 
 def _session_hash
-	return Knjappserver.data[:httpsession].session_hash
+	return Thread.current[:knjappserver][:httpsession].session_hash
 end
 
 def _server
-	return Knjappserver.data[:meta]
+	return Thread.current[:knjappserver][:meta]
 end
 
 def _httpsession
-	return Knjappserver.data[:httpsession]
+	return Thread.current[:knjappserver][:httpsession]
 end
 
 def _meta
-	return Knjappserver.data[:meta]
+	return Thread.current[:knjappserver][:meta]
 end
 
 def _kas
-	return Knjappserver.data[:httpsession].kas
+	return Thread.current[:knjappserver][:httpsession].kas
 end
 
 def _db
-	return Knjappserver.data[:db] if Knjappserver.data
+	return Thread.current[:knjappserver][:db] if Thread.current[:knjappserver]
 	return $db #return the global database object, if we are not running in a thread with one.
 end
