@@ -1,6 +1,6 @@
 class Knjappserver::Httpsession
 	attr_accessor :data
-	attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :db
+	attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :db, :cookie, :get, :post
 	
 	def initialize(httpserver, socket)
 		@data = {}
