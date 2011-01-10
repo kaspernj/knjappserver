@@ -121,6 +121,7 @@ class Knjappserver
 	end
 	
 	def self.data
+		raise "Could not register current thread." if !Thread.current[:knjappserver]
 		return Thread.current[:knjappserver]
 	end
 	

@@ -1,6 +1,6 @@
 class Knjappserver::Httpsession
 	attr_accessor :data
-	attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :db, :cookie, :get, :post
+	attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :db, :cookie, :get, :post, :meta
 	
 	def initialize(httpserver, socket)
 		@data = {}
@@ -23,15 +23,13 @@ class Knjappserver::Httpsession
 						req.parse(@socket)
 						
 						# Check if we should be waiting with executing the pending request.
-						while @kas.paused?
-							sleep 0.1
-						end
-						
+						sleep 0.1 while @kas.paused?
 						@working = true
 						
 						@db = @kas.db_handler.get_and_lock
 						self.serve_webrick(req)
 						@kas.db_handler.free(@db)
+						@db = nil
 						req = nil
 					else
 						req_read = ""
@@ -45,17 +43,16 @@ class Knjappserver::Httpsession
 							end
 						end
 					end
+					
+					break
 				end
-			rescue WEBrick::HTTPStatus::RequestTimeout => e
-				self.close
-				self.destruct
-			rescue WEBrick::HTTPStatus::EOFError => e
-				self.close
-				self.destruct
+			rescue WEBrick::HTTPStatus::RequestTimeout, WEBrick::HTTPStatus::EOFError
+				#Ignore - the user probaly left.
 			rescue => e
 				STDOUT.puts e.inspect
 				STDOUT.puts e.backtrace
-				
+			ensure
+				STDOUT.print "Destruct.\n"
 				self.close
 				self.destruct
 			end
@@ -88,9 +85,9 @@ class Knjappserver::Httpsession
 		})
 		res.status = 200
 		
-		meta = request.meta_vars
+		@meta = request.meta_vars
 		
-		page_filepath = meta["PATH_INFO"]
+		page_filepath = @meta["PATH_INFO"]
 		if page_filepath.length <= 0 or page_filepath == "/"
 			page_filepath = @kas.config[:default_page]
 		end
@@ -103,13 +100,13 @@ class Knjappserver::Httpsession
 		ctype = @kas.config[:filetypes][ext.to_sym] if @kas.config[:filetypes][ext.to_sym]
 		
 		if !@session
-			@session_id = Php.md5("#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}")
+			@session_id = Php.md5("#{@meta["HTTP_HOST"]}_#{@meta["REMOTE_HOST"]}_#{@meta["HTTP_X_FORWARDED_SERVER"]}_#{@meta["HTTP_X_FORWARDED_FOR"]}_#{@meta["HTTP_X_FORWARDED_HOST"]}_#{@meta["REMOTE_ADDR"]}_#{@meta["HTTP_USER_AGENT"]}")
 			session = @kas.session_fromid(@session_id)
 			@session = session[:dbobj]
 			@session_hash = session[:hash]
 		end
 		
-		@get = Web.parse_urlquery(meta["QUERY_STRING"])
+		@get = Web.parse_urlquery(@meta["QUERY_STRING"])
 		@post = {}
 		@cookie = {}
 		
@@ -122,11 +119,11 @@ class Knjappserver::Httpsession
 		end
 		
 		serv_data = self.serve_real(
-			:meta => meta,
+			:meta => @meta,
 			:request => request,
 			:headers => {},
 			:page_path => page_path,
-			:host => meta["HTTP_HOST"],
+			:host => @meta["HTTP_HOST"],
 			:ctype => ctype,
 			:ext => ext
 		)
