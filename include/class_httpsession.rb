@@ -17,7 +17,6 @@ class Knjappserver::Httpsession
 		Knj::Thread.new do
 			begin
 				while @active
-					sleep 0.1
 					@working = false
 					
 					if @kas.config[:engine_webrick]
@@ -39,6 +38,7 @@ class Knjappserver::Httpsession
 						@kas.db_handler.free(@db)
 						@db = nil
 						req = nil
+						@kas.served += 1
 					else
 						req_read = ""
 						
