@@ -2,8 +2,6 @@ require "#{$knjfwpath}knj/erb/include"
 
 class Knjappserver::ERBHandler
 	def erb_handler(data)
-		$knj_eruby = KnjEruby
-		
 		#Hack the Knj::Thread to accept data - this is how get, post and etc. are set.
 		Thread.current.data[:knjappserver] = data
 		Thread.current.data[:knjappserver][:db] = data[:httpsession].db
@@ -59,3 +57,6 @@ KnjEruby.connect("error") do |e|
 		end
 	end
 end
+
+#Hack to detect we are running KnjEruby
+$knj_eruby = KnjEruby
