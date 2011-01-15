@@ -1,5 +1,5 @@
 class Knjappserver
-	attr_reader :config, :httpserv, :db, :ob, :translations, :cleaner, :should_restart, :mod_event, :paused, :db_handler
+	attr_reader :config, :httpserv, :db, :ob, :translations, :cleaner, :should_restart, :mod_event, :paused, :db_handler, :gettext
 	
 	def initialize(config)
 		@paused = 0
@@ -59,6 +59,12 @@ class Knjappserver
 			:db => @db
 		)
 		@cleaner = Cleaner.new(self)
+		
+		if config[:locales_root]
+			@gettext = Knj::Gettext_threadded.new(
+				"dir" => config[:locales_root]
+			)
+		end
 	end
 	
 	def loadfile(fpath)
@@ -134,15 +140,15 @@ class Knjappserver
 	
 	def trans(obj, key)
 		args = {}
-		args[:locale] = _httpsession.data[:locale] if _httpsession.data[:locale]
-		args[:locale] = _session.data[:locale] if _httpsession.data[:locale] and !args[:locale]
-		
+		args[:locale] = _session[:locale] if _session[:locale] and !args[:locale]
+		args[:locale] = _httpsession.data[:locale] if _httpsession.data[:locale] and !args[:locale]
 		@translations.get(obj, key, args)
 	end
 	
 	def trans_set(obj, values)
 		args = {}
-		args[:locale] = _httpsession.data[:locale] if _httpsession.data[:locale]
+		args[:locale] = _session[:locale] if _session[:locale] and !args[:locale]
+		args[:locale] = _httpsession.data[:locale] if _httpsession.data[:locale] and !args[:locale]
 		@translations.set(obj, values, args)
 	end
 	
