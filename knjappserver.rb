@@ -20,7 +20,8 @@ require "#{filepath}include/class_knjappserver.rb"
 
 #Lets hack the $stdout to make it possible to have many running threads that all uses print.
 require "#{filepath}include/class_customio.rb"
-$stdout = Knjappserver::CustomIO.new
+cio = Knjappserver::CustomIO.new
+$stdout = cio
 
 print "Starting knjAppServer.\n"
 require "./include/magic_methods.rb"
