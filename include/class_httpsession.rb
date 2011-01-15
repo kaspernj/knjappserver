@@ -1,6 +1,6 @@
 class Knjappserver::Httpsession
 	attr_accessor :data
-	attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :db, :cookie, :get, :post, :meta
+	attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :db, :cookie, :get, :post, :meta, :eruby
 	
 	def initialize(httpserver, socket)
 		@data = {}
@@ -9,12 +9,15 @@ class Knjappserver::Httpsession
 		@kas = httpserver.kas
 		@active = true
 		@working = true
+		@eruby = Knj::Eruby.new
+		@self_var = self
 		
 		require "webrick"
 		
 		Knj::Thread.new do
 			begin
 				while @active
+					sleep 0.1
 					@working = false
 					
 					if @kas.config[:engine_webrick]
@@ -24,6 +27,11 @@ class Knjappserver::Httpsession
 						
 						# Check if we should be waiting with executing the pending request.
 						sleep 0.1 while @kas.paused?
+						
+						if @kas.config[:max_requests_working]
+							sleep 0.1 while @httpserver.count_working > @kas.config[:max_requests_working]
+						end
+						
 						@working = true
 						
 						@db = @kas.db_handler.get_and_lock
@@ -49,6 +57,10 @@ class Knjappserver::Httpsession
 			rescue => e
 				STDOUT.puts e.inspect
 				STDOUT.puts e.backtrace
+				
+				if e.message == "Corruption!"
+					exit
+				end
 			ensure
 				self.close
 				self.destruct
@@ -70,6 +82,7 @@ class Knjappserver::Httpsession
 		@get = nil
 		@post = nil
 		@socket = nil
+		@eruby = nil
 	end
 	
 	def close
@@ -97,11 +110,14 @@ class Knjappserver::Httpsession
 		ctype = @kas.config[:default_filetype]
 		ctype = @kas.config[:filetypes][ext.to_sym] if @kas.config[:filetypes][ext.to_sym]
 		
-		if !@session
-			@session_id = Php.md5("#{@meta["HTTP_HOST"]}_#{@meta["REMOTE_HOST"]}_#{@meta["HTTP_X_FORWARDED_SERVER"]}_#{@meta["HTTP_X_FORWARDED_FOR"]}_#{@meta["HTTP_X_FORWARDED_HOST"]}_#{@meta["REMOTE_ADDR"]}_#{@meta["HTTP_USER_AGENT"]}")
+		calc_id = Php.md5("#{@meta["HTTP_HOST"]}_#{@meta["REMOTE_HOST"]}_#{@meta["HTTP_X_FORWARDED_SERVER"]}_#{@meta["HTTP_X_FORWARDED_FOR"]}_#{@meta["HTTP_X_FORWARDED_HOST"]}_#{@meta["REMOTE_ADDR"]}_#{@meta["HTTP_USER_AGENT"]}")
+		
+		if !@session or !@session_id or calc_id != @session_id
+			@session_id = calc_id
 			session = @kas.session_fromid(@session_id)
 			@session = session[:dbobj]
 			@session_hash = session[:hash]
+			@session_accessor = @session.accessor
 		end
 		
 		@get = Web.parse_urlquery(@meta["QUERY_STRING"])
@@ -142,15 +158,6 @@ class Knjappserver::Httpsession
 		end
 		
 		res.content_type = ctype
-		
-		if @kas.config[:debug]
-			Php.print_r(request.header)
-			print "Ext: #{ext}\n"
-			print "Path: #{page_path}\n"
-			print "CType: #{ctype}\n"
-			print "\n"
-		end
-		
 		res.body = serv_data[:content]
 		
 		if serv_data[:lastmod]
@@ -265,9 +272,12 @@ class Knjappserver::Httpsession
 						:httpsession => self,
 						:session => @session,
 						:session_id => @session_id,
+						:session_accessor => @session_accessor,
+						:session_hash => @session_hash,
 						:request => request,
 						:meta => details[:meta],
 						:filepath => details[:page_path],
+						:db => @db,
 						:server => {
 							:host => details[:host],
 							:keepalive => details[:keepalive],
