@@ -17,7 +17,6 @@ class Knjappserver::Httpsession
 		Knj::Thread.new do
 			begin
 				while @active
-					sleep 0.1
 					@working = false
 					
 					if @kas.config[:engine_webrick]
@@ -39,6 +38,7 @@ class Knjappserver::Httpsession
 						@kas.db_handler.free(@db)
 						@db = nil
 						req = nil
+						@kas.served += 1
 					else
 						req_read = ""
 						
@@ -337,7 +337,7 @@ class Knjappserver::Httpsession
 			
 			if handler_use
 				if handler_info[:callback]
-					ret = Php.call_user_func(handler_info[:callback], {
+					ret = handler_info[:callback].call({
 						:get => @get,
 						:post => @post,
 						:cookie => @cookie,
@@ -350,6 +350,7 @@ class Knjappserver::Httpsession
 						:meta => details[:meta],
 						:filepath => details[:page_path],
 						:db => @db,
+						:kas => @kas,
 						:server => {
 							:host => details[:host],
 							:keepalive => details[:keepalive],

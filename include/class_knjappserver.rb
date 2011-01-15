@@ -1,12 +1,13 @@
 class Knjappserver
-	attr_reader :config, :httpserv, :db, :ob, :translations, :cleaner, :should_restart, :mod_event, :paused, :db_handler, :gettext, :sessions
-	attr_accessor :httpsessions
+	attr_reader :config, :httpserv, :db, :ob, :translations, :cleaner, :should_restart, :mod_event, :paused, :db_handler, :gettext, :sessions, :eruby
+	attr_accessor :served
 	
 	def initialize(config)
 		@paused = 0
 		@should_restart = false
-		@httpsessions = {}
 		@mod_events = {}
+		@served = 0
+		@eruby = Knj::Eruby.new
 		
 		@mod_files = {}
 		paths = [
