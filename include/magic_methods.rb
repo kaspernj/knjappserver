@@ -31,7 +31,11 @@ def _meta
 end
 
 def _kas
-	return Thread.current[:knjappserver][:httpsession].kas
+	if Thread.current and Thread.current[:knjappserver] and Thread.current[:knjappserver][:httpsession]
+		return Thread.current[:knjappserver][:httpsession].kas
+	end
+	
+	return false
 end
 
 def _db
