@@ -11,11 +11,11 @@ def _post
 end
 
 def _session
-	return Thread.current[:knjappserver][:httpsession].session.accessor
+	return Thread.current[:knjappserver][:session_accessor]
 end
 
 def _session_hash
-	return Thread.current[:knjappserver][:httpsession].session_hash
+	return Thread.current[:knjappserver][:session_hash]
 end
 
 def _server

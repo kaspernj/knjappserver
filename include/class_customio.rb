@@ -2,7 +2,7 @@ class Knjappserver::CustomIO < StringIO
 	def print(str)
 		thread = Thread.current
 		
-		if thread and thread[:knjappserver]
+		if thread and thread[:knjappserver] and thread[:knjappserver][:httpsession] and thread[:knjappserver][:httpsession].out
 			#STDOUT.print("Print: " + str)
 			return thread[:knjappserver][:httpsession].out.print(str)
 		else
