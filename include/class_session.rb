@@ -1,4 +1,4 @@
-class Knjappserver::Session < Db_row
+class Knjappserver::Session < Knj::Db_row
 	attr_reader :kas, :accessor, :edata
 	
 	def initialize(data, kas)

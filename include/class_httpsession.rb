@@ -265,7 +265,7 @@ class Knjappserver::Httpsession
 			
 			if handler_use
 				if handler_info[:callback]
-					ret = Php.call_user_func(handler_info[:callback], {
+					ret = handler_info[:callback].call({
 						:get => @get,
 						:post => @post,
 						:cookie => @cookie,
@@ -278,6 +278,7 @@ class Knjappserver::Httpsession
 						:meta => details[:meta],
 						:filepath => details[:page_path],
 						:db => @db,
+						:kas => @kas,
 						:server => {
 							:host => details[:host],
 							:keepalive => details[:keepalive],
