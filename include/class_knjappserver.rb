@@ -137,16 +137,16 @@ class Knjappserver
 		args[:locale] = _httpsession.data[:locale] if _httpsession.data[:locale]
 		args[:locale] = _session.data[:locale] if _httpsession.data[:locale] and !args[:locale]
 		
-		_kas.translations.get(obj, key, args)
+		@translations.get(obj, key, args)
 	end
 	
 	def trans_set(obj, values)
 		args = {}
 		args[:locale] = _httpsession.data[:locale] if _httpsession.data[:locale]
-		_kas.translations.set(obj, values, args)
+		@translations.set(obj, values, args)
 	end
 	
 	def trans_del(obj)
-		_kas.translations.delete(obj)
+		@translations.delete(obj)
 	end
 end

@@ -1,4 +1,4 @@
-require "#{$knjfwpath}knj/erb/include"
+require "#{$knjappserver_config["knjrbfw"]}knj/erb/include.rb"
 
 class Knjappserver::ERBHandler
 	def erb_handler(data)

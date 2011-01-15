@@ -43,8 +43,6 @@ class Knjappserver::Httpsession
 							end
 						end
 					end
-					
-					break
 				end
 			rescue WEBrick::HTTPStatus::RequestTimeout, WEBrick::HTTPStatus::EOFError
 				#Ignore - the user probaly left.
@@ -52,7 +50,6 @@ class Knjappserver::Httpsession
 				STDOUT.puts e.inspect
 				STDOUT.puts e.backtrace
 			ensure
-				STDOUT.print "Destruct.\n"
 				self.close
 				self.destruct
 			end
