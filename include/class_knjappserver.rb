@@ -33,6 +33,7 @@ class Knjappserver
 			"#{$knjappserver[:path]}/include/class_session.rb",
 			"#{$knjappserver[:path]}/include/class_session_accessor.rb",
 			"#{$knjappserver_config["knjrbfw"]}knj/objects.rb",
+			"#{$knjappserver_config["knjrbfw"]}knj/web.rb",
 			"#{$knjappserver_config["knjrbfw"]}knj/thread.rb",
 			"#{$knjappserver_config["knjrbfw"]}knj/threadhandler.rb",
 			"#{$knjappserver_config["knjrbfw"]}knj/knjdb/libknjdb.rb"
@@ -146,7 +147,7 @@ class Knjappserver
 	end
 	
 	def session_fromid(idhash)
-		if !@sessions[idhash]
+		if !@sessions.has_key?(idhash)
 			@sessions[idhash] = {
 				:dbobj => Knjappserver::Session.add(self, {
 					:idhash => idhash

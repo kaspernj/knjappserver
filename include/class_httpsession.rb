@@ -34,6 +34,8 @@ class Knjappserver::Httpsession
 						@working = true
 						
 						@db = @kas.db_handler.get_and_lock
+						raise "Didnt get a database?" if !@db
+						
 						self.serve_webrick(req)
 						@kas.db_handler.free(@db)
 						@db = nil
@@ -54,7 +56,9 @@ class Knjappserver::Httpsession
 				end
 			rescue WEBrick::HTTPStatus::RequestTimeout, WEBrick::HTTPStatus::EOFError
 				#Ignore - the user probaly left.
-			rescue => e
+			rescue SystemExit, Interrupt => e
+				raise e
+			rescue RuntimeError, Exception => e
 				bt = e.backtrace
 				first = nil
 				bt.each do |key, val|
@@ -63,19 +67,12 @@ class Knjappserver::Httpsession
 				end
 				
 				if first.index("webrick/httprequest.rb") != nil or first.index("webrick/httpresponse.rb") != nil
-					if @kas.config[:verbose]
+					if @kas.config[:debug]
 						STDOUT.print "Notice: Webrick error - properly faulty request - ignoring!\n"
-						
-						if @kas.config[:debug]
-							STDOUT.puts e.inspect
-							STDOUT.puts e.backtrace
-						end
+						STDOUT.puts e.inspect
+						STDOUT.puts e.backtrace
 					end
 				else
-					bt.each do |key, val|
-						print "Test: #{key}: #{val}\n"
-					end
-					
 					STDOUT.puts e.inspect
 					STDOUT.puts e.backtrace
 				end
@@ -104,7 +101,11 @@ class Knjappserver::Httpsession
 	end
 	
 	def close
-		@socket.close if @socket
+		begin
+			@socket.close if @socket
+		rescue => e
+			#ignore if it fails...
+		end
 	end
 	
 	def serve_webrick(request)
@@ -120,6 +121,8 @@ class Knjappserver::Httpsession
 		if page_filepath.length <= 0 or page_filepath == "/"
 			page_filepath = @kas.config[:default_page]
 		end
+		
+		STDOUT.print "Serving: #{page_filepath}\n" if @kas.config[:verbose]
 		
 		page_path = "#{@kas.config[:doc_root]}/#{page_filepath}"
 		pinfo = Php.pathinfo(page_path)
