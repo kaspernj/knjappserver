@@ -3,6 +3,7 @@ class Knjappserver
 	attr_accessor :served
 	
 	def initialize(config)
+		@config = config
 		@paused = 0
 		@should_restart = false
 		@mod_events = {}
@@ -15,24 +16,36 @@ class Knjappserver
 			"#{$knjappserver[:path]}/include/class_knjappserver.rb",
 			"#{$knjappserver[:path]}/include/class_customio.rb"
 		]
-		@mod_event = Event_filemod.new(:wait => 2, :paths => paths) do |event, path|
-			print "File changed - restart server: #{path}\n"
-			@should_restart = true
-			@mod_event.destroy
+		
+		if @config[:autorestart]
+			@mod_event = Event_filemod.new(:wait => 2, :paths => paths) do |event, path|
+				print "File changed - restart server: #{path}\n"
+				@should_restart = true
+				@mod_event.destroy
+			end
 		end
 		
-		self.loadfile "#{$knjappserver[:path]}/include/class_cleaner.rb"
-		self.loadfile "#{$knjappserver[:path]}/include/class_session_accessor.rb"
-		self.loadfile "#{$knjappserver[:path]}/include/class_httpserver.rb"
-		self.loadfile "#{$knjappserver[:path]}/include/class_httpsession.rb"
-		self.loadfile "#{$knjappserver[:path]}/include/class_session.rb"
-		self.loadfile "#{$knjappserver[:path]}/include/class_session_accessor.rb"
-		self.loadfile "#{$knjappserver_config["knjrbfw"]}knj/objects.rb"
-		self.loadfile "#{$knjappserver_config["knjrbfw"]}knj/thread.rb"
-		self.loadfile "#{$knjappserver_config["knjrbfw"]}knj/threadhandler.rb"
-		self.loadfile "#{$knjappserver_config["knjrbfw"]}knj/knjdb/libknjdb.rb"
+		files = [
+			"#{$knjappserver[:path]}/include/class_cleaner.rb",
+			"#{$knjappserver[:path]}/include/class_session_accessor.rb",
+			"#{$knjappserver[:path]}/include/class_httpserver.rb",
+			"#{$knjappserver[:path]}/include/class_httpsession.rb",
+			"#{$knjappserver[:path]}/include/class_session.rb",
+			"#{$knjappserver[:path]}/include/class_session_accessor.rb",
+			"#{$knjappserver_config["knjrbfw"]}knj/objects.rb",
+			"#{$knjappserver_config["knjrbfw"]}knj/web.rb",
+			"#{$knjappserver_config["knjrbfw"]}knj/thread.rb",
+			"#{$knjappserver_config["knjrbfw"]}knj/threadhandler.rb",
+			"#{$knjappserver_config["knjrbfw"]}knj/knjdb/libknjdb.rb"
+		]
+		files.each do |file|
+			if @config[:autorestart]
+				self.loadfile file
+			else
+				require file
+			end
+		end
 		
-		@config = config
 		@db = @config[:db]
 		@ob = Objects.new(
 			:db => db,
@@ -71,6 +84,11 @@ class Knjappserver
 	end
 	
 	def loadfile(fpath)
+		if !@config[:autorestart]
+			require fpath
+			return nil
+		end
+		
 		rpath = Php.realpath(fpath)
 		if !rpath or !File.exists?(rpath)
 			raise "No such filepath: #{fpath}"
@@ -129,7 +147,7 @@ class Knjappserver
 	end
 	
 	def session_fromid(idhash)
-		if !@sessions[idhash]
+		if !@sessions.has_key?(idhash)
 			@sessions[idhash] = {
 				:dbobj => Knjappserver::Session.add(self, {
 					:idhash => idhash

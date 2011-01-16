@@ -34,6 +34,8 @@ class Knjappserver::Httpsession
 						@working = true
 						
 						@db = @kas.db_handler.get_and_lock
+						raise "Didnt get a database?" if !@db
+						
 						self.serve_webrick(req)
 						@kas.db_handler.free(@db)
 						@db = nil
@@ -56,12 +58,25 @@ class Knjappserver::Httpsession
 				break
 			rescue WEBrick::HTTPStatus::RequestTimeout, WEBrick::HTTPStatus::EOFError
 				#Ignore - the user probaly left.
-			rescue => e
-				STDOUT.puts e.inspect
-				STDOUT.puts e.backtrace
+			rescue SystemExit, Interrupt => e
+				raise e
+			rescue RuntimeError, Exception => e
+				bt = e.backtrace
+				first = nil
+				bt.each do |key, val|
+					first = key
+					break
+				end
 				
-				if e.message == "Corruption!"
-					exit
+				if first.index("webrick/httprequest.rb") != nil or first.index("webrick/httpresponse.rb") != nil
+					if @kas.config[:debug]
+						STDOUT.print "Notice: Webrick error - properly faulty request - ignoring!\n"
+						STDOUT.puts e.inspect
+						STDOUT.puts e.backtrace
+					end
+				else
+					STDOUT.puts e.inspect
+					STDOUT.puts e.backtrace
 				end
 			ensure
 				self.close
@@ -88,7 +103,11 @@ class Knjappserver::Httpsession
 	end
 	
 	def close
-		@socket.close if @socket
+		begin
+			@socket.close if @socket
+		rescue => e
+			#ignore if it fails...
+		end
 	end
 	
 	def serve_webrick(request)
@@ -104,6 +123,8 @@ class Knjappserver::Httpsession
 			page_filepath = @kas.config[:default_page]
 		end
 		
+		STDOUT.print "Serving: #{page_filepath}\n" if @kas.config[:verbose]
+		
 		page_path = "#{@kas.config[:doc_root]}/#{page_filepath}"
 		pinfo = Php.pathinfo(page_path)
 		ext = pinfo["extension"].downcase
@@ -111,7 +132,7 @@ class Knjappserver::Httpsession
 		ctype = @kas.config[:default_filetype]
 		ctype = @kas.config[:filetypes][ext.to_sym] if @kas.config[:filetypes][ext.to_sym]
 		
-		calc_id = Php.md5("#{@meta["HTTP_HOST"]}_#{@meta["REMOTE_HOST"]}_#{@meta["HTTP_X_FORWARDED_SERVER"]}_#{@meta["HTTP_X_FORWARDED_FOR"]}_#{@meta["HTTP_X_FORWARDED_HOST"]}_#{@meta["REMOTE_ADDR"]}_#{@meta["HTTP_USER_AGENT"]}")
+		calc_id = "#{@meta["HTTP_HOST"]}_#{@meta["REMOTE_HOST"]}_#{@meta["HTTP_X_FORWARDED_SERVER"]}_#{@meta["HTTP_X_FORWARDED_FOR"]}_#{@meta["HTTP_X_FORWARDED_HOST"]}_#{@meta["REMOTE_ADDR"]}_#{@meta["HTTP_USER_AGENT"]}".hash
 		
 		if !@session or !@session_id or calc_id != @session_id
 			@session_id = calc_id
@@ -121,7 +142,7 @@ class Knjappserver::Httpsession
 			@session_accessor = @session.accessor
 		end
 		
-		@get = Web.parse_urlquery(@meta["QUERY_STRING"])
+		@get = Knj::Web.parse_urlquery(@meta["QUERY_STRING"])
 		@post = {}
 		@cookie = {}
 		
@@ -145,11 +166,13 @@ class Knjappserver::Httpsession
 		
 		serv_data[:headers].each do |key, valarr|
 			valarr.each do |val|
-				if key.to_s.strip.downcase.match(/^set-cookie/i)
+				keystr = key.to_s.strip.downcase
+				
+				if keystr.match(/^set-cookie/)
 					WEBrick::Cookie.parse_set_cookies(val).each do |cookie|
 						res.cookies << cookie
 					end
-				elsif key.to_s.strip.downcase.match(/^content-type/i)
+				elsif keystr.match(/^content-type/i)
 					raise "Could not parse content-type: '#{val}'." if !match = val.match(/^(.+?)(;|$)/)
 					ctype = match[1]
 				else
@@ -368,7 +391,7 @@ class Knjappserver::Httpsession
 						end
 					end
 				else
-					raise "Could not figure out to use handler."
+					raise "Could not figure out how to use handler."
 				end
 				
 				break
