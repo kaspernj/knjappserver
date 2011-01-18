@@ -21,6 +21,7 @@ class Knjappserver::Httpsession
 					
 					if @kas.config[:engine_webrick]
 						@out = StringIO.new
+						
 						req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP) if @kas.config[:engine_webrick]
 						req.parse(@socket)
 						
