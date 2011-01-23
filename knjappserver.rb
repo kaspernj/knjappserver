@@ -9,13 +9,13 @@ filepath = File.dirname(__FILE__) + "/"
 
 require "#{filepath}conf/conf_vars"
 require "#{$knjappserver_config["knjrbfw"]}knj/autoload"
-include Knj
+require "#{$knjappserver_config["knjrbfw"]}knj/ext/webrick"
 
 $knjappserver = {
-	:path => Php.realpath(File.dirname(__FILE__))
+	:path => Knj::Php.realpath(File.dirname(__FILE__))
 }
 
-Os.chdir_file(Php.realpath(__FILE__))
+Knj::Os.chdir_file(Knj::Php.realpath(__FILE__))
 require "#{filepath}include/class_knjappserver.rb"
 
 #Lets hack the $stdout to make it possible to have many running threads that all uses print.

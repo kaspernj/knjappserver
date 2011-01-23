@@ -1,6 +1,6 @@
 class Knjappserver::Httpsession
 	attr_accessor :data
-	attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :db, :cookie, :get, :post, :meta, :eruby
+	attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :db, :cookie, :eruby
 	
 	def initialize(httpserver, socket)
 		@data = {}
@@ -10,49 +10,32 @@ class Knjappserver::Httpsession
 		@active = true
 		@working = true
 		@eruby = Knj::Eruby.new
-		@self_var = self
 		
-		require "webrick"
+		STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if @kas.config[:debug]
 		
 		Knj::Thread.new do
 			begin
 				while @active
 					@working = false
+					@out = StringIO.new
+					req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP) if @kas.config[:engine_webrick]
+					req.parse(@socket)
 					
-					if @kas.config[:engine_webrick]
-						@out = StringIO.new
-						req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP) if @kas.config[:engine_webrick]
-						req.parse(@socket)
-						
-						# Check if we should be waiting with executing the pending request.
-						sleep 0.1 while @kas.paused?
-						
-						if @kas.config[:max_requests_working]
-							sleep 0.1 while @httpserver.count_working > @kas.config[:max_requests_working]
-						end
-						
-						@working = true
-						
-						@db = @kas.db_handler.get_and_lock
-						raise "Didnt get a database?" if !@db
-						
-						self.serve_webrick(req)
-						@kas.db_handler.free(@db)
-						@db = nil
-						req = nil
-						@kas.served += 1
-					else
-						req_read = ""
-						
-						while @active
-							req_read += @socket.gets if @active
-							
-							if req_read.slice(-2, 2) == "\n\n" or req_read.slice(-4, 4) == "\r\n\r\n"
-								self.serve_internal(req_read)
-								break
-							end
-						end
+					# Check if we should be waiting with executing the pending request.
+					sleep 0.1 while @kas.paused?
+					
+					if @kas.config[:max_requests_working]
+						sleep 0.1 while @httpserver.count_working > @kas.config[:max_requests_working]
 					end
+					
+					@working = true
+					@db = @kas.db_handler.get_and_lock
+					raise "Didnt get a database?" if !@db
+					self.serve_webrick(req)
+					@kas.db_handler.free(@db)
+					@db = nil
+					@kas.served += 1
+					req.fixup if req.keep_alive?
 				end
 			rescue WEBrick::HTTPStatus::RequestTimeout, WEBrick::HTTPStatus::EOFError
 				#Ignore - the user probaly left.
@@ -67,7 +50,7 @@ class Knjappserver::Httpsession
 				end
 				
 				if first.index("webrick/httprequest.rb") != nil or first.index("webrick/httpresponse.rb") != nil
-					if @kas.config[:debug]
+					if @kas and @kas.config[:debug]
 						STDOUT.print "Notice: Webrick error - properly faulty request - ignoring!\n"
 						STDOUT.puts e.inspect
 						STDOUT.puts e.backtrace
@@ -77,26 +60,39 @@ class Knjappserver::Httpsession
 					STDOUT.puts e.backtrace
 				end
 			ensure
+				if req
+					req.destroy
+					req = nil
+				end
+				
 				self.close
 				self.destruct
 			end
 		end
 	end
 	
+	def finalize
+		STDOUT.print "Httpsession finalize #{self.__id__}.\n"
+	end
+	
 	def destruct
+		@thread = nil
+		STDOUT.print "Httpsession destruct (#{@httpserver.http_sessions.count})\n" if @kas.config[:debug]
 		@httpserver.http_sessions.delete(self)
+		
 		@httpserver = nil
 		@data = nil
 		@kas = nil
+		@db = nil
 		@active = nil
 		@working = nil
 		@session = nil
 		@session_id = nil
+		@session_accessor = nil
+		@session_hash = nil
 		@out = nil
-		@cookie = nil
-		@get = nil
-		@post = nil
 		@socket = nil
+		@eruby.destroy if @eruby
 		@eruby = nil
 	end
 	
@@ -115,23 +111,23 @@ class Knjappserver::Httpsession
 		)
 		res.status = 200
 		
-		@meta = request.meta_vars
+		meta = request.meta_vars
 		
-		page_filepath = @meta["PATH_INFO"]
+		page_filepath = meta["PATH_INFO"]
 		if page_filepath.length <= 0 or page_filepath == "/"
 			page_filepath = @kas.config[:default_page]
 		end
 		
-		STDOUT.print "Serving: #{page_filepath}\n" if @kas.config[:verbose]
+		STDOUT.print "Serving: #{page_filepath}\n" if @kas and @kas.config[:verbose]
 		
 		page_path = "#{@kas.config[:doc_root]}/#{page_filepath}"
-		pinfo = Php.pathinfo(page_path)
+		pinfo = Knj::Php.pathinfo(page_path)
 		ext = pinfo["extension"].downcase
 		
 		ctype = @kas.config[:default_filetype]
 		ctype = @kas.config[:filetypes][ext.to_sym] if @kas.config[:filetypes][ext.to_sym]
 		
-		calc_id = "#{@meta["HTTP_HOST"]}_#{@meta["REMOTE_HOST"]}_#{@meta["HTTP_X_FORWARDED_SERVER"]}_#{@meta["HTTP_X_FORWARDED_FOR"]}_#{@meta["HTTP_X_FORWARDED_HOST"]}_#{@meta["REMOTE_ADDR"]}_#{@meta["HTTP_USER_AGENT"]}".hash
+		calc_id = "#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}".hash
 		
 		if !@session or !@session_id or calc_id != @session_id
 			@session_id = calc_id
@@ -141,26 +137,37 @@ class Knjappserver::Httpsession
 			@session_accessor = @session.accessor
 		end
 		
-		@get = Knj::Web.parse_urlquery(@meta["QUERY_STRING"])
-		@post = {}
-		@cookie = {}
+		get = Knj::Web.parse_urlquery(meta["QUERY_STRING"])
+		post = {}
+		cookie = {}
 		
 		if meta["REQUEST_METHOD"] == "POST"
-			self.convert_webrick_post(@post, request.query)
+			self.convert_webrick_post(post, request.query)
 		end
 		
-		request.cookies.each do |cookie|
-			@cookie[cookie.name] = Php.urldecode(cookie.value)
+		request.cookies.each do |cookie_enum|
+			cookie[cookie_enum.name] = Knj::Php.urldecode(cookie_enum.value)
 		end
 		
 		serv_data = self.serve_real(
-			:meta => @meta,
+			:filepath => page_path,
+			:get => get,
+			:post => post,
+			:cookie => cookie,
+			:meta => meta,
 			:request => request,
 			:headers => {},
-			:page_path => page_path,
-			:host => @meta["HTTP_HOST"],
+			:host => meta["HTTP_HOST"],
 			:ctype => ctype,
-			:ext => ext
+			:ext => ext,
+			:session => @session,
+			:session_id => @session_id,
+			:session_accessor => @session_accessor,
+			:session_hash => @session_hash,
+			:httpsession => self,
+			:request => request,
+			:db => @db,
+			:kas => @kas
 		)
 		
 		serv_data[:headers].each do |key, valarr|
@@ -199,6 +206,14 @@ class Knjappserver::Httpsession
 		end
 		
 		res.send_response(@socket)
+		res.destroy
+		
+		#Letting them be nil is simply not enough (read that on a forum) - knj.
+		get.clear
+		post.clear
+		meta.clear
+		cookie.clear
+		serv_data.clear
 	end
 	
 	def convert_webrick_post(seton, webrick_post, args = {})
@@ -288,26 +303,7 @@ class Knjappserver::Httpsession
 			
 			if handler_use
 				if handler_info[:callback]
-					ret = handler_info[:callback].call({
-						:get => @get,
-						:post => @post,
-						:cookie => @cookie,
-						:httpsession => self,
-						:session => @session,
-						:session_id => @session_id,
-						:session_accessor => @session_accessor,
-						:session_hash => @session_hash,
-						:request => request,
-						:meta => details[:meta],
-						:filepath => details[:page_path],
-						:db => @db,
-						:kas => @kas,
-						:server => {
-							:host => details[:host],
-							:keepalive => details[:keepalive],
-							:headers => details[:headers]
-						}
-					})
+					ret = handler_info[:callback].call(details)
 					cont = ret[:content] if ret[:content]
 					
 					if ret[:headers]
@@ -327,23 +323,25 @@ class Knjappserver::Httpsession
 		end
 		
 		if !handler_found
-			if !File.exists?(details[:page_path])
+			if !File.exists?(details[:filepath])
 				statuscode = 404
 			else
-				lastmod = Datet.new(File.new(details[:page_path]).mtime)
+				lastmod = Knj::Datet.new(File.new(details[:filepath]).mtime)
 				
 				if cache_use and request.header["if-modified-since"] and request.header["if-modified-since"][0]
-					request_mod = Datet.parse(request.header["if-modified-since"][0])
+					request_mod = Knj::Datet.parse(request.header["if-modified-since"][0])
 					if request_mod == lastmod
 						cache = true
 					end
 				end
 				
 				if !cache
-					cont = Php.file_get_contents(details[:page_path]) #get plain content from file.
+					cont = Knj::Php.file_get_contents(details[:filepath]) #get plain content from file.
 				end
 			end
 		end
+		
+		details.clear
 		
 		return {
 			:statuscode => statuscode,

@@ -51,6 +51,9 @@ class Knjappserver::ERBHandler
 			headers_ret[header[0]] = [header[1]]
 		end
 		
+		Thread.current.data[:knjappserver].clear
+		Thread.current.data.delete(:knjappserver)
+		
 		return {
 			:content => cont,
 			:headers => headers_ret
