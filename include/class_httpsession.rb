@@ -169,6 +169,8 @@ class Knjappserver::Httpsession
 			:kas => @kas
 		)
 		
+		STDOUT.print Knj::Php.print_r(serv_data[:headers], true)
+		
 		serv_data[:headers].each do |key, valarr|
 			valarr.each do |val|
 				keystr = key.to_s.strip.downcase
