@@ -169,22 +169,20 @@ class Knjappserver::Httpsession
 			:kas => @kas
 		)
 		
-		STDOUT.print Knj::Php.print_r(serv_data[:headers], true)
-		
-		serv_data[:headers].each do |key, valarr|
-			valarr.each do |val|
-				keystr = key.to_s.strip.downcase
-				
-				if keystr.match(/^set-cookie/)
-					WEBrick::Cookie.parse_set_cookies(val).each do |cookie|
-						res.cookies << cookie
-					end
-				elsif keystr.match(/^content-type/i)
-					raise "Could not parse content-type: '#{val}'." if !match = val.match(/^(.+?)(;|$)/)
-					ctype = match[1]
-				else
-					res.header[key] = val
+		serv_data[:headers].each do |header|
+			key = header[0]
+			val = header[1]
+			keystr = key.to_s.strip.downcase
+			
+			if keystr.match(/^set-cookie/)
+				WEBrick::Cookie.parse_set_cookies(val).each do |cookie|
+					res.cookies << cookie
 				end
+			elsif keystr.match(/^content-type/i)
+				raise "Could not parse content-type: '#{val}'." if !match = val.match(/^(.+?)(;|$)/)
+				ctype = match[1]
+			else
+				res.header[key] = val
 			end
 		end
 		
@@ -306,15 +304,7 @@ class Knjappserver::Httpsession
 				if handler_info[:callback]
 					ret = handler_info[:callback].call(details)
 					cont = ret[:content] if ret[:content]
-					
-					if ret[:headers]
-						ret[:headers].each do |key, valarr|
-							valarr.each do |val|
-								headers[key] << val if headers[key]
-								headers[key] = [val] if !headers[key]
-							end
-						end
-					end
+					headers = ret[:headers] if ret[:headers]
 				else
 					raise "Could not figure out how to use handler."
 				end
