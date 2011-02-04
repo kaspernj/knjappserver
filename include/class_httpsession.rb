@@ -226,7 +226,7 @@ class Knjappserver::Httpsession
 			if match = varname.match(/(.+)\[(.*?)\]/)
 				namepos = varname.index(match[0])
 				name = match[1]
-				secname, secname_empty = Web.parse_secname(seton, match[2], args)
+				secname, secname_empty = Knj::Web.parse_secname(seton, match[2], args)
 				valuefrom = namepos + match[1].length + 2
 				restname = varname.slice(valuefrom..-1)
 				seton[name] = {} if !seton.has_key?(name)
@@ -254,7 +254,7 @@ class Knjappserver::Httpsession
 			if match = varname.match(/\[(.*?)\]/)
 				namepos = varname.index(match[0])
 				name = match[1]
-				secname, secname_empty = Web.parse_secname(seton, match[1], args)
+				secname, secname_empty = Knj::Web.parse_secname(seton, match[1], args)
 				valuefrom = namepos + match[1].length + 2
 				restname = varname.slice(valuefrom..-1)
 				
