@@ -3,6 +3,8 @@ class Knjappserver
 	attr_accessor :served, :should_restart
 	
 	def initialize(config)
+		require "webrick"
+		
 		@config = config
 		@paused = 0
 		@should_restart = false
@@ -18,7 +20,7 @@ class Knjappserver
 		]
 		
 		if @config[:autorestart]
-			@mod_event = Event_filemod.new(:wait => 2, :paths => paths) do |event, path|
+			@mod_event = Knj::Event_filemod.new(:wait => 2, :paths => paths) do |event, path|
 				print "File changed - restart server: #{path}\n"
 				@should_restart = true
 				@mod_event.destroy
@@ -34,6 +36,7 @@ class Knjappserver
 			"#{$knjappserver[:path]}/include/class_session_accessor.rb",
 			"#{$knjappserver_config["knjrbfw"]}knj/objects.rb",
 			"#{$knjappserver_config["knjrbfw"]}knj/web.rb",
+			"#{$knjappserver_config["knjrbfw"]}knj/datet.rb",
 			"#{$knjappserver_config["knjrbfw"]}knj/thread.rb",
 			"#{$knjappserver_config["knjrbfw"]}knj/threadhandler.rb",
 			"#{$knjappserver_config["knjrbfw"]}knj/knjdb/libknjdb.rb"
@@ -47,7 +50,7 @@ class Knjappserver
 		end
 		
 		@db = @config[:db]
-		@ob = Objects.new(
+		@ob = Knj::Objects.new(
 			:db => db,
 			:class_path => "#{$knjappserver[:path]}/include",
 			:module => Knjappserver,
@@ -66,20 +69,16 @@ class Knjappserver
 			@db_handler = Knj::Threadhandler.new
 			@db_handler.on_spawn_new do
 				db = Knj::Db.new(@config[:httpsession_db_args])
-				db
+				db #return db to the spawner process - dont remove - knj
 			end
 		end
 		
 		@httpserv = Httpserver.new(self)
-		@translations = Knj::Translations.new(
-			:db => @db
-		)
-		@cleaner = Cleaner.new(self)
+		@translations = Knj::Translations.new(:db => @db)
+		@cleaner = Knjappserver::Cleaner.new(self)
 		
 		if config[:locales_root]
-			@gettext = Knj::Gettext_threadded.new(
-				"dir" => config[:locales_root]
-			)
+			@gettext = Knj::Gettext_threadded.new("dir" => config[:locales_root])
 		end
 	end
 	
@@ -89,7 +88,7 @@ class Knjappserver
 			return nil
 		end
 		
-		rpath = Php.realpath(fpath)
+		rpath = Knj::Php.realpath(fpath)
 		if !rpath or !File.exists?(rpath)
 			raise "No such filepath: #{fpath}"
 		end

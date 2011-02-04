@@ -17,7 +17,7 @@ class Knjappserver::Httpserver
 				end
 				
 				begin
-					@http_sessions << Knjappserver::Httpsession.new(self, @server.accept)
+					self.spawn_httpsession(@server.accept)
 					STDOUT.print "Starting new HTTP-request.\n" if @kas.config[:verbose]
 				rescue => e
 					STDOUT.print "Could not accept HTTP-request - waiting 0.5 sec and then trying again.\n"
@@ -45,15 +45,19 @@ class Knjappserver::Httpserver
 					#ignore
 				end
 				
-				print "Starting new server:\n"
+				STDOUT.print "Starting new server:\n"
 				@server = TCPServer.new(@kas.config[:host], @kas.config[:port])
-				print "Done.\n"
+				STDOUT.print "Done.\n"
 			end
 		end
 	end
 	
 	def stop
 		@server.close
+	end
+	
+	def spawn_httpsession(socket)
+		@http_sessions << Knjappserver::Httpsession.new(self, socket)
 	end
 	
 	def count_working

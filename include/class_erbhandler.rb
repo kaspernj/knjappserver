@@ -5,7 +5,7 @@ class Knjappserver::ERBHandler
 		#Hack the Knj::Thread to accept data - this is how get, post and etc. are set.
 		Thread.current.data[:knjappserver] = data
 		
-		eruby = data[:kas].eruby
+		eruby = data[:httpsession].eruby
 		eruby.connect("error") do |e|
 			if _kas.config[:error_report_emails]
 				_kas.config[:error_report_emails].each do |email|
@@ -51,9 +51,12 @@ class Knjappserver::ERBHandler
 			headers_ret[header[0]] = [header[1]]
 		end
 		
+		Thread.current.data[:knjappserver].clear
+		Thread.current.data.delete(:knjappserver)
+		
 		return {
 			:content => cont,
-			:headers => headers_ret
+			:headers => headers
 		}
 	end
 end
