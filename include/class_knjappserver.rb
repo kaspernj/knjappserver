@@ -1,6 +1,6 @@
 class Knjappserver
-	attr_reader :config, :httpserv, :db, :ob, :translations, :cleaner, :should_restart, :mod_event, :paused, :db_handler, :gettext, :sessions, :eruby
-	attr_accessor :served
+	attr_reader :config, :httpserv, :db, :ob, :translations, :paused, :cleaner, :mod_event, :db_handler, :gettext, :sessions, :eruby
+	attr_accessor :served, :should_restart
 	
 	def initialize(config)
 		@config = config
