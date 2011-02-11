@@ -11,6 +11,7 @@ class Knjappserver::Httpsession
 		@working = true
 		@eruby = Knj::Eruby.new
 		
+		ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc) if @kas.config[:debug]
 		STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if @kas.config[:debug]
 		
 		Knj::Thread.new do
@@ -70,8 +71,8 @@ class Knjappserver::Httpsession
 		end
 	end
 	
-	def finalize
-		STDOUT.print "Httpsession finalize #{self.__id__}.\n"
+	def self.finalize(id)
+		STDOUT.print "Httpsession finalize #{id}.\n"
 	end
 	
 	def destruct

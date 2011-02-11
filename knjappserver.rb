@@ -3,7 +3,6 @@
 require "rubygems"
 require "active_support"
 require "active_support/core_ext"
-require "gettext"
 
 filepath = File.dirname(__FILE__) + "/"
 
@@ -22,6 +21,15 @@ require "#{filepath}include/class_knjappserver.rb"
 require "#{filepath}include/class_customio.rb"
 cio = Knjappserver::CustomIO.new
 $stdout = cio
+
+Thread.new do
+	loop do
+		sleep 5
+		GC.enable
+		GC.start
+		ObjectSpace.garbage_collect
+	end
+end
 
 print "Starting knjAppServer.\n"
 require "./include/magic_methods.rb"
