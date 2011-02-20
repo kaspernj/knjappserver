@@ -26,6 +26,10 @@ def _httpsession
 	return Thread.current[:knjappserver][:httpsession]
 end
 
+def _requestdata
+	return Thread.current[:knjappserver]
+end
+
 def _meta
 	return Thread.current[:knjappserver][:meta]
 end
