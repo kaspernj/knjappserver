@@ -115,11 +115,9 @@ class Knjappserver::Httpsession
 		meta = request.meta_vars
 		
 		page_filepath = meta["PATH_INFO"]
-		if page_filepath.length <= 0 or page_filepath == "/"
-			page_filepath = @kas.config[:default_page]
+		if page_filepath.length <= 0 or page_filepath == "/" or File.directory?("#{@kas.config[:doc_root]}/#{page_filepath}")
+			page_filepath = "#{page_filepath}/#{@kas.config[:default_page]}"
 		end
-		
-		STDOUT.print "Serving: #{page_filepath}\n" if @kas and @kas.config[:verbose]
 		
 		page_path = "#{@kas.config[:doc_root]}/#{page_filepath}"
 		pinfo = Knj::Php.pathinfo(page_path)
@@ -128,7 +126,8 @@ class Knjappserver::Httpsession
 		ctype = @kas.config[:default_filetype]
 		ctype = @kas.config[:filetypes][ext.to_sym] if @kas.config[:filetypes][ext.to_sym]
 		
-		calc_id = "#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}".hash
+		calc_idstr = "#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}"
+		calc_id = Knj::Php.md5(calc_idstr)
 		
 		if !@session or !@session_id or calc_id != @session_id
 			@session_id = calc_id
@@ -202,10 +201,7 @@ class Knjappserver::Httpsession
 			res["Expires"] = Time.now + (3600 * 24)
 		end
 		
-		if serv_data[:statuscode]
-			res.status = serv_data[:statuscode]
-		end
-		
+		res.status = serv_data[:statuscode] if serv_data[:statuscode]
 		res.send_response(@socket)
 		res.destroy
 		
@@ -219,56 +215,7 @@ class Knjappserver::Httpsession
 	
 	def convert_webrick_post(seton, webrick_post, args = {})
 		webrick_post.each do |varname, value|
-			if value.respond_to?(:filename) and value.filename
-				realvalue = value
-			else
-				realvalue = value.to_s
-			end
-			
-			if match = varname.match(/(.+)\[(.*?)\]/)
-				namepos = varname.index(match[0])
-				name = match[1]
-				secname, secname_empty = Knj::Web.parse_secname(seton, match[2], args)
-				valuefrom = namepos + match[1].length + 2
-				restname = varname.slice(valuefrom..-1)
-				seton[name] = {} if !seton.has_key?(name)
-				
-				if restname and restname.index("[") != nil
-					seton[name][secname] = {} if !seton.has_key?(secname)
-					self.convert_webrick_post(seton[secname], restname, value, args)
-				else
-					seton[name][secname] = realvalue
-				end
-			else
-				seton[varname] = realvalue
-			end
-		end
-	end
-	
-	def convert_webrick_post_second
-		webrick_post.each do |varname, value|
-			if value.respond_to?(:filename) and value.filename
-				realvalue = value
-			else
-				realvalue = value.to_s
-			end
-			
-			if match = varname.match(/\[(.*?)\]/)
-				namepos = varname.index(match[0])
-				name = match[1]
-				secname, secname_empty = Knj::Web.parse_secname(seton, match[1], args)
-				valuefrom = namepos + match[1].length + 2
-				restname = varname.slice(valuefrom..-1)
-				
-				if restname and restname.index("[") != nil
-					seton[secname] = {} if !seton.has_key?(secname)
-					self.convert_webrick_post(seton[secname], restname, value, args)
-				else
-					seton[secname] = realvalue
-				end
-			else
-				seton[varname] = realvalue
-			end
+			Knj::Web.parse_name(seton, varname, value, args)
 		end
 	end
 	
@@ -348,7 +295,6 @@ class Knjappserver::Httpsession
 		headers = {}
 		cont = ""
 		statuscode = nil
-		handler_found = false
 		lastmod = false
 		max_age = 365 * 24
 		
@@ -362,31 +308,22 @@ class Knjappserver::Httpsession
 			end
 		end
 		
-		#cache_use = false if cache_control["max-age"].to_i <= 0
+		cache_use = false if cache_control["max-age"].to_i <= 0
 		
 		#check if we should use a handler for this request.
+		handler_use = false
 		@kas.config[:handlers].each do |handler_info|
-			handler_use = false
+			handler_use = true
 			
 			if handler_info[:file_ext] and handler_info[:file_ext] == details[:ext]
-				handler_use = true
-				handler_found = true
-			end
-			
-			if handler_use
-				if handler_info[:callback]
-					ret = handler_info[:callback].call(details)
-					cont = ret[:content] if ret[:content]
-					headers = ret[:headers] if ret[:headers]
-				else
-					raise "Could not figure out how to use handler."
-				end
-				
+				ret = handler_info[:callback].call(details)
+				cont = ret[:content] if ret[:content]
+				headers = ret[:headers] if ret[:headers]
 				break
 			end
 		end
 		
-		if !handler_found
+		if !handler_use
 			if !File.exists?(details[:filepath])
 				statuscode = 404
 			else

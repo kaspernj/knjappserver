@@ -18,12 +18,20 @@ def _session_hash
 	return Thread.current[:knjappserver][:session_hash]
 end
 
+def _session_obj
+	return Thread.current[:knjappserver][:session]
+end
+
 def _server
 	return Thread.current[:knjappserver][:meta]
 end
 
 def _httpsession
 	return Thread.current[:knjappserver][:httpsession]
+end
+
+def _requestdata
+	return Thread.current[:knjappserver]
 end
 
 def _meta
