@@ -173,4 +173,8 @@ class Knjappserver
 	def trans_del(obj)
 		@translations.delete(obj)
 	end
+	
+	def import(filepath)
+		_httpsession.eruby.import(filepath)
+	end
 end
