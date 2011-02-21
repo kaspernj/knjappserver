@@ -1,11 +1,6 @@
 class Knjappserver
-<<<<<<< HEAD
-	attr_reader :config, :httpserv, :db, :ob, :translations, :paused, :cleaner, :mod_event, :db_handler, :gettext, :sessions, :eruby
+	attr_reader :config, :httpserv, :db, :ob, :translations, :paused, :cleaner, :should_restart, :mod_event, :paused, :db_handler, :gettext, :sessions
 	attr_accessor :served, :should_restart
-=======
-	attr_reader :config, :httpserv, :db, :ob, :translations, :cleaner, :should_restart, :mod_event, :paused, :db_handler, :gettext, :sessions
-	attr_accessor :served
->>>>>>> 7fedb2677b46c281921e4e6caffc7af13b9ebb84
 	
 	def initialize(config)
 		require "webrick"

@@ -17,6 +17,8 @@ class Knjappserver::Httpsession
 		Knj::Thread.new do
 			begin
 				while @active
+					STDOUT.print "Load\n"
+					
 					@working = false
 					@out = StringIO.new
 					req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP) if @kas.config[:engine_webrick]
