@@ -17,9 +17,13 @@ class Knjappserver::Cleaner
 					
 					if dostop
 						@kas.stop
+						
 						fpath = Knj::Php.realpath(File.dirname(__FILE__) + "/../knjappserver.rb")
-						print "Restarting knjAppServer...\n"
-						exec("ruby \"#{fpath}\" >> /dev/null 2>&1 &")
+						mycmd = Knj::Os.executed_cmd
+						mycmd = mycmd.gsub("knjappserver.rb", Knj::Strings.unixsafe(fpath))
+						
+						STDOUT.print "Restarting knjAppServer...\n"
+						exec(mycmd)
 					end
 				end
 				

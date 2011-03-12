@@ -41,7 +41,7 @@ class Knjappserver
 		]
 		files.each do |file|
 			if @config[:autorestart]
-				self.loadfile file
+				self.loadfile(file)
 			else
 				require file
 			end
@@ -87,13 +87,9 @@ class Knjappserver
 		end
 		
 		rpath = Knj::Php.realpath(fpath)
-		if !rpath or !File.exists?(rpath)
-			raise "No such filepath: #{fpath}"
-		end
+		raise "No such filepath: #{fpath}" if !rpath or !File.exists?(rpath)
 		
-		if @mod_files[rpath]
-			return true
-		end
+		return true if @mod_files[rpath]
 		
 		@mod_event.args[:paths] << rpath
 		@mod_files = rpath
