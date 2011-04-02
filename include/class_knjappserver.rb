@@ -18,6 +18,7 @@ class Knjappserver
 		]
 		
 		if @config[:autorestart]
+			print "Auto restarting.\n"
 			@mod_event = Knj::Event_filemod.new(:wait => 2, :paths => paths) do |event, path|
 				print "File changed - restart server: #{path}\n"
 				@should_restart = true
@@ -99,6 +100,13 @@ class Knjappserver
 	end
 	
 	def start
+		Thread.current[:knjappserver] = {:kas => self} if !Thread.current[:knjappserver]
+		
+		if @config[:autoload]
+			print "Autoloading #{@config[:autoload]}\n"
+			require @config[:autoload]
+		end
+		
 		@httpserv.start
 	end
 	
