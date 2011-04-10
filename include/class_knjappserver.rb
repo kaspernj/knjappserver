@@ -76,7 +76,7 @@ class Knjappserver
 		@translations = Knj::Translations.new(:db => @db)
 		@cleaner = Knjappserver::Cleaner.new(self)
 		
-		if config[:locales_root]
+		if @config[:locales_root]
 			@gettext = Knj::Gettext_threadded.new("dir" => config[:locales_root])
 		end
 	end
