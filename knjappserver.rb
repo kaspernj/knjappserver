@@ -24,7 +24,7 @@ $stdout = cio
 
 Thread.new do
 	loop do
-		sleep 5
+		sleep 30
 		GC.enable
 		GC.start
 		ObjectSpace.garbage_collect
