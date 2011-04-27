@@ -17,25 +17,31 @@ class Knjappserver::Httpsession
 		Knj::Thread.new do
 			begin
 				while @active
-					@working = false
-					@out = StringIO.new
-					req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP) if @kas.config[:engine_webrick]
-					req.parse(@socket)
-					
-					sleep 0.1 while @kas.paused? #Check if we should be waiting with executing the pending request.
-					
-					if @kas.config[:max_requests_working]
-						sleep 0.1 while @httpserver.count_working > @kas.config[:max_requests_working]
+					begin
+						@working = false
+						@out = StringIO.new
+						req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP) if @kas.config[:engine_webrick]
+						req.parse(@socket)
+						
+						sleep 0.1 while @kas.paused? #Check if we should be waiting with executing the pending request.
+						
+						if @kas.config[:max_requests_working]
+							sleep 0.1 while @httpserver.count_working > @kas.config[:max_requests_working]
+						end
+						
+						@working = true
+						@db = @kas.db_handler.get_and_lock
+						raise "Didnt get a database?" if !@db
+						self.serve_webrick(req)
+					ensure
+						if @db
+							@kas.db_handler.free(@db)
+							@db = nil
+						end
+						
+						@kas.served += 1
+						req.fixup if req and req.keep_alive?
 					end
-					
-					@working = true
-					@db = @kas.db_handler.get_and_lock
-					raise "Didnt get a database?" if !@db
-					self.serve_webrick(req)
-					@kas.db_handler.free(@db)
-					@db = nil
-					@kas.served += 1
-					req.fixup if req.keep_alive?
 				end
 				
 				break
@@ -74,7 +80,7 @@ class Knjappserver::Httpsession
 	end
 	
 	def self.finalize(id)
-		STDOUT.print "Httpsession finalize #{id}.\n"
+		STDOUT.print "Httpsession finalize #{id}.\n" if @kas.config[:debug]
 	end
 	
 	def destruct

@@ -25,7 +25,7 @@ $stdout = cio
 Thread.new do
 	loop do
 		sleep 5
-		GC.enable
+		GC.enable if RUBY_ENGINE != "jruby"
 		GC.start
 		ObjectSpace.garbage_collect
 	end
