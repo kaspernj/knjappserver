@@ -56,14 +56,6 @@ class Knjappserver
 			:extra_args => [self]
 		)
 		
-		@sessions = {}
-		@ob.list(:Session).each do |session|
-			@sessions[session[:idhash]] = {
-				:dbobj => session,
-				:hash => {}
-			}
-		end
-		
 		if @config[:httpsession_db_args]
 			@db_handler = Knj::Threadhandler.new
 			
@@ -109,6 +101,16 @@ class Knjappserver
 	end
 	
 	def start
+		if !@sessions
+			@sessions = {}
+			@ob.list(:Session).each do |session|
+				@sessions[session[:idhash]] = {
+					:dbobj => session,
+					:hash => {}
+				}
+			end
+		end
+		
 		Thread.current[:knjappserver] = {:kas => self} if !Thread.current[:knjappserver]
 		
 		if @config[:autoload]
@@ -189,5 +191,32 @@ class Knjappserver
 	
 	def import(filepath)
 		_httpsession.eruby.import(filepath)
+	end
+	
+	def update_db
+		script_cmd = "#{Knj::Os.homedir}/Ruby/knjdbrevision/knjdbrevision.rb"
+		raise "knjdbrevision doesnt exist in #{script_cmd}." if !File.exists?(script_cmd)
+		
+		script_cmd = "/usr/bin/ruby1.9.1 #{script_cmd}"
+		script_cmd += " -r #{Knj.dirname(__FILE__)}/../files/database_schema.rb"
+		
+		@db.opts.each do |key, val|
+			val = "mysql" if key == :type and val == "mysql2"
+			script_cmd += " -d #{key}=#{val}"
+		end
+		
+		print %x[#{script_cmd}]
+	end
+	
+	def redirect(url)
+		return Knj::Web.redirect(url)
+	end
+	
+	def alert(msg)
+		return Knj::Web.alert(msg)
+	end
+	
+	def back
+		return Knj::Web.back
 	end
 end

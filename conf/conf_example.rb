@@ -102,5 +102,11 @@ if $knjappserver[:knjappserver].config[:autorestart]
 	$knjappserver[:knjappserver].mod_event.args[:paths] << rpath
 end
 
+if ARGV[0] == "update_db"
+	print "Running DB update script.\n"
+	$knjappserver[:knjappserver].update_db
+	exit
+end
+
 Dir.chdir($knjappserver[:knjappserver].config[:doc_root])
 $knjappserver[:knjappserver].start
