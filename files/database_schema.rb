@@ -4,7 +4,12 @@ $tables = {
 			"columns" => [
 				{"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
 				{"name" => "idhash", "type" => "varchar"},
-				{"name" => "sess_data", "type" => "text"}
+				{"name" => "sess_data", "type" => "text"},
+				{"name" => "date_added", "type" => "datetime"}
+			],
+			"indexes" => [
+				{"name" => "date_added", "columns" => ["date_added"]},
+				{"name" => "idhash", "columns" => ["idhash"]}
 			]
 		},
 		"translations" => {
@@ -15,7 +20,13 @@ $tables = {
 				{"name" => "key", "type" => "varchar", "maxlength" => 50},
 				{"name" => "locale", "type" => "varchar", "maxlength" => 5},
 				{"name" => "value", "type" => "text"}
-			]
+			],
+			"indexes" => [
+				{"name" => "lookup", "columns" => ["object_class", "object_id", "key", "locale"]}
+			],
+			"indexes_remove" => {
+				"object_class" => true
+			}
 		}
 	}
 }

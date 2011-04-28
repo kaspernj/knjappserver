@@ -2,24 +2,15 @@ rpath = Knj::Php.realpath(File.dirname(__FILE__) + "/../include/class_erbhandler
 require rpath
 erbhandler = Knjappserver::ERBHandler.new
 
-if RUBY_PLATFORM == "java"
-	dbargs = {
-		:type => "mysql",
-		:host => "localhost",
-		:user => "username",
-		:pass => "password",
-		:db => "database_name",
-		:return_keys => "symbols"
-	}
-else
-	dbargs = {
-		:type => "mysql2",
-		:host => "localhost",
-		:user => "username",
-		:pass => "password",
-		:db => "database_name"
-	}
-end
+dbargs = {
+	:type => "mysql",
+	:subtype => "mysql2",
+	:host => "localhost",
+	:user => "username",
+	:pass => "password",
+	:db => "database_name",
+	:return_keys => "symbols"
+}
 
 begin
 	options = {

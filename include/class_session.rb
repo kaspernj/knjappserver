@@ -35,6 +35,7 @@ class Knjappserver::Session < Knj::Db_row
 	end
 	
 	def self.add(kas, data)
+		data["date_added"] = Knj::Datet.new.dbstr if !data["date_added"]
 		kas.db.insert(:sessions, data)
 		return kas.ob.get(:Session, kas.db.last_id)
 	end
