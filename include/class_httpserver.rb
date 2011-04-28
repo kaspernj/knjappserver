@@ -63,7 +63,7 @@ class Knjappserver::Httpserver
 	def count_working
 		count = 0
 		@http_sessions.clone.each do |httpsession|
-			count += 1 if httpsession.working
+			count += 1 if httpsession and httpsession.working
 		end
 		
 		return count

@@ -132,17 +132,6 @@ class Knjappserver::Httpsession
 		ctype = @kas.config[:default_filetype]
 		ctype = @kas.config[:filetypes][ext.to_sym] if @kas.config[:filetypes][ext.to_sym]
 		
-		calc_idstr = "#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}"
-		calc_id = Knj::Php.md5(calc_idstr)
-		
-		if !@session or !@session_id or calc_id != @session_id
-			@session_id = calc_id
-			session = @kas.session_fromid(@session_id)
-			@session = session[:dbobj]
-			@session_hash = session[:hash]
-			@session_accessor = @session.accessor
-		end
-		
 		get = Knj::Web.parse_urlquery(meta["QUERY_STRING"])
 		post = {}
 		cookie = {}
@@ -154,6 +143,31 @@ class Knjappserver::Httpsession
 		request.cookies.each do |cookie_enum|
 			cookie[cookie_enum.name] = Knj::Php.urldecode(cookie_enum.value)
 		end
+		
+		browser = Knj::Web.browser(meta)
+		
+		if browser["browser"] == "bot"
+			@session_id = "bot"
+			session = @kas.session_fromid(@session_id)
+		elsif cookie["KnjappserverSession"]
+			@session_id = cookie["KnjappserverSession"]
+			session = @kas.session_fromid(@session_id)
+		else
+			calc_id = Knj::Php.md5("#{Time.new.to_f}_#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}")
+			@session_id = calc_id
+			session = @kas.session_fromid(@session_id)
+			
+			res.cookies << CGI::Cookie.new(
+				"name" => "KnjappserverSession",
+				"value" => @session_id,
+				"path" => "/",
+				"expires" => (Knj::Datet.new.months + 12).time
+			).to_s
+		end
+		
+		@session = session[:dbobj]
+		@session_hash = session[:hash]
+		@session_accessor = @session.accessor
 		
 		serv_data = self.serve_real(
 			:filepath => page_path,
