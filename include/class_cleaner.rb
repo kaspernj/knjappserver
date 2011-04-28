@@ -20,9 +20,11 @@ class Knjappserver::Cleaner
 						
 						fpath = Knj::Php.realpath(File.dirname(__FILE__) + "/../knjappserver.rb")
 						mycmd = Knj::Os.executed_cmd
+						
+						STDOUT.print "Previous cmd: #{mycmd}\n"
 						mycmd = mycmd.gsub("knjappserver.rb", Knj::Strings.unixsafe(fpath))
 						
-						STDOUT.print "Restarting knjAppServer...\n"
+						STDOUT.print "Restarting knjAppServer with command: #{mycmd}\n"
 						exec(mycmd)
 					end
 				end

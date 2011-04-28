@@ -27,7 +27,7 @@ class Knjappserver::Httpserver
 		end
 		
 		loop do
-			sleep 2
+			sleep 30
 			STDOUT.print "Checking if we are online.\n" if @kas.config[:debug]
 			
 			begin

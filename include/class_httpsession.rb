@@ -333,9 +333,8 @@ class Knjappserver::Httpsession
 		#check if we should use a handler for this request.
 		handler_use = false
 		@kas.config[:handlers].each do |handler_info|
-			handler_use = true
-			
 			if handler_info[:file_ext] and handler_info[:file_ext] == details[:ext]
+				handler_use = true
 				ret = handler_info[:callback].call(details)
 				cont = ret[:content] if ret[:content]
 				headers = ret[:headers] if ret[:headers]
