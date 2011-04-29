@@ -22,11 +22,10 @@ require "#{filepath}include/class_customio.rb"
 cio = Knjappserver::CustomIO.new
 $stdout = cio
 
-Thread.new do
+Knj::Thread.new do
 	loop do
 		sleep 30
 		GC.enable if RUBY_ENGINE != "jruby"
-		GC.enable
 		GC.start
 		ObjectSpace.garbage_collect
 	end

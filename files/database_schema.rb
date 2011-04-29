@@ -5,7 +5,8 @@ $tables = {
 				{"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
 				{"name" => "idhash", "type" => "varchar"},
 				{"name" => "sess_data", "type" => "text"},
-				{"name" => "date_added", "type" => "datetime"}
+				{"name" => "date_added", "type" => "datetime"},
+				{"name" => "ip", "type" => "varchar", "maxlength" => 15}
 			],
 			"indexes" => [
 				{"name" => "date_added", "columns" => ["date_added"]},
