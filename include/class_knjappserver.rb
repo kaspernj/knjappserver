@@ -158,17 +158,18 @@ class Knjappserver
 		return Thread.current[:knjappserver]
 	end
 	
-	def session_fromid(idhash)
-		if !@sessions.has_key?(idhash)
+	def session_fromid(args)
+		if !@sessions.has_key?(args[:idhash])
 			@sessions[idhash] = {
 				:dbobj => Knjappserver::Session.add(self, {
-					:idhash => idhash
+					:idhash => args[:idhash],
+					:ip => args[:meta]["REMOTE_ADDR"]
 				}),
 				:hash => {}
 			}
 		end
 		
-		return @sessions[idhash]
+		return @sessions[args[:idhash]]
 	end
 	
 	def trans(obj, key)

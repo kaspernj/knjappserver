@@ -148,14 +148,14 @@ class Knjappserver::Httpsession
 		
 		if browser["browser"] == "bot"
 			@session_id = "bot"
-			session = @kas.session_fromid(@session_id)
-		elsif cookie["KnjappserverSession"]
+			session = @kas.session_fromid(:idhash => @session_id, :meta => meta)
+		elsif cookie["KnjappserverSession"].to_s.length > 0
 			@session_id = cookie["KnjappserverSession"]
-			session = @kas.session_fromid(@session_id)
+			session = @kas.session_fromid(:idhash => @session_id, :meta => meta)
 		else
 			calc_id = Knj::Php.md5("#{Time.new.to_f}_#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}")
 			@session_id = calc_id
-			session = @kas.session_fromid(@session_id)
+			session = @kas.session_fromid(:idhash => @session_id, :meta => meta)
 			
 			res.cookies << CGI::Cookie.new(
 				"name" => "KnjappserverSession",
