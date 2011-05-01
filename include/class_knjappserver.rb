@@ -160,7 +160,7 @@ class Knjappserver
 	
 	def session_fromid(args)
 		if !@sessions.has_key?(args[:idhash])
-			@sessions[idhash] = {
+			@sessions[args[:idhash]] = {
 				:dbobj => Knjappserver::Session.add(self, {
 					:idhash => args[:idhash],
 					:ip => args[:meta]["REMOTE_ADDR"]
