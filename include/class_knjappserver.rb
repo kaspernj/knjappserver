@@ -73,7 +73,7 @@ class Knjappserver
 			end
 		end
 		
-		@httpserv = Httpserver.new(self)
+		@httpserv = Knjappserver::Httpserver.new(self)
 		@translations = Knj::Translations.new(:db => @db)
 		@cleaner = Knjappserver::Cleaner.new(self)
 		
@@ -104,7 +104,8 @@ class Knjappserver
 		if !@sessions
 			@sessions = {}
 			@ob.list(:Session).each do |session|
-				@sessions[session[:idhash]] = {
+				@sessions[session[:ip]] = {} if !@sessions[session[:ip]]
+				@sessions[session[:ip]][session[:idhash]] = {
 					:dbobj => session,
 					:hash => {}
 				}
@@ -159,8 +160,9 @@ class Knjappserver
 	end
 	
 	def session_fromid(args)
-		if !@sessions.has_key?(args[:idhash])
-			@sessions[args[:idhash]] = {
+		if !@sessions.has_key?(args[:ip]) or !@sessions[args[:ip]].has_key?(args[:idhash])
+			@sessions[args[:ip]] = {} if !@sessions.has_key?(args[:ip])
+			@sessions[args[:ip]][args[:idhash]] = {
 				:dbobj => Knjappserver::Session.add(self, {
 					:idhash => args[:idhash],
 					:ip => args[:meta]["REMOTE_ADDR"]
@@ -169,7 +171,7 @@ class Knjappserver
 			}
 		end
 		
-		return @sessions[args[:idhash]]
+		return @sessions[args[:ip]][args[:idhash]]
 	end
 	
 	def trans(obj, key)
