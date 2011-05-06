@@ -104,8 +104,8 @@ class Knjappserver
 		if !@sessions
 			@sessions = {}
 			@ob.list(:Session).each do |session|
-				@sessions[session[:ip]] = {} if !@sessions[session[:ip]]
-				@sessions[session[:ip]][session[:idhash]] = {
+				@sessions[session[:ip].to_s] = {} if !@sessions.has_key?(session[:ip].to_s)
+				@sessions[session[:ip].to_s][session[:idhash].to_s] = {
 					:dbobj => session,
 					:hash => {}
 				}
@@ -159,19 +159,30 @@ class Knjappserver
 		return Thread.current[:knjappserver]
 	end
 	
+	def has_session?(args)
+		ip = args[:ip].to_s
+		idhash = args[:idhash].to_s
+		return false if !@sessions.has_key?(ip) or !@sessions[ip].has_key?(idhash)
+		return true
+	end
+	
 	def session_fromid(args)
-		if !@sessions.has_key?(args[:ip]) or !@sessions[args[:ip]].has_key?(args[:idhash])
-			@sessions[args[:ip]] = {} if !@sessions.has_key?(args[:ip])
-			@sessions[args[:ip]][args[:idhash]] = {
+		ip = args[:ip].to_s
+		idhash = args[:idhash].to_s
+		ip = "bot" if idhash == "bot"
+		
+		if !@sessions.has_key?(ip) or !@sessions[ip].has_key?(idhash)
+			@sessions[ip] = {} if !@sessions.has_key?(ip)
+			@sessions[ip][idhash] = {
 				:dbobj => Knjappserver::Session.add(self, {
-					:idhash => args[:idhash],
-					:ip => args[:meta]["REMOTE_ADDR"]
+					:idhash => idhash,
+					:ip => ip
 				}),
 				:hash => {}
 			}
 		end
 		
-		return @sessions[args[:ip]][args[:idhash]]
+		return @sessions[ip][idhash]
 	end
 	
 	def trans(obj, key)
