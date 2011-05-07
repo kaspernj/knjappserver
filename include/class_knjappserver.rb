@@ -222,8 +222,8 @@ class Knjappserver
 		print %x[#{script_cmd}]
 	end
 	
-	def redirect(url)
-		return Knj::Web.redirect(url)
+	def redirect(url, args = {})
+		return Knj::Web.redirect(url, args)
 	end
 	
 	def alert(msg)
