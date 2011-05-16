@@ -1,6 +1,6 @@
 class Knjappserver::Httpsession
 	attr_accessor :data
-	attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :db, :cookie, :eruby
+	attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :db, :cookie, :eruby, :browser
 	
 	def initialize(httpserver, socket)
 		@data = {}
@@ -102,6 +102,7 @@ class Knjappserver::Httpsession
 		@socket = nil
 		@eruby.destroy if @eruby
 		@eruby = nil
+		@browser = nil
 	end
 	
 	def close
@@ -141,22 +142,25 @@ class Knjappserver::Httpsession
 		end
 		
 		request.cookies.each do |cookie_enum|
-			cookie[cookie_enum.name] = Knj::Php.urldecode(cookie_enum.value)
+			cookie[cookie_enum.name] = CGI.unescape(cookie_enum.value)
 		end
 		
-		browser = Knj::Web.browser(meta)
+		@browser = Knj::Web.browser(meta)
 		@ip = nil
 		@ip = meta["HTTP_X_FORWARDED_FOR"] if !@ip and meta["HTTP_X_FORWARDED_FOR"]
 		@ip = meta["REMOTE_ADDR"] if !@ip and meta["REMOTE_ADDR"]
 		
-		if browser["browser"] == "bot"
+		@ips = [meta["REMOTE_ADDR"]]
+		@ips << meta["HTTP_X_FORWARDED_FOR"] if meta["HTTP_X_FORWARDED_FOR"]
+		
+		if @browser["browser"] == "bot"
 			@session_id = "bot"
 			session = @kas.session_fromid(:idhash => @session_id, :ip => @ip)
 		elsif cookie["KnjappserverSession"].to_s.length > 0 and @kas.has_session?(:idhash => cookie["KnjappserverSession"].to_s, :ip => @ip)
 			@session_id = cookie["KnjappserverSession"]
 			session = @kas.session_fromid(:idhash => @session_id, :ip => @ip)
 		else
-			calc_id = Knj::Php.md5("#{Time.new.to_f}_#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}")
+			calc_id = Digest::MD5.hexdigest("#{Time.new.to_f}_#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}")
 			@session_id = calc_id
 			session = @kas.session_fromid(:idhash => @session_id, :ip => @ip)
 			
@@ -171,6 +175,16 @@ class Knjappserver::Httpsession
 		@session = session[:dbobj]
 		@session_hash = session[:hash]
 		@session_accessor = @session.accessor
+		
+		@kas.logs_access_pending << {
+			:session_id => @session.id,
+			:date_request => Knj::Datet.new.dbstr,
+			:ips => @ips,
+			:get => get,
+			:post => post,
+			:meta => meta,
+			:cookie => cookie
+		}
 		
 		serv_data = self.serve_real(
 			:filepath => page_path,
@@ -229,10 +243,6 @@ class Knjappserver::Httpsession
 		res.destroy
 		
 		#Letting them be nil is simply not enough (read that on a forum) - knj.
-		get.clear
-		post.clear
-		meta.clear
-		cookie.clear
 		serv_data.clear
 	end
 	
@@ -240,77 +250,6 @@ class Knjappserver::Httpsession
 		webrick_post.each do |varname, value|
 			Knj::Web.parse_name(seton, varname, value, args)
 		end
-	end
-	
-	def serve_internal(request)
-		match = request.match(/^GET (.+) HTTP\/1\.1\s*/)
-		raise "Could not parse request." if !match
-		
-		headers = {}
-		request = request.gsub(match[0], "")
-		request.scan(/(\S+):\s*(.+)\r\n/) do |header_match|
-			headers[header_match[0].downcase] = header_match[1]
-		end
-		
-		keepalive = 0
-		keepalive = headers["keep-alive"].to_i if headers["keep-alive"] and Php.is_numeric(headers["keep-alive"])
-		
-		if match[1] == "/"
-			page = @kas.config[:default_page]
-		elsif match
-			page = match[1]
-		end
-		
-		mainheader = "HTTP/1.1 200/OK\r\n"
-		page_path = "#{@kas.config[:doc_root]}/#{page}"
-		
-		if File.exists?(page_path)
-			cont = Php.file_get_contents(page_path)
-		else
-			mainheader = "HTTP/1.1 404/Not Found\r\n"
-			cont = ""
-		end
-		
-		if headers["host"]
-			host = headers["host"]
-		elsif @kas.config[:hostname]
-			host = @kas.config[:hostname]
-		else
-			raise "Could not figure out a valid hostname."
-		end
-		
-		ctype = @kas.config[:default_filetype]
-		pinfo = Php.pathinfo(page_path)
-		ext = pinfo["extension"].downcase
-		ctype = @kas.config[:filetypes][ext] if @kas.config[:filetypes][ext]
-		
-		cont = self.serve_real(
-			:page_path => page_path,
-			:host => host,
-			:ctype => ctype,
-			:ext => ext
-		)
-		headers = {
-			"Host" => [details[:host]],
-			"Content-Type" => [details[:ctype]],
-			"Content-Length" => [cont.length]
-		}
-		
-		headers_str = "#{mainheader}\r\n"
-		headers.each do |key, valarr|
-			valarr.each do |val|
-				headers_str += "#{key}: #{val}\r\n"
-			end
-		end
-		headers_str += "\r\n"
-		
-		@socket.write headers_str + cont + "\r\n"
-		
-		doclose = false
-		doclose = true if keepalive <= 0
-		doclose = true if headers["connection"] == "close"
-		
-		self.close if doclose
 	end
 	
 	def serve_real(details)
@@ -359,7 +298,7 @@ class Knjappserver::Httpsession
 				end
 				
 				if !cache
-					cont = Knj::Php.file_get_contents(details[:filepath]) #get plain content from file.
+					cont = File.read(details[:filepath]) #get plain content from file.
 				end
 			end
 		end

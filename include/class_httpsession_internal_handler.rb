@@ -1,5 +1,5 @@
 class Something
-	def serve_internal(request)
+def serve_internal(request)
 		match = request.match(/^GET (.+) HTTP\/1\.1\s*/)
 		raise "Could not parse request." if !match
 		
@@ -22,7 +22,7 @@ class Something
 		page_path = "#{@kas.config[:doc_root]}/#{page}"
 		
 		if File.exists?(page_path)
-			cont = Php.file_get_contents(page_path)
+			cont = File.read(page_path)
 		else
 			mainheader = "HTTP/1.1 404/Not Found\r\n"
 			cont = ""
@@ -37,7 +37,7 @@ class Something
 		end
 		
 		ctype = @kas.config[:default_filetype]
-		pinfo = Php.pathinfo(page_path)
+		pinfo = Knj::Php.pathinfo(page_path)
 		ext = pinfo["extension"].downcase
 		ctype = @kas.config[:filetypes][ext] if @kas.config[:filetypes][ext]
 		

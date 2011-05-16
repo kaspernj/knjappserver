@@ -1,10 +1,9 @@
-class Knjappserver::Session < Knj::Db_row
-	attr_reader :kas, :accessor, :edata
+class Knjappserver::Session < Knj::Datarow
+	attr_reader :accessor, :edata
 	
-	def initialize(data, kas)
-		@kas = kas
+	def initialize(d)
 		@edata = {}
-		super(:objects => @kas.ob, :db => @kas.db, :data => data, :table => :sessions, :force_selfdb => true)
+		super(d)
 		
 		if self[:sess_data].length > 0
 			begin
@@ -19,29 +18,23 @@ class Knjappserver::Session < Knj::Db_row
 		@accessor = Knjappserver::Session_accessor.new(self)
 	end
 	
-	def self.list(args = {}, kas = nil)
-		sql = "SELECT * FROM sessions WHERE 1=1"
+	def self.list(d)
+		sql = "SELECT * FROM #{table} WHERE 1=1"
 		
-		args.each do |key, val|
-			case key
-				when :idhash
-					sql += " AND #{key} = '#{val.sql}'"
-				else
-					raise "Invalid key: #{key}."
-			end
+		ret = list_helper(d)
+		d.args.each do |key, val|
+			raise "Invalid key: #{key}."
 		end
 		
-		return kas.ob.list_bysql(:Session, sql)
+		sql += ret[:sql_where]
+		sql += ret[:sql_order]
+		sql += ret[:sql_limit]
+		
+		return d.ob.list_bysql(:Session, sql)
 	end
 	
-	def self.add(kas, data)
-		data["date_added"] = Knj::Datet.new.dbstr if !data["date_added"]
-		ins_id = kas.db.insert(:sessions, data, {:return_id => true})
-		return kas.ob.get(:Session, ins_id)
-	end
-	
-	def delete
-		@kas.db.delete(:sessions, {:id => self.id})
+	def self.add(d)
+		d.data[:date_added] = Knj::Datet.new.dbstr if !d.data[:date_added]
 	end
 	
 	def sess_data
