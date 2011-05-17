@@ -22,7 +22,7 @@ class Knjappserver::Cleaner
 						mycmd = Knj::Os.executed_cmd
 						
 						STDOUT.print "Previous cmd: #{mycmd}\n"
-						mycmd = mycmd.gsub("knjappserver.rb", Knj::Strings.unixsafe(fpath))
+						mycmd = mycmd.gsub(/\s+knjappserver.rb/, " #{Knj::Strings.unixsafe(fpath)}")
 						
 						STDOUT.print "Restarting knjAppServer with command: #{mycmd}\n"
 						exec(mycmd)
