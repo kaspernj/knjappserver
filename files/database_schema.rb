@@ -69,6 +69,9 @@ $tables = {
 			"columns" => [
 				{"name" => "id", "type" => "bigint", "autoincr" => true, "primarykey" => true},
 				{"name" => "id_hash", "type" => "varchar"}
+			],
+			"indexes" => [
+				{"name" => "id_hash", "columns" => ["id_hash"]}
 			]
 		},
 		"Log_data_link" => {
