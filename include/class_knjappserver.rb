@@ -35,7 +35,9 @@ class Knjappserver
 			"#{$knjappserver[:path]}/include/class_httpsession.rb",
 			"#{$knjappserver[:path]}/include/class_session.rb",
 			"#{$knjappserver[:path]}/include/class_session_accessor.rb",
+			"#{$knjappserver[:path]}/include/class_log.rb",
 			"#{$knjappserver[:path]}/include/class_log_access.rb",
+			"#{$knjappserver[:path]}/include/class_log_data_value.rb",
 			"#{$knjappserver_config["knjrbfw"]}knj/objects.rb",
 			"#{$knjappserver_config["knjrbfw"]}knj/web.rb",
 			"#{$knjappserver_config["knjrbfw"]}knj/datet.rb",
@@ -362,5 +364,19 @@ class Knjappserver
 	
 	def back
 		return Knj::Web.back
+	end
+	
+	def log(msg, objs)
+		objs = [objs] if !objs.is_a?(Array)
+		
+		log_value = @ob.static(:Log_data_value, :force, msg)
+		log_obj = @ob.add(:Log, {:text_data_id => log_value.id})
+		
+		objs.each do |obj|
+			log_link_obj = @ob.add(:Log_link, {
+				:object => obj,
+				:log_id => log_obj.id
+			})
+		end
 	end
 end

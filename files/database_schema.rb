@@ -2,7 +2,7 @@ $tables = {
 	"tables" => {
 		"Session" => {
 			"columns" => [
-				{"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
+				{"name" => "id", "type" => "bigint", "autoincr" => true, "primarykey" => true},
 				{"name" => "idhash", "type" => "varchar"},
 				{"name" => "sess_data", "type" => "text"},
 				{"name" => "date_added", "type" => "datetime"},
@@ -16,9 +16,9 @@ $tables = {
 		},
 		"Translation" => {
 			"columns" => [
-				{"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
+				{"name" => "id", "type" => "bigint", "autoincr" => true, "primarykey" => true},
 				{"name" => "object_class", "type" => "varchar", "maxlength" => 50},
-				{"name" => "object_id", "type" => "int"},
+				{"name" => "object_id", "type" => "bigint"},
 				{"name" => "key", "type" => "varchar", "maxlength" => 50},
 				{"name" => "locale", "type" => "varchar", "maxlength" => 5},
 				{"name" => "value", "type" => "text"}
@@ -31,20 +31,27 @@ $tables = {
 			},
 			"renames" => ["translations"]
 		},
+		"Log" => {
+			"columns" => [
+				{"name" => "id", "type" => "bigint", "autoincr" => true, "primarykey" => true},
+				{"name" => "text_data_id", "type" => "bigint"},
+				{"name" => "date_saved", "type" => "datetime"}
+			]
+		},
 		"Log_access" => {
 			"columns" => [
 				{"name" => "id", "type" => "bigint", "autoincr" => true, "primarykey" => true},
-				{"name" => "session_id", "type" => "int"},
+				{"name" => "session_id", "type" => "bigint"},
 				{"name" => "date_request", "type" => "datetime"},
-				{"name" => "ip_data_id", "type" => "int"},
-				{"name" => "get_keys_data_id", "type" => "int"},
-				{"name" => "get_values_data_id", "type" => "int"},
-				{"name" => "post_keys_data_id", "type" => "int"},
-				{"name" => "post_values_data_id", "type" => "int"},
-				{"name" => "cookie_keys_data_id", "type" => "int"},
-				{"name" => "cookie_values_data_id", "type" => "int"},
-				{"name" => "meta_keys_data_id", "type" => "int"},
-				{"name" => "meta_values_data_id", "type" => "int"}
+				{"name" => "ip_data_id", "type" => "bigint"},
+				{"name" => "get_keys_data_id", "type" => "bigint"},
+				{"name" => "get_values_data_id", "type" => "bigint"},
+				{"name" => "post_keys_data_id", "type" => "bigint"},
+				{"name" => "post_values_data_id", "type" => "bigint"},
+				{"name" => "cookie_keys_data_id", "type" => "bigint"},
+				{"name" => "cookie_values_data_id", "type" => "bigint"},
+				{"name" => "meta_keys_data_id", "type" => "bigint"},
+				{"name" => "meta_values_data_id", "type" => "bigint"}
 			],
 			"indexes" =>  [
 				{"name" => "session_id", "columns" => ["session_id"]},
@@ -61,8 +68,8 @@ $tables = {
 			"columns" => [
 				{"name" => "id", "type" => "bigint", "autoincr" => true, "primarykey" => true},
 				{"name" => "no", "type" => "int"},
-				{"name" => "data_id", "type" => "int"},
-				{"name" => "value_id", "type" => "int"}
+				{"name" => "data_id", "type" => "bigint"},
+				{"name" => "value_id", "type" => "bigint"}
 			],
 			"indexes" => [
 				{"name" => "data_id", "columns" => ["data_id"]},
@@ -73,6 +80,19 @@ $tables = {
 			"columns" => [
 				{"name" => "id", "type" => "bigint", "autoincr" => true, "primarykey" => true},
 				{"name" => "value", "type" => "text"}
+			]
+		},
+		"Log_link" => {
+			"columns" => [
+				{"name" => "id", "type" => "bigint", "autoincr" => true, "primarykey" => true},
+				{"name" => "log_id", "type" => "bigint"},
+				{"name" => "object_class_data_id", "type" => "bigint"},
+				{"name" => "object_id", "type" => "bigint"}
+			],
+			"indexes" => [
+				{"name" => "log_id", "columns" => ["log_id"]},
+				{"name" => "object_lookup", "columns" => ["object_class_data_id", "object_id"]},
+				{"name" => "object_class_data_id", "columns" => ["object_class_data_id"]}
 			]
 		}
 	}
