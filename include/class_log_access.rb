@@ -95,7 +95,7 @@ class Knjappserver::Log_access < Knj::Datarow
 		hash = {}
 		q_hash = db.query(sql)
 		while d_hash = q_hash.fetch
-			hash[d_hash[:key].to_sym] = d_hash[:value]
+			hash[d_hash[:key].to_s] = d_hash[:value]
 		end
 		
 		return hash
