@@ -15,7 +15,7 @@ class Knjappserver::Log_access < Knj::Datarow
 	end
 	
 	def get
-		return ob.args[:knjappserver].log_data_hash("get")
+		return data_hash("get")
 	end
 	
 	def post
