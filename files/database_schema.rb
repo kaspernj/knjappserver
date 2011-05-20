@@ -34,8 +34,15 @@ $tables = {
 		"Log" => {
 			"columns" => [
 				{"name" => "id", "type" => "bigint", "autoincr" => true, "primarykey" => true},
-				{"name" => "text_data_id", "type" => "bigint"},
-				{"name" => "date_saved", "type" => "datetime"}
+				{"name" => "text_value_id", "type" => "bigint"},
+				{"name" => "date_saved", "type" => "datetime"},
+				{"name" => "get_keys_data_id", "type" => "bigint"},
+				{"name" => "get_values_data_id", "type" => "bigint"},
+				{"name" => "post_keys_data_id", "type" => "bigint"},
+				{"name" => "post_values_data_id", "type" => "bigint"}
+			],
+			"indexes" => [
+				{"name" => "text_value_id", "columns" => ["text_value_id"]}
 			]
 		},
 		"Log_access" => {
@@ -86,13 +93,13 @@ $tables = {
 			"columns" => [
 				{"name" => "id", "type" => "bigint", "autoincr" => true, "primarykey" => true},
 				{"name" => "log_id", "type" => "bigint"},
-				{"name" => "object_class_data_id", "type" => "bigint"},
+				{"name" => "object_class_value_id", "type" => "bigint"},
 				{"name" => "object_id", "type" => "bigint"}
 			],
 			"indexes" => [
 				{"name" => "log_id", "columns" => ["log_id"]},
-				{"name" => "object_lookup", "columns" => ["object_class_data_id", "object_id"]},
-				{"name" => "object_class_data_id", "columns" => ["object_class_data_id"]}
+				{"name" => "object_lookup", "columns" => ["object_class_value_id", "object_id"]},
+				{"name" => "object_class_value_id", "columns" => ["object_class_value_id"]}
 			]
 		}
 	}

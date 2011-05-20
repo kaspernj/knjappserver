@@ -17,7 +17,7 @@ class Knjappserver::Log_link
 	def self.add(d)
 		if d.data[:object]
 			class_data_id = d.ob.static(:Log_data_value, :force, d.data[:object].class.name)
-			d.data[:object_class_data_id] = class_data_id.id
+			d.data[:object_class_value_id] = class_data_id.id
 			d.data[:object_id] = d.data[:object].id
 			d.data.delete(:object)
 		end

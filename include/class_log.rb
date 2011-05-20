@@ -21,7 +21,7 @@ class Knjappserver::Log < Knj::Datarow
 				when "object_lookup"
 					data_val = d.ob.get_by(:Log_data_value, {"value" => val.class.name})
 					
-					sql += " AND Log_link.object_class_data_id = '#{d.db.esc(data_val.id)}'"
+					sql += " AND Log_link.object_class_value_id = '#{d.db.esc(data_val.id)}'"
 					sql += " AND Log_link.object_id = '#{d.db.esc(val.id)}'"
 				else
 					raise "Invalid key: #{key}."
@@ -42,6 +42,14 @@ class Knjappserver::Log < Knj::Datarow
 	end
 	
 	def text
-		return ob.get(:Log_data_value, self[:text_data_id])[:value]
+		return ob.get(:Log_data_value, self[:text_value_id])[:value]
+	end
+	
+	def get
+		ob.args[:knjappserver].log_data_hash(self[:get_keys_data_id], self[:get_values_data_id])
+	end
+	
+	def post
+		ob.args[:knjappserver].log_data_hash(self[:post_keys_data_id], self[:post_values_data_id])
 	end
 end

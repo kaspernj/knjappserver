@@ -15,7 +15,7 @@ class Knjappserver::Log_access < Knj::Datarow
 	end
 	
 	def get
-		return data_hash("get")
+		return ob.args[:knjappserver].log_data_hash("get")
 	end
 	
 	def post
@@ -58,46 +58,5 @@ class Knjappserver::Log_access < Knj::Datarow
 		end
 		
 		return arr
-	end
-	
-	def data_hash(type)
-		col_keys_id = "#{type}_keys_data_id".to_sym
-		col_values_id = "#{type}_values_data_id".to_sym
-		
-		keys_id = self[col_keys_id]
-		values_id = self[col_values_id]
-		
-		keys_data_obj = ob.get(:Log_data, keys_id)
-		values_data_obj = ob.get(:Log_data, values_id)
-		
-		sql = "
-			SELECT
-				key_value.value AS `key`,
-				value_value.value AS value
-			
-			FROM
-				Log_data_link AS key_links,
-				Log_data_link AS value_links,
-				Log_data_value AS key_value,
-				Log_data_value AS value_value
-			
-			WHERE
-				key_links.data_id = '#{keys_id}' AND
-				value_links.data_id = '#{values_id}' AND
-				key_links.no = value_links.no AND
-				key_value.id = key_links.value_id AND
-				value_value.id = value_links.value_id
-			
-			ORDER BY
-				key_links.no
-		"
-		
-		hash = {}
-		q_hash = db.query(sql)
-		while d_hash = q_hash.fetch
-			hash[d_hash[:key].to_sym] = d_hash[:value]
-		end
-		
-		return hash
 	end
 end
