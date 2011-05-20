@@ -13,4 +13,16 @@ class Knjappserver::Log_data_value < Knj::Datarow
 		
 		return d.ob.list_bysql(:Log_data_value, sql)
 	end
+	
+	def self.force(d, value)
+		value_obj = d.ob.get_by(:Log_data_value, {
+			"value" => value.to_s
+		})
+		
+		if !value_obj
+			value_obj = d.ob.add(:Log_data_value, {"value" => value})
+		end
+		
+		return value_obj
+	end
 end

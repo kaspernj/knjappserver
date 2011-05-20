@@ -21,9 +21,9 @@ class Knjappserver::ERBHandler
 						html += line.html + "<br />"
 					end
 					
-					html += "<br />Post:<br /><pre>#{Php.print_r(_post, true)}</pre>"
-					html += "<br />Get:<br /><pre>#{Php.print_r(_get, true)}</pre>"
-					html += "<br />Server:<br /><pre>#{Php.print_r(_server, true).html}</pre>"
+					html += "<br />Post:<br /><pre>#{Knj::Php.print_r(_post, true)}</pre>"
+					html += "<br />Get:<br /><pre>#{Knj::Php.print_r(_get, true)}</pre>"
+					html += "<br />Server:<br /><pre>#{Knj::Php.print_r(_server, true).html}</pre>"
 					
 					mail = Knj::Mailobj.new(_kas.config[:smtp_args])
 					mail.to = email

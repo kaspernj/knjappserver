@@ -1,3 +1,5 @@
+require "#{File.dirname(__FILE__)}/class_knjappserver_logging"
+
 class Knjappserver
 	attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :cleaner, :should_restart, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending
 	attr_accessor :served, :should_restart
@@ -35,7 +37,9 @@ class Knjappserver
 			"#{$knjappserver[:path]}/include/class_httpsession.rb",
 			"#{$knjappserver[:path]}/include/class_session.rb",
 			"#{$knjappserver[:path]}/include/class_session_accessor.rb",
+			"#{$knjappserver[:path]}/include/class_log.rb",
 			"#{$knjappserver[:path]}/include/class_log_access.rb",
+			"#{$knjappserver[:path]}/include/class_log_data_value.rb",
 			"#{$knjappserver_config["knjrbfw"]}knj/objects.rb",
 			"#{$knjappserver_config["knjrbfw"]}knj/web.rb",
 			"#{$knjappserver_config["knjrbfw"]}knj/datet.rb",
@@ -56,7 +60,8 @@ class Knjappserver
 			:db => db,
 			:class_path => "#{$knjappserver[:path]}/include",
 			:module => Knjappserver,
-			:datarow => true
+			:datarow => true,
+			:knjappserver => self
 		)
 		
 		if @config[:httpsession_db_args]
@@ -91,125 +96,6 @@ class Knjappserver
 				flush_access_log
 			end
 		end
-	end
-	
-	def flush_access_log
-		ins_arr = @logs_access_pending
-		@logs_access_pending = []
-		inserts = []
-		inserts_links = []
-		
-		data_cache = {}
-		q_data = @db.query("SELECT id, id_hash FROM Log_data")
-		while d_data = q_data.fetch
-			data_cache[d_data[:id_hash]] = d_data[:id]
-		end
-		
-		ins_arr.each do |ins|
-			gothrough = [
-				{
-					:col => :get_keys_data_id,
-					:hash => ins[:get],
-					:type => :keys
-				},{
-					:col => :get_values_data_id,
-					:hash => ins[:get],
-					:type => :values
-				},{
-					:col => :post_keys_data_id,
-					:hash => ins[:post],
-					:type => :keys
-				},{
-					:col => :post_values_data_id,
-					:hash => ins[:post],
-					:type => :values
-				},{
-					:col => :cookie_keys_data_id,
-					:hash => ins[:cookie],
-					:type => :keys
-				},{
-					:col => :cookie_values_data_id,
-					:hash => ins[:cookie],
-					:type => :values
-				},{
-					:col => :meta_keys_data_id,
-					:hash => ins[:meta],
-					:type => :keys
-				},{
-					:col => :meta_values_data_id,
-					:hash => ins[:meta],
-					:type => :values
-				}
-			]
-			ins_hash = {
-				:session_id => ins[:session_id],
-				:date_request => ins[:date_request]
-			}
-			
-			gothrough.each do |data|
-				if data[:type] == :keys
-					hash = Knj::ArrayExt.hash_keys_hash(data[:hash])
-				else
-					hash = Knj::ArrayExt.hash_values_hash(data[:hash])
-				end
-				
-				data_id = data_cache[hash]
-				if !data_id
-					data_id = @db.insert(:Log_data, {"id_hash" => hash}, {:return_id => true})
-					data_cache[hash] = data_id
-					
-					link_count = 0
-					data[:hash].keys.sort.each do |key|
-						if data[:type] == :keys
-							ins_data = key
-						else
-							ins_data = data[:hash][key]
-						end
-						
-						data_value = @db.single(:Log_data_value, {"value" => ins_data})
-						if data_value
-							data_value_id = data_value[:id]
-						else
-							data_value_id = @db.insert(:Log_data_value, {"value" => ins_data}, {:return_id => true})
-						end
-						
-						inserts_links << {:no => link_count, :data_id => data_id, :value_id => data_value_id}
-						link_count += 1
-					end
-				end
-				
-				ins_hash[data[:col]] = data_id
-			end
-			
-			hash = Knj::ArrayExt.array_hash(ins[:ips])
-			data_id = data_cache[hash]
-			
-			if !data_id
-				data_id = @db.insert(:Log_data, {"id_hash" => hash}, {:return_id => true})
-				data_cache[hash] = data_id
-				
-				link_count = 0
-				ins[:ips].each do |ip|
-					data_value = @db.single(:Log_data_value, {"value" => ip})
-					
-					if data_value
-						data_value_id = data_value[:id]
-					else
-						data_value_id = @db.insert(:Log_data_value, {"value" => ip}, {:return_id => true})
-					end
-					
-					inserts_links << {:no => link_count, :data_id => data_id, :value_id => data_value_id}
-					link_count += 1
-				end
-			end
-			
-			ins_hash[:ip_data_id] = data_id
-			inserts << ins_hash
-		end
-		
-		@db.insert_multi(:Log_access, inserts)
-		@db.insert_multi(:Log_data_link, inserts_links)
-		@ob.unset_class([:Log_access, :Log_data, :Log_data_link, :Log_data_value])
 	end
 	
 	def loadfile(fpath)
