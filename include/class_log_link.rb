@@ -1,4 +1,4 @@
-class Knjappserver::Log_link
+class Knjappserver::Log_link < Knj::Datarow
 	def self.list(d)
 		sql = "SELECT * FROM #{table} WHERE 1=1"
 		

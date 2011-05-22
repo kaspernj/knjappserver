@@ -137,9 +137,9 @@ class Knjappserver
 				link_count = 0
 				hash_obj.keys.sort.each do |key|
 					if type == :keys
-						ins_data = key
+						ins_data = key.to_s.force_encoding("UTF-8")
 					else
-						ins_data = hash_obj[key]
+						ins_data = hash_obj[key].to_s.force_encoding("UTF-8")
 					end
 					
 					data_value = @db.single(:Log_data_value, {"value" => ins_data})
@@ -216,11 +216,15 @@ class Knjappserver
 			:post_values_data_id => post_hash[:values_data_id]
 		})
 		
+		log_links = []
 		objs.each do |obj|
-			log_link_obj = @ob.add(:Log_link, {
+			log_links << @ob.add(:Log_link, {
 				:object => obj,
 				:log_id => log_obj.id
 			})
 		end
+		
+		@ob.unset([log_obj, log_value])
+		@ob.unset(log_links)
 	end
 end

@@ -17,7 +17,7 @@ class Knjappserver::ERBHandler
 					to = bt.length - 9
 					bt = bt[0..to]
 					
-					bt.reverse.each do |line|
+					bt.each do |line|
 						html += line.html + "<br />"
 					end
 					
