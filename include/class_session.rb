@@ -7,7 +7,7 @@ class Knjappserver::Session < Knj::Datarow
 		
 		if self[:sess_data].length > 0
 			begin
-				@sess_data = Marshal.load(self[:sess_data])
+				@sess_data = Marshal.load(Base64.decode64(self[:sess_data]))
 			rescue ArgumentError
 				@sess_data = {}
 			end
@@ -42,7 +42,7 @@ class Knjappserver::Session < Knj::Datarow
 	end
 	
 	def sess_data=(newdata)
-		m_newdata = Marshal.dump(newdata)
+		m_newdata = Base64.encode64(Marshal.dump(newdata))
 		self[:sess_data] = m_newdata
 		@sess_data = newdata
 	end
