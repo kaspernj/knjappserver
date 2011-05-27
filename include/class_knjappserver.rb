@@ -65,20 +65,7 @@ class Knjappserver
 		)
 		
 		if @config[:httpsession_db_args]
-			@db_handler = Knj::Threadhandler.new
-			
-			@db_handler.on_spawn_new do
-				db = Knj::Db.new(@config[:httpsession_db_args])
-				db #return db to the spawner process - dont remove - knj
-			end
-			
-			@db_handler.on_inactive do |data|
-				data[:obj].close
-			end
-			
-			@db_handler.on_activate do |data|
-				data[:obj].reconnect
-			end
+			@db_handler = Knj::Db.new(@config[:httpsession_db_args])
 		end
 		
 		@httpserv = Knjappserver::Httpserver.new(self)

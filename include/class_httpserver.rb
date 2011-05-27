@@ -20,6 +20,9 @@ class Knjappserver::Httpserver
 					self.spawn_httpsession(@server.accept)
 					STDOUT.print "Starting new HTTP-request.\n" if @kas.config[:verbose]
 				rescue => e
+					STDOUT.puts e.inspect
+					STDOUT.puts e.backtrace
+					STDOUT.print "\n"
 					STDOUT.print "Could not accept HTTP-request - waiting 0.5 sec and then trying again.\n"
 					sleep 0.5
 				end
@@ -27,12 +30,13 @@ class Knjappserver::Httpserver
 		end
 		
 		loop do
-			sleep 30
-			STDOUT.print "Checking if we are online.\n" if @kas.config[:debug]
-			
 			begin
+				sleep 30
 				socket = TCPSocket.open(@kas.config[:host], @kas.config[:port])
 				socket.close
+			rescue Interrupt => e
+				print "\nStopping appserver.\n"
+				exit
 			rescue => e
 				STDOUT.print "We are not online - restarting HTTP-server!\n"
 				
