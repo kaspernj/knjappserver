@@ -11,7 +11,7 @@ class Knjappserver::ERBHandler
 		
 		eruby = data[:httpsession].eruby
 		
-		if !@connected
+		if !@connected and _kas.config.has_key?(:smtp_args)
 			eruby.connect("error") do |e|
 				if _kas.config[:error_report_emails]
 					_kas.config[:error_report_emails].each do |email|
