@@ -203,18 +203,22 @@ class Knjappserver
 	
 	def log(msg, objs)
 		objs = [objs] if !objs.is_a?(Array)
-		
-		get_hash = log_hash_ins(_get)
-		post_hash = log_hash_ins(_post)
-		
 		log_value = @ob.static(:Log_data_value, :force, msg)
-		log_obj = @ob.add(:Log, {
-			:text_value_id => log_value.id,
-			:get_keys_data_id => get_hash[:keys_data_id],
-			:get_values_data_id => get_hash[:values_data_id],
-			:post_keys_data_id => post_hash[:keys_data_id],
-			:post_values_data_id => post_hash[:values_data_id]
-		})
+		ins_data = {:text_value_id => log_value.id}
+		
+		get_hash = log_hash_ins(_get) if _get
+		if get_hash
+			ins_data[:get_keys_data_id] = get_hash[:keys_data_id]
+			ins_data[:get_values_data_id] = get_hash[:values_data_id]
+		end
+		
+		post_hash = log_hash_ins(_post) if _post
+		if post_hash
+			ins_data[:post_keys_data_id] = post_hash[:keys_data_id]
+			ins_data[:post_values_data_id] = post_hash[:values_data_id]
+		end
+		
+		log_obj = @ob.add(:Log, ins_data)
 		
 		log_links = []
 		objs.each do |obj|
@@ -226,5 +230,42 @@ class Knjappserver
 		
 		@ob.unset([log_obj, log_value])
 		@ob.unset(log_links)
+	end
+	
+	def logs_table(obj, args = {})
+		logs = @ob.list(:Log, {"object_lookup" => obj})
+		
+		html = "<table class=\"list knjappserver_log_table\">"
+		html += "<thead>"
+		html += "<tr>"
+		html += "<th>Message</th>"
+		html += "<th>Date &amp; time</th>"
+		html += "</tr>"
+		html += "</thead>"
+		html += "<tbody>"
+		
+		logs.each do |log|
+			msg_lines = log.text.split("\n")
+			first_line = msg_lines[0].to_s
+			
+			classes = ["knjappserver_log", "knjappserver_log_#{log.id}"]
+			classes << "knjappserver_log_multiple_lines" if msg_lines.length > 1
+			
+			html += "<tr class=\"#{classes.join(" ")}\">"
+			html += "<td>#{first_line.html}</td>"
+			html += "<td>#{Knj::Datet.in(log[:date_saved]).out}</td>"
+			html += "</tr>"
+		end
+		
+		if logs.empty?
+			html += "<tr>"
+			html += "<td colspan=\"2\" class=\"error\">No logs were found for that object.</td>"
+			html += "</tr>"
+		end
+		
+		html += "</tbody>"
+		html += "</table>"
+		
+		return html
 	end
 end
