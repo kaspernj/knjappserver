@@ -67,9 +67,9 @@ class Knjappserver
 					link_count = 0
 					data[:hash].keys.sort.each do |key|
 						if data[:type] == :keys
-							ins_data = key
+							ins_data = key.force_encoding("UTF-8")
 						else
-							ins_data = data[:hash][key]
+							ins_data = data[:hash][key].force_encoding("UTF-8")
 						end
 						
 						data_value = @db.single(:Log_data_value, {"value" => ins_data})
