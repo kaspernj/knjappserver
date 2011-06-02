@@ -15,6 +15,8 @@ class Knjappserver::Httpsession
 		STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if @kas.config[:debug]
 		
 		Knj::Thread.new do
+			@db = @kas.db_handler
+			
 			begin
 				while @active
 					begin
@@ -31,15 +33,12 @@ class Knjappserver::Httpsession
 						
 						Dir.chdir(@kas.config[:doc_root])
 						@working = true
-						@db = @kas.db_handler.get_and_lock
+						
+						@kas.db_handler.get_and_register_thread
 						raise "Didnt get a database?" if !@db
 						self.serve_webrick(req)
 					ensure
-						if @db
-							@kas.db_handler.free(@db)
-							@db = nil
-						end
-						
+						@kas.db_handler.free_thread
 						@kas.served += 1
 						req.fixup if req and req.keep_alive?
 					end
