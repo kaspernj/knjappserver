@@ -152,10 +152,7 @@ class Knjappserver
 	end
 	
 	def paused?
-		if @paused > 0
-			return true
-		end
-		
+		return true if @paused > 0
 		return false
 	end
 	
@@ -178,6 +175,7 @@ class Knjappserver
 	def has_session?(args)
 		ip = args[:ip].to_s
 		idhash = args[:idhash].to_s
+		
 		return false if !@sessions.has_key?(ip) or !@sessions[ip].has_key?(idhash)
 		return true
 	end
@@ -243,10 +241,12 @@ class Knjappserver
 	end
 	
 	def alert(msg)
-		return Knj::Web.alert(msg)
+		Knj::Web.alert(msg)
+		return self
 	end
 	
 	def back
-		return Knj::Web.back
+		Knj::Web.back
+		return self
 	end
 end

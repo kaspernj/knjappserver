@@ -29,6 +29,7 @@ class Knjappserver::Httpsession
 							sleep 0.1 while @httpserver.count_working > @kas.config[:max_requests_working]
 						end
 						
+						Dir.chdir(@kas.config[:doc_root])
 						@working = true
 						@db = @kas.db_handler.get_and_lock
 						raise "Didnt get a database?" if !@db
@@ -147,11 +148,11 @@ class Knjappserver::Httpsession
 		
 		@browser = Knj::Web.browser(meta)
 		@ip = nil
-		@ip = meta["HTTP_X_FORWARDED_FOR"] if !@ip and meta["HTTP_X_FORWARDED_FOR"]
+		@ip = meta["HTTP_X_FORWARDED_FOR"].split(",")[0].strip if !@ip and meta["HTTP_X_FORWARDED_FOR"]
 		@ip = meta["REMOTE_ADDR"] if !@ip and meta["REMOTE_ADDR"]
 		
 		@ips = [meta["REMOTE_ADDR"]]
-		@ips << meta["HTTP_X_FORWARDED_FOR"] if meta["HTTP_X_FORWARDED_FOR"]
+		@ips << meta["HTTP_X_FORWARDED_FOR"].split(",")[0].strip if meta["HTTP_X_FORWARDED_FOR"]
 		
 		if @browser["browser"] == "bot"
 			@session_id = "bot"
