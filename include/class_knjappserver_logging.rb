@@ -67,10 +67,12 @@ class Knjappserver
 					link_count = 0
 					data[:hash].keys.sort.each do |key|
 						if data[:type] == :keys
-							ins_data = "#{key.to_s}".force_encoding("UTF-8")
+							ins_data = "#{key.to_s}"
 						else
-							ins_data = "#{data[:hash][key]}".force_encoding("UTF-8")
+							ins_data = "#{data[:hash][key]}"
 						end
+						
+						ins_data = ins_data.force_encoding("UTF-8") if ins_data.respond_to?(:force_encoding)
 						
 						data_value = @db.single(:Log_data_value, {"value" => ins_data})
 						if data_value
@@ -137,10 +139,12 @@ class Knjappserver
 				link_count = 0
 				hash_obj.keys.sort.each do |key|
 					if type == :keys
-						ins_data = "#{key.to_s}".force_encoding("UTF-8")
+						ins_data = "#{key.to_s}"
 					else
-						ins_data = "#{hash_obj[key].to_s}".force_encoding("UTF-8")
+						ins_data = "#{hash_obj[key].to_s}"
 					end
+					
+					ins_data = ins_data.force_encoding("UTF-8") if ins_data.respond_to?(:force_encoding)
 					
 					data_value = @db.single(:Log_data_value, {"value" => ins_data})
 					if data_value
@@ -233,7 +237,7 @@ class Knjappserver
 	end
 	
 	def logs_table(obj, args = {})
-		logs = @ob.list(:Log, {"object_lookup" => obj})
+		logs = @ob.list(:Log, {"object_lookup" => obj, "orderby" => [["id", "desc"]]})
 		
 		html = "<table class=\"list knjappserver_log_table\">"
 		html += "<thead>"

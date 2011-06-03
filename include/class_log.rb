@@ -20,6 +20,7 @@ class Knjappserver::Log < Knj::Datarow
 			case key
 				when "object_lookup"
 					data_val = d.ob.get_by(:Log_data_value, {"value" => val.class.name})
+					return [] if !data_val #if this data-value cannot be found, nothing has been logged for the object. So just return empty array here and skip the rest.
 					
 					sql += " AND Log_link.object_class_value_id = '#{d.db.esc(data_val.id)}'"
 					sql += " AND Log_link.object_id = '#{d.db.esc(val.id)}'"
