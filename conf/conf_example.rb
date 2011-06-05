@@ -9,7 +9,9 @@ dbargs = {
 	:user => "username",
 	:pass => "password",
 	:db => "database_name",
-	:return_keys => "symbols"
+	:return_keys => "symbols",
+	:encoding => "utf8",
+	:threadsafe => true
 }
 
 begin
@@ -72,10 +74,13 @@ $knjappserver[:knjappserver] = Knjappserver.new(
 	],
 	:db => Knj::Db.new(
 		:type => "mysql",
+		:subtype => "mysql2",
 		:host => "localhost",
 		:user => "knjappserver",
 		:pass => "password",
 		:db => "knjappserver",
+		:return_keys => "symbols",
+		:encoding => "utf8",
 		:threadsafe => true
 	),
 	:smtp_args => {

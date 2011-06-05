@@ -53,4 +53,12 @@ class Knjappserver::Log < Knj::Datarow
 	def post
 		ob.args[:knjappserver].log_data_hash(self[:post_keys_data_id], self[:post_values_data_id])
 	end
+	
+	def first_line
+		lines = self.text.to_s.split("\n").first.to_s
+	end
+	
+	def links(args = {})
+		return ob.list(:Log_link, {"log" => self}.merge(args))
+	end
 end

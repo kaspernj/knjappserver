@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 
 require "rubygems"
-require "active_support"
-require "active_support/core_ext"
+#require "active_support"
+#require "active_support/core_ext"
 
 filepath = File.dirname(__FILE__) + "/"
 
