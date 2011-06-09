@@ -61,4 +61,24 @@ class Knjappserver::Log < Knj::Datarow
 	def links(args = {})
 		return ob.list(:Log_link, {"log" => self}.merge(args))
 	end
+	
+	def objects_html(ob_use)
+		html = ""
+		first = true
+		
+		self.links.each do |link|
+			obj = link.object(ob_use)
+			
+			html += ", " if !first
+			first = false if first
+			
+			if obj.respond_to?(:html)
+				html += obj.html
+			else
+				html += "#{obj.class.name}{#{obj.id}}"
+			end
+		end
+		
+		return html
+	end
 end
