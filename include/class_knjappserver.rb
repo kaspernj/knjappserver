@@ -1,4 +1,6 @@
 require "#{File.dirname(__FILE__)}/class_knjappserver_logging"
+require "#{File.dirname(__FILE__)}/class_knjappserver_threadding"
+require "#{File.dirname(__FILE__)}/class_knjappserver_web"
 
 class Knjappserver
 	attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :cleaner, :should_restart, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending
@@ -230,17 +232,35 @@ class Knjappserver
 		print %x[#{script_cmd}]
 	end
 	
-	def redirect(url, args = {})
-		return Knj::Web.redirect(url, args)
-	end
-	
-	def alert(msg)
-		Knj::Web.alert(msg)
-		return self
-	end
-	
-	def back
-		Knj::Web.back
-		return self
+	def handle_error(e)
+		if !Thread.current[:knjappserver] or !Thread.current[:knjappserver][:httpsession]
+			STDOUT.print "Error: "
+			STDOUT.puts e.inspect
+			STDOUT.print "\n"
+			STDOUT.puts e.backtrace
+			STDOUT.print "\n\n"
+		end
+		
+		if @config.has_key?(:smtp_args) and @config[:error_report_emails]
+			@config[:error_report_emails].each do |email|
+				html = "An error occurred." + "<br /><br />"
+				html += "<b>#{e.class.name.html}: #{e.message.html}</b><br /><br />"
+				
+				e.backtrace.each do |line|
+					html += line.html + "<br />"
+				end
+				
+				html += "<br />Post:<br /><pre>#{Knj::Php.print_r(_post, true)}</pre>" if _post
+				html += "<br />Get:<br /><pre>#{Knj::Php.print_r(_get, true)}</pre>" if _get
+				html += "<br />Server:<br /><pre>#{Knj::Php.print_r(_server, true).html}</pre>" if _server
+				
+				mail = Knj::Mailobj.new(@config[:smtp_args])
+				mail.to = email
+				mail.subject = sprintf("Error @ %s", @config[:title])
+				mail.html = html
+				mail.from = @config[:error_report_from]
+				mail.send
+			end
+		end
 	end
 end

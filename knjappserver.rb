@@ -1,8 +1,13 @@
 #!/usr/bin/env ruby
 
-require "rubygems"
-#require "active_support"
-#require "active_support/core_ext"
+ARGV.each do |arg|
+	if arg == "--active_support"
+		ARGV.delete(arg)
+		require "rubygems"
+		require "active_support"
+		require "active_support/core_ext"
+	end
+end
 
 filepath = File.dirname(__FILE__) + "/"
 

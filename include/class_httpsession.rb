@@ -20,7 +20,6 @@ class Knjappserver::Httpsession
 			begin
 				while @active
 					begin
-						@working = false
 						@out = StringIO.new
 						req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP) if @kas.config[:engine_webrick]
 						req.parse(@socket)
@@ -35,11 +34,15 @@ class Knjappserver::Httpsession
 						@working = true
 						
 						@kas.db_handler.get_and_register_thread
+						@kas.ob.db.get_and_register_thread
+						
 						raise "Didnt get a database?" if !@db
 						self.serve_webrick(req)
 					ensure
 						@kas.db_handler.free_thread
+						@kas.ob.db.free_thread
 						@kas.served += 1
+						@working = false
 						req.fixup if req and req.keep_alive?
 					end
 				end
