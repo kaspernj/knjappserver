@@ -83,6 +83,8 @@ class Knjappserver
 				flush_access_log
 			end
 		end
+		
+		self.register_run
 	end
 	
 	def loadfile(fpath)
@@ -123,6 +125,11 @@ class Knjappserver
 		end
 		
 		@httpserv.start
+	end
+	
+	def register_run
+		run_file = Knj::Php.realpath("#{File.dirname(__FILE__)}/../files/run") + "/knjappserver"
+		Knj::Php.file_put_contents(run_file, Process.pid)
 	end
 	
 	def stop
