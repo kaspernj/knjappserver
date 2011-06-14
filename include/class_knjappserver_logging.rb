@@ -244,6 +244,7 @@ class Knjappserver
 		html += "<tr>"
 		html += "<th>Message</th>"
 		html += "<th>Date &amp; time</th>"
+		html += "<th>Objects</th>" if args[:ob_use]
 		html += "</tr>"
 		html += "</thead>"
 		html += "<tbody>"
@@ -258,6 +259,7 @@ class Knjappserver
 			html += "<tr class=\"#{classes.join(" ")}\">"
 			html += "<td>#{first_line.html}</td>"
 			html += "<td>#{Knj::Datet.in(log[:date_saved]).out}</td>"
+			html += "<td>#{log.objects_html(args[:ob_use])}</td>" if args[:ob_use]
 			html += "</tr>"
 		end
 		
