@@ -42,11 +42,13 @@ class Knjappserver
 						sleep args[:time]
 					end
 					
+					kas.ob.db.get_and_register_thread
 					kas.db_handler.get_and_register_thread
 					yield(*args[:args])
 				rescue Exception => e
 					kas.handle_error(e)
 				ensure
+					kas.ob.db.free_thread
 					kas.db_handler.free_thread
 				end
 			end
