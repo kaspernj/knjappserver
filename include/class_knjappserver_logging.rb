@@ -13,41 +13,39 @@ class Knjappserver
 			end
 			
 			ins_arr.each do |ins|
-				gothrough = [
-					{
-						:col => :get_keys_data_id,
-						:hash => ins[:get],
-						:type => :keys
-					},{
-						:col => :get_values_data_id,
-						:hash => ins[:get],
-						:type => :values
-					},{
-						:col => :post_keys_data_id,
-						:hash => ins[:post],
-						:type => :keys
-					},{
-						:col => :post_values_data_id,
-						:hash => ins[:post],
-						:type => :values
-					},{
-						:col => :cookie_keys_data_id,
-						:hash => ins[:cookie],
-						:type => :keys
-					},{
-						:col => :cookie_values_data_id,
-						:hash => ins[:cookie],
-						:type => :values
-					},{
-						:col => :meta_keys_data_id,
-						:hash => ins[:meta],
-						:type => :keys
-					},{
-						:col => :meta_values_data_id,
-						:hash => ins[:meta],
-						:type => :values
-					}
-				]
+				gothrough = [{
+					:col => :get_keys_data_id,
+					:hash => ins[:get],
+					:type => :keys
+				},{
+					:col => :get_values_data_id,
+					:hash => ins[:get],
+					:type => :values
+				},{
+					:col => :post_keys_data_id,
+					:hash => ins[:post],
+					:type => :keys
+				},{
+					:col => :post_values_data_id,
+					:hash => ins[:post],
+					:type => :values
+				},{
+					:col => :cookie_keys_data_id,
+					:hash => ins[:cookie],
+					:type => :keys
+				},{
+					:col => :cookie_values_data_id,
+					:hash => ins[:cookie],
+					:type => :values
+				},{
+					:col => :meta_keys_data_id,
+					:hash => ins[:meta],
+					:type => :keys
+				},{
+					:col => :meta_values_data_id,
+					:hash => ins[:meta],
+					:type => :values
+				}]
 				ins_hash = {
 					:session_id => ins[:session_id],
 					:date_request => ins[:date_request]
@@ -211,7 +209,10 @@ class Knjappserver
 		@logs_mutex.synchronize do
 			objs = [objs] if !objs.is_a?(Array)
 			log_value = @ob.static(:Log_data_value, :force, msg)
-			ins_data = {:text_value_id => log_value.id}
+			ins_data = {
+				:date_saved => Time.new,
+				:text_value_id => log_value.id
+			}
 			
 			get_hash = log_hash_ins(_get) if _get
 			if get_hash
@@ -262,7 +263,7 @@ class Knjappserver
 			
 			html += "<tr class=\"#{classes.join(" ")}\">"
 			html += "<td>#{first_line.html}</td>"
-			html += "<td>#{Knj::Datet.in(log[:date_saved]).out}</td>"
+			html += "<td>#{Knj::Datet.in(log[:date_saved]).out} #{log[:date_saved]}</td>"
 			html += "<td>#{log.objects_html(args[:ob_use])}</td>" if args[:ob_use]
 			html += "</tr>"
 		end
