@@ -3,7 +3,7 @@ require "#{File.dirname(__FILE__)}/class_knjappserver_threadding"
 require "#{File.dirname(__FILE__)}/class_knjappserver_web"
 
 class Knjappserver
-	attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :cleaner, :should_restart, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending
+	attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :cleaner, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending
 	attr_accessor :served, :should_restart
 	
 	def initialize(config)
@@ -87,6 +87,17 @@ class Knjappserver
 		end
 		
 		self.register_run
+		
+		#Set up various events for the appserver.
+		@events = Knj::Event_handler.new
+		@events.add_event(
+			:name => :check_page_access,
+			:connections_max => 1
+		)
+		@events.add_event(
+			:name => :ob,
+			:connections_max => 1
+		)
 	end
 	
 	def loadfile(fpath)

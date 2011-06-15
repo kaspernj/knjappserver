@@ -222,17 +222,17 @@ class Knjappserver
 			ins_data[:post_values_data_id] = post_hash[:values_data_id]
 		end
 		
-		log_obj = @ob.add(:Log, ins_data)
+		log_id = @ob.db.insert(:Log, ins_data, {:return_id => true})
 		
 		log_links = []
 		objs.each do |obj|
 			log_links << @ob.add(:Log_link, {
 				:object => obj,
-				:log_id => log_obj.id
+				:log_id => log_id
 			})
 		end
 		
-		@ob.unset([log_obj, log_value])
+		@ob.unset(log_value)
 		@ob.unset(log_links)
 	end
 	
