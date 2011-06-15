@@ -242,7 +242,7 @@ class Knjappserver
 	end
 	
 	def logs_table(obj, args = {})
-		logs = @ob.list(:Log, {"object_lookup" => obj, "orderby" => [["id", "desc"]]})
+		logs = @ob.list(:Log, {"object_lookup" => obj, "limit" => 500, "orderby" => [["id", "desc"]]})
 		
 		html = "<table class=\"list knjappserver_log_table\">"
 		html += "<thead>"
