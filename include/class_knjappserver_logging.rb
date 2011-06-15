@@ -1,84 +1,110 @@
 class Knjappserver
 	def flush_access_log
-		ins_arr = @logs_access_pending
-		@logs_access_pending = []
-		inserts = []
-		inserts_links = []
-		
-		data_cache = {}
-		q_data = @db.query("SELECT id, id_hash FROM Log_data")
-		while d_data = q_data.fetch
-			data_cache[d_data[:id_hash]] = d_data[:id]
-		end
-		
-		ins_arr.each do |ins|
-			gothrough = [
-				{
-					:col => :get_keys_data_id,
-					:hash => ins[:get],
-					:type => :keys
-				},{
-					:col => :get_values_data_id,
-					:hash => ins[:get],
-					:type => :values
-				},{
-					:col => :post_keys_data_id,
-					:hash => ins[:post],
-					:type => :keys
-				},{
-					:col => :post_values_data_id,
-					:hash => ins[:post],
-					:type => :values
-				},{
-					:col => :cookie_keys_data_id,
-					:hash => ins[:cookie],
-					:type => :keys
-				},{
-					:col => :cookie_values_data_id,
-					:hash => ins[:cookie],
-					:type => :values
-				},{
-					:col => :meta_keys_data_id,
-					:hash => ins[:meta],
-					:type => :keys
-				},{
-					:col => :meta_values_data_id,
-					:hash => ins[:meta],
-					:type => :values
-				}
-			]
-			ins_hash = {
-				:session_id => ins[:session_id],
-				:date_request => ins[:date_request]
-			}
+		@logs_mutex.synchronize do
+			ins_arr = @logs_access_pending
+			@logs_access_pending = []
+			inserts = []
+			inserts_links = []
 			
-			gothrough.each do |data|
-				if data[:type] == :keys
-					hash = Knj::ArrayExt.hash_keys_hash(data[:hash])
-				else
-					hash = Knj::ArrayExt.hash_values_hash(data[:hash])
+			data_cache = {}
+			q_data = @db.query("SELECT id, id_hash FROM Log_data")
+			while d_data = q_data.fetch
+				data_cache[d_data[:id_hash]] = d_data[:id]
+			end
+			
+			ins_arr.each do |ins|
+				gothrough = [
+					{
+						:col => :get_keys_data_id,
+						:hash => ins[:get],
+						:type => :keys
+					},{
+						:col => :get_values_data_id,
+						:hash => ins[:get],
+						:type => :values
+					},{
+						:col => :post_keys_data_id,
+						:hash => ins[:post],
+						:type => :keys
+					},{
+						:col => :post_values_data_id,
+						:hash => ins[:post],
+						:type => :values
+					},{
+						:col => :cookie_keys_data_id,
+						:hash => ins[:cookie],
+						:type => :keys
+					},{
+						:col => :cookie_values_data_id,
+						:hash => ins[:cookie],
+						:type => :values
+					},{
+						:col => :meta_keys_data_id,
+						:hash => ins[:meta],
+						:type => :keys
+					},{
+						:col => :meta_values_data_id,
+						:hash => ins[:meta],
+						:type => :values
+					}
+				]
+				ins_hash = {
+					:session_id => ins[:session_id],
+					:date_request => ins[:date_request]
+				}
+				
+				gothrough.each do |data|
+					if data[:type] == :keys
+						hash = Knj::ArrayExt.hash_keys_hash(data[:hash])
+					else
+						hash = Knj::ArrayExt.hash_values_hash(data[:hash])
+					end
+					
+					data_id = data_cache[hash]
+					if !data_id
+						data_id = @db.insert(:Log_data, {"id_hash" => hash}, {:return_id => true})
+						data_cache[hash] = data_id
+						
+						link_count = 0
+						data[:hash].keys.sort.each do |key|
+							if data[:type] == :keys
+								ins_data = "#{key.to_s}"
+							else
+								ins_data = "#{data[:hash][key]}"
+							end
+							
+							ins_data = ins_data.force_encoding("UTF-8") if ins_data.respond_to?(:force_encoding)
+							
+							data_value = @db.single(:Log_data_value, {"value" => ins_data})
+							if data_value
+								data_value_id = data_value[:id]
+							else
+								data_value_id = @db.insert(:Log_data_value, {"value" => ins_data}, {:return_id => true})
+							end
+							
+							inserts_links << {:no => link_count, :data_id => data_id, :value_id => data_value_id}
+							link_count += 1
+						end
+					end
+					
+					ins_hash[data[:col]] = data_id
 				end
 				
+				hash = Knj::ArrayExt.array_hash(ins[:ips])
 				data_id = data_cache[hash]
+				
 				if !data_id
 					data_id = @db.insert(:Log_data, {"id_hash" => hash}, {:return_id => true})
 					data_cache[hash] = data_id
 					
 					link_count = 0
-					data[:hash].keys.sort.each do |key|
-						if data[:type] == :keys
-							ins_data = "#{key.to_s}"
-						else
-							ins_data = "#{data[:hash][key]}"
-						end
+					ins[:ips].each do |ip|
+						data_value = @db.single(:Log_data_value, {"value" => ip})
 						
-						ins_data = ins_data.force_encoding("UTF-8") if ins_data.respond_to?(:force_encoding)
-						
-						data_value = @db.single(:Log_data_value, {"value" => ins_data})
 						if data_value
 							data_value_id = data_value[:id]
 						else
-							data_value_id = @db.insert(:Log_data_value, {"value" => ins_data}, {:return_id => true})
+							data_value_id = @db.insert(:Log_data_value, {"value" => ip}, {:return_id => true})
 						end
 						
 						inserts_links << {:no => link_count, :data_id => data_id, :value_id => data_value_id}
@@ -86,38 +112,14 @@ class Knjappserver
 					end
 				end
 				
-				ins_hash[data[:col]] = data_id
+				ins_hash[:ip_data_id] = data_id
+				inserts << ins_hash
 			end
 			
-			hash = Knj::ArrayExt.array_hash(ins[:ips])
-			data_id = data_cache[hash]
-			
-			if !data_id
-				data_id = @db.insert(:Log_data, {"id_hash" => hash}, {:return_id => true})
-				data_cache[hash] = data_id
-				
-				link_count = 0
-				ins[:ips].each do |ip|
-					data_value = @db.single(:Log_data_value, {"value" => ip})
-					
-					if data_value
-						data_value_id = data_value[:id]
-					else
-						data_value_id = @db.insert(:Log_data_value, {"value" => ip}, {:return_id => true})
-					end
-					
-					inserts_links << {:no => link_count, :data_id => data_id, :value_id => data_value_id}
-					link_count += 1
-				end
-			end
-			
-			ins_hash[:ip_data_id] = data_id
-			inserts << ins_hash
+			@db.insert_multi(:Log_access, inserts)
+			@db.insert_multi(:Log_data_link, inserts_links)
+			@ob.unset_class([:Log_access, :Log_data, :Log_data_link, :Log_data_value])
 		end
-		
-		@db.insert_multi(:Log_access, inserts)
-		@db.insert_multi(:Log_data_link, inserts_links)
-		@ob.unset_class([:Log_access, :Log_data, :Log_data_link, :Log_data_value])
 	end
 	
 	def log_hash_ins(hash_obj)
@@ -206,34 +208,36 @@ class Knjappserver
 	end
 	
 	def log(msg, objs)
-		objs = [objs] if !objs.is_a?(Array)
-		log_value = @ob.static(:Log_data_value, :force, msg)
-		ins_data = {:text_value_id => log_value.id}
-		
-		get_hash = log_hash_ins(_get) if _get
-		if get_hash
-			ins_data[:get_keys_data_id] = get_hash[:keys_data_id]
-			ins_data[:get_values_data_id] = get_hash[:values_data_id]
+		@logs_mutex.synchronize do
+			objs = [objs] if !objs.is_a?(Array)
+			log_value = @ob.static(:Log_data_value, :force, msg)
+			ins_data = {:text_value_id => log_value.id}
+			
+			get_hash = log_hash_ins(_get) if _get
+			if get_hash
+				ins_data[:get_keys_data_id] = get_hash[:keys_data_id]
+				ins_data[:get_values_data_id] = get_hash[:values_data_id]
+			end
+			
+			post_hash = log_hash_ins(_post) if _post
+			if post_hash
+				ins_data[:post_keys_data_id] = post_hash[:keys_data_id]
+				ins_data[:post_values_data_id] = post_hash[:values_data_id]
+			end
+			
+			log_id = @ob.db.insert(:Log, ins_data, {:return_id => true})
+			
+			log_links = []
+			objs.each do |obj|
+				log_links << @ob.add(:Log_link, {
+					:object => obj,
+					:log_id => log_id
+				})
+			end
+			
+			@ob.unset(log_value)
+			@ob.unset(log_links)
 		end
-		
-		post_hash = log_hash_ins(_post) if _post
-		if post_hash
-			ins_data[:post_keys_data_id] = post_hash[:keys_data_id]
-			ins_data[:post_values_data_id] = post_hash[:values_data_id]
-		end
-		
-		log_id = @ob.db.insert(:Log, ins_data, {:return_id => true})
-		
-		log_links = []
-		objs.each do |obj|
-			log_links << @ob.add(:Log_link, {
-				:object => obj,
-				:log_id => log_id
-			})
-		end
-		
-		@ob.unset(log_value)
-		@ob.unset(log_links)
 	end
 	
 	def logs_table(obj, args = {})

@@ -4,6 +4,7 @@ class Knjappserver::Httpserver
 	def initialize(kas)
 		@kas = kas
 		@http_sessions = []
+		@http_sessions_mutex = Mutex.new
 	end
 	
 	def start
@@ -61,13 +62,18 @@ class Knjappserver::Httpserver
 	end
 	
 	def spawn_httpsession(socket)
-		@http_sessions << Knjappserver::Httpsession.new(self, socket)
+		@http_sessions_mutex.synchronize do
+			@http_sessions << Knjappserver::Httpsession.new(self, socket)
+		end
 	end
 	
 	def count_working
 		count = 0
-		@http_sessions.clone.each do |httpsession|
-			count += 1 if httpsession and httpsession.working
+		
+		@http_sessions_mutex.synchronize do
+			@http_sessions.each do |httpsession|
+				count += 1 if httpsession and httpsession.working
+			end
 		end
 		
 		return count

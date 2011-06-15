@@ -16,6 +16,7 @@ class Knjappserver
 		@served = 0
 		@mod_files = {}
 		@logs_access_pending = []
+		@logs_mutex = Mutex.new
 		
 		paths = [
 			"#{$knjappserver[:path]}/knjappserver.rb",
