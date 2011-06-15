@@ -3,13 +3,21 @@ require "#{File.dirname(__FILE__)}/class_knjappserver_threadding"
 require "#{File.dirname(__FILE__)}/class_knjappserver_web"
 
 class Knjappserver
-	attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :cleaner, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending
+	attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :cleaner, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool
 	attr_accessor :served, :should_restart
 	
 	def initialize(config)
 		require "webrick"
 		
 		@config = config
+		@config[:threadding] = {} if !@config.has_key?(:threadding)
+		@config[:threadding][:max_running] = 10 if !@config[:threadding].has_key?(:max_running)
+		
+		@threadpool = Knj::Threadpool.new(:threads => @config[:threadding][:max_running])
+		@threadpool.events.connect(:on_error) do |event, error|
+			self.handle_error(error)
+		end
+		
 		@paused = 0
 		@should_restart = false
 		@mod_events = {}
