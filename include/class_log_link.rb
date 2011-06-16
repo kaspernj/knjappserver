@@ -33,4 +33,8 @@ class Knjappserver::Log_link < Knj::Datarow
 			return false
 		end
 	end
+	
+	def object_class
+		return ob.get(:Log_data_value, self[:object_class_value_id])[:value]
+	end
 end
