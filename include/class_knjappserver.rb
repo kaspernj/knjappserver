@@ -1,6 +1,7 @@
 require "#{File.dirname(__FILE__)}/class_knjappserver_logging"
 require "#{File.dirname(__FILE__)}/class_knjappserver_threadding"
 require "#{File.dirname(__FILE__)}/class_knjappserver_web"
+require "#{File.dirname(__FILE__)}/class_knjappserver_mailing"
 
 class Knjappserver
 	attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :cleaner, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool
@@ -107,6 +108,14 @@ class Knjappserver
 			:name => :ob,
 			:connections_max => 1
 		)
+		
+		#Set up various stuff for mailing.
+		@mails_waiting = []
+		@mails_mutex = Mutex.new
+		@mails_queue_mutex = Mutex.new
+		@mails_timeout = self.timeout(:time => 10) do
+			self.mail_flush
+		end
 	end
 	
 	def loadfile(fpath)
@@ -252,7 +261,7 @@ class Knjappserver
 		print %x[#{script_cmd}]
 	end
 	
-	def handle_error(e)
+	def handle_error(e, args = {})
 		if !Thread.current[:knjappserver] or !Thread.current[:knjappserver][:httpsession]
 			STDOUT.print "Error: "
 			STDOUT.puts e.inspect
@@ -261,7 +270,7 @@ class Knjappserver
 			STDOUT.print "\n\n"
 		end
 		
-		if @config.has_key?(:smtp_args) and @config[:error_report_emails]
+		if @config.has_key?(:smtp_args) and @config[:error_report_emails] and !args.has_key?(:email) or args[:email]
 			@config[:error_report_emails].each do |email|
 				html = "An error occurred." + "<br /><br />"
 				html += "<b>#{e.class.name.html}: #{e.message.html}</b><br /><br />"
@@ -274,12 +283,12 @@ class Knjappserver
 				html += "<br />Get:<br /><pre>#{Knj::Php.print_r(_get, true)}</pre>" if _get
 				html += "<br />Server:<br /><pre>#{Knj::Php.print_r(_server, true).html}</pre>" if _server
 				
-				mail = Knj::Mailobj.new(@config[:smtp_args])
-				mail.to = email
-				mail.subject = sprintf("Error @ %s", @config[:title])
-				mail.html = html
-				mail.from = @config[:error_report_from]
-				mail.send
+				self.mail(
+					:to => email,
+					:subject => sprintf("Error @ %s", @config[:title]),
+					:html => html,
+					:from => @config[:error_report_from]
+				)
 			end
 		end
 	end
