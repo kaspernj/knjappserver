@@ -2,7 +2,7 @@ require "#{$knjappserver_config["knjrbfw"]}knj/erb/include.rb"
 
 class Knjappserver::ERBHandler
 	def initialize
-		@connected = false
+		@connected = {}
 	end
 	
 	def erb_handler(data)
@@ -11,12 +11,12 @@ class Knjappserver::ERBHandler
 		
 		eruby = data[:httpsession].eruby
 		
-		if !@connected
+		if !@connected[eruby.__id__]
 			eruby.connect("error") do |e|
 				_kas.handle_error(e)
 			end
 			
-			@connected = true
+			@connected[eruby.__id__] = true
 		end
 		
 		cont = eruby.load_return(data[:filepath], {

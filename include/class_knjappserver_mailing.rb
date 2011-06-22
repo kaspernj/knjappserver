@@ -1,4 +1,13 @@
 class Knjappserver
+	def initialize_mailing
+		@mails_waiting = []
+		@mails_mutex = Mutex.new
+		@mails_queue_mutex = Mutex.new
+		@mails_timeout = self.timeout(:time => 10) do
+			self.mail_flush
+		end
+	end
+	
 	def mail(mail_args)
 		@mails_queue_mutex.synchronize do
 			count_wait = 0
@@ -32,6 +41,8 @@ class Knjappserver
 					if mail.send
 						@mails_waiting.delete(mail)
 					end
+				rescue Timeout::Error
+					#ignore - 
 				rescue => e
 					@mails_waiting.delete(mail)
 					self.handle_error(e, {:email => false})
