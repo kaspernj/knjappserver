@@ -38,6 +38,7 @@ class Knjappserver::Cleaner
 				end
 				
 				@kas.stop
+				@kas.mail_flush
 				
 				fpath = Knj::Php.realpath(File.dirname(__FILE__) + "/../knjappserver.rb")
 				mycmd = Knj::Os.executed_cmd

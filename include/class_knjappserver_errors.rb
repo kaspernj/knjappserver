@@ -13,7 +13,7 @@ class Knjappserver
 			send_time_older_than = Time.new.to_i - 180
 			
 			@error_emails_pending.each do |backtrace_hash, error_email|
-				if send_time_older_than < error_email[:last_time].to_i and error_emails[:messages].length < 1000
+				if send_time_older_than < error_email[:last_time].to_i and error_email[:messages].length < 1000
 					next
 				end
 				
