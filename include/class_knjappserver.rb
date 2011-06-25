@@ -87,6 +87,10 @@ class Knjappserver
 			@gettext = Knj::Gettext_threadded.new("dir" => config[:locales_root])
 		end
 		
+		if @config[:locales_gettext_funcs]
+			require "#{File.dirname(__FILE__)}/gettext_funcs.rb"
+		end
+		
 		
 		#Save the PID to the run-file.
 		run_file = Knj::Php.realpath("#{File.dirname(__FILE__)}/../files/run") + "/knjappserver"
