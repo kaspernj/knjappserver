@@ -211,7 +211,7 @@ class Knjappserver::Httpsession
 					res.cookies << cookie
 				end
 			elsif keystr.match(/^content-type/i)
-				raise "Could not parse content-type: '#{val}'." if !match = val.match(/^(.+?)(;|$)/)
+				raise "Could not parse content-type: '#{val}'." if !match = val.match(/^(.+)/)
 				ctype = match[1]
 			else
 				res.header[key] = val
@@ -275,6 +275,7 @@ class Knjappserver::Httpsession
 		if !handler_use
 			if !File.exists?(details[:filepath])
 				statuscode = 404
+				cont = "File you are looking for was not found: '#{details[:filepath]}'."
 			else
 				lastmod = Knj::Datet.new(File.new(details[:filepath]).mtime)
 				
