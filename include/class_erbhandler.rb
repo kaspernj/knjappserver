@@ -1,5 +1,3 @@
-require "#{$knjappserver_config["knjrbfw"]}knj/erb/include.rb"
-
 class Knjappserver::ERBHandler
 	def initialize
 		@connected = {}
@@ -8,7 +6,6 @@ class Knjappserver::ERBHandler
 	def erb_handler(data)
 		#Hack the Knj::Thread to accept data - this is how get, post and etc. are set.
 		Thread.current.data[:knjappserver] = data
-		
 		eruby = data[:httpsession].eruby
 		
 		if !@connected[eruby.__id__]
@@ -44,6 +41,3 @@ class Knjappserver::ERBHandler
 		}
 	end
 end
-
-#Hack to detect we are running KnjEruby
-$knj_eruby = KnjEruby

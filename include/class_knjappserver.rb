@@ -9,32 +9,26 @@ class Knjappserver
 	attr_accessor :served, :should_restart
 	
 	def initialize(config)
-		require "webrick"
-		
 		@config = config
 		@config[:threadding] = {} if !@config.has_key?(:threadding)
 		@config[:threadding][:max_running] = 10 if !@config[:threadding].has_key?(:max_running)
-		
-		@threadpool = Knj::Threadpool.new(:threads => @config[:threadding][:max_running])
-		@threadpool.events.connect(:on_error) do |event, error|
-			self.handle_error(error)
-		end
 		
 		@paused = 0
 		@should_restart = false
 		@mod_events = {}
 		@served = 0
 		@mod_files = {}
-		@logs_access_pending = []
-		@logs_mutex = Mutex.new
 		
-		paths = [
-			"#{$knjappserver[:path]}/knjappserver.rb",
-			"#{$knjappserver[:path]}/include/class_knjappserver.rb",
-			"#{$knjappserver[:path]}/include/class_customio.rb"
-		]
 		
+		
+		#If auto-restarting is enabled - start the modified events-module.
 		if @config[:autorestart]
+			paths = [
+				"#{$knjappserver[:path]}/knjappserver.rb",
+				"#{$knjappserver[:path]}/include/class_knjappserver.rb",
+				"#{$knjappserver[:path]}/include/class_customio.rb"
+			]
+			
 			print "Auto restarting.\n"
 			@mod_event = Knj::Event_filemod.new(:wait => 2, :paths => paths) do |event, path|
 				print "File changed - restart server: #{path}\n"
@@ -42,6 +36,7 @@ class Knjappserver
 				@mod_event.destroy
 			end
 		end
+		
 		
 		files = [
 			"#{$knjappserver[:path]}/include/class_cleaner.rb",
@@ -61,6 +56,8 @@ class Knjappserver
 			"#{$knjappserver_config["knjrbfw"]}knj/knjdb/libknjdb.rb"
 		]
 		files.each do |file|
+			STDOUT.print "Loading: '#{file}'.\n"
+			
 			if @config[:autorestart]
 				self.loadfile(file)
 			else
@@ -81,23 +78,20 @@ class Knjappserver
 			@db_handler = Knj::Db.new(@config[:httpsession_db_args])
 		end
 		
-		@httpserv = Knjappserver::Httpserver.new(self)
-		@translations = Knj::Translations.new(:db => @db)
 		@cleaner = Knjappserver::Cleaner.new(self)
 		
+		
+		#Start the Knj::Gettext_threadded- and Knj::Translations modules for translations.
+		@translations = Knj::Translations.new(:db => @db)
 		if @config[:locales_root]
 			@gettext = Knj::Gettext_threadded.new("dir" => config[:locales_root])
 		end
 		
-		Knj::Thread.new do
-			loop do
-				sleep 10
-				next if @logs_access_pending.length <= 0
-				flush_access_log
-			end
-		end
 		
-		self.register_run
+		#Save the PID to the run-file.
+		run_file = Knj::Php.realpath("#{File.dirname(__FILE__)}/../files/run") + "/knjappserver"
+		Knj::Php.file_put_contents(run_file, Process.pid)
+		
 		
 		#Set up various events for the appserver.
 		@events = Knj::Event_handler.new
@@ -110,8 +104,16 @@ class Knjappserver
 			:connections_max => 1
 		)
 		
+		
+		#Initialize the various feature-modules.
+		initialize_threadding
 		initialize_mailing
 		initialize_errors
+		initialize_logging
+		
+		
+		#Start the appserver.
+		@httpserv = Knjappserver::Httpserver.new(self)
 	end
 	
 	def loadfile(fpath)
@@ -152,11 +154,6 @@ class Knjappserver
 		end
 		
 		@httpserv.start
-	end
-	
-	def register_run
-		run_file = Knj::Php.realpath("#{File.dirname(__FILE__)}/../files/run") + "/knjappserver"
-		Knj::Php.file_put_contents(run_file, Process.pid)
 	end
 	
 	def stop

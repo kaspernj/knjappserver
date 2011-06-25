@@ -1,4 +1,17 @@
 class Knjappserver
+	def initialize_logging
+		@logs_access_pending = []
+		@logs_mutex = Mutex.new
+		
+		if @config[:logging] and @config[:logging][:access_db]
+			self.timeout(:time => 30) do
+				if @logs_access_pending.length > 0
+					flush_access_log
+				end
+			end
+		end
+	end
+	
 	def flush_access_log
 		@logs_mutex.synchronize do
 			ins_arr = @logs_access_pending

@@ -1,54 +1,63 @@
 class Knjappserver::Httpsession
 	attr_accessor :data
-	attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :db, :cookie, :eruby, :browser
+	attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :eruby, :browser
 	
 	def initialize(httpserver, socket)
 		@data = {}
 		@socket = socket
 		@httpserver = httpserver
 		@kas = httpserver.kas
+		@db = @kas.db_handler
 		@active = true
 		@working = true
 		@eruby = Knj::Eruby.new
+		
+		if @kas.config[:engine_webrick]
+			require "#{File.dirname(__FILE__)}/class_httpsession_webrick"
+			@handler = Knjappserver::Httpsession::Webrick.new(:kas => @kas)
+		elsif @kas.config[:engine_mongrel]
+			require "#{File.dirname(__FILE__)}/class_httpsession_mongrel"
+			@handler = Knjappserver::Httpsession::Mongrel.new(:kas => @kas)
+		elsif @kas.config[:engine_knjengine]
+			require "#{File.dirname(__FILE__)}/class_httpsession_knjengine"
+			@handler = Knjappserver::Httpsession::Knjengine.new(:kas => @kas)
+		else
+			raise "Unknown handler."
+		end
 		
 		ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc) if @kas.config[:debug]
 		STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if @kas.config[:debug]
 		
 		Knj::Thread.new do
-			@db = @kas.db_handler
-			
 			begin
 				while @active
 					begin
 						@out = StringIO.new
-						req = WEBrick::HTTPRequest.new(WEBrick::Config::HTTP) if @kas.config[:engine_webrick]
-						req.parse(@socket)
-						
+						@handler.socket_parse(@socket)
 						sleep 0.1 while @kas.paused? #Check if we should be waiting with executing the pending request.
 						
 						if @kas.config[:max_requests_working]
-							sleep 0.1 while @httpserver.count_working > @kas.config[:max_requests_working]
+							while @httpserver.count_working > @kas.config[:max_requests_working]
+								#STDOUT.print "Maximum amounts of requests are working - sleeping.\n"
+								sleep 0.1
+							end
 						end
 						
 						Dir.chdir(@kas.config[:doc_root])
 						@working = true
-						
 						@kas.db_handler.get_and_register_thread
 						@kas.ob.db.get_and_register_thread
-						
-						raise "Didnt get a database?" if !@db
-						self.serve_webrick(req)
+						self.serve
 					ensure
 						@kas.db_handler.free_thread
 						@kas.ob.db.free_thread
 						@kas.served += 1
 						@working = false
-						req.fixup if req and req.keep_alive?
 					end
 				end
 				
 				break
-			rescue WEBrick::HTTPStatus::RequestTimeout, WEBrick::HTTPStatus::EOFError
+			rescue WEBrick::HTTPStatus::RequestTimeout, WEBrick::HTTPStatus::EOFError, Errno::ECONNRESET
 				#Ignore - the user probaly left.
 			rescue SystemExit, Interrupt => e
 				raise e
@@ -71,11 +80,6 @@ class Knjappserver::Httpsession
 					STDOUT.puts e.backtrace
 				end
 			ensure
-				if req
-					req.destroy
-					req = nil
-				end
-				
 				self.close
 				self.destruct
 			end
@@ -103,9 +107,13 @@ class Knjappserver::Httpsession
 		@session_hash = nil
 		@out = nil
 		@socket = nil
+		@browser = nil
+		
 		@eruby.destroy if @eruby
 		@eruby = nil
-		@browser = nil
+		
+		@handler.destroy if @handler
+		@handler = nil
 	end
 	
 	def close
@@ -116,37 +124,21 @@ class Knjappserver::Httpsession
 		end
 	end
 	
-	def serve_webrick(request)
+	def serve
 		res = WEBrick::HTTPResponse.new({
 			:HTTPVersion => WEBrick::HTTPVersion.new("1.1")
 		})
 		res.status = 200
 		
-		meta = request.meta_vars
+		meta = @handler.meta
+		cookie = @handler.cookie
+		page_path = @handler.page_path
 		
-		page_filepath = meta["PATH_INFO"]
-		if page_filepath.length <= 0 or page_filepath == "/" or File.directory?("#{@kas.config[:doc_root]}/#{page_filepath}")
-			page_filepath = "#{page_filepath}/#{@kas.config[:default_page]}"
-		end
-		
-		page_path = "#{@kas.config[:doc_root]}/#{page_filepath}"
 		pinfo = Knj::Php.pathinfo(page_path)
 		ext = pinfo["extension"].downcase
 		
 		ctype = @kas.config[:default_filetype]
 		ctype = @kas.config[:filetypes][ext.to_sym] if @kas.config[:filetypes][ext.to_sym]
-		
-		get = Knj::Web.parse_urlquery(meta["QUERY_STRING"])
-		post = {}
-		cookie = {}
-		
-		if meta["REQUEST_METHOD"] == "POST"
-			self.convert_webrick_post(post, request.query)
-		end
-		
-		request.cookies.each do |cookie_enum|
-			cookie[cookie_enum.name] = CGI.unescape(cookie_enum.value)
-		end
 		
 		@browser = Knj::Web.browser(meta)
 		@ip = nil
@@ -179,25 +171,25 @@ class Knjappserver::Httpsession
 		@session_hash = session[:hash]
 		@session_accessor = @session.accessor
 		
-		@kas.logs_access_pending << {
-			:session_id => @session.id,
-			:date_request => Knj::Datet.new.dbstr,
-			:ips => @ips,
-			:get => get,
-			:post => post,
-			:meta => meta,
-			:cookie => cookie
-		}
+		if @kas.config[:logging] and @kas.config[:logging][:access_db]
+			@kas.logs_access_pending << {
+				:session_id => @session.id,
+				:date_request => Knj::Datet.new.dbstr,
+				:ips => @ips,
+				:get => @handler.get,
+				:post => @handler.post,
+				:meta => meta,
+				:cookie => cookie
+			}
+		end
 		
 		serv_data = self.serve_real(
 			:filepath => page_path,
-			:get => get,
-			:post => post,
+			:get => @handler.get,
+			:post => @handler.post,
 			:cookie => cookie,
 			:meta => meta,
-			:request => request,
 			:headers => {},
-			:host => meta["HTTP_HOST"],
 			:ctype => ctype,
 			:ext => ext,
 			:session => @session,
@@ -205,7 +197,6 @@ class Knjappserver::Httpsession
 			:session_accessor => @session_accessor,
 			:session_hash => @session_hash,
 			:httpsession => self,
-			:request => request,
 			:db => @db,
 			:kas => @kas
 		)
@@ -243,16 +234,10 @@ class Knjappserver::Httpsession
 		
 		res.status = serv_data[:statuscode] if serv_data[:statuscode]
 		res.send_response(@socket)
-		res.destroy
+		res.destroy if res.respond_to?(:destroy)
 		
 		#Letting them be nil is simply not enough (read that on a forum) - knj.
 		serv_data.clear
-	end
-	
-	def convert_webrick_post(seton, webrick_post, args = {})
-		webrick_post.each do |varname, value|
-			Knj::Web.parse_name(seton, varname, value, args)
-		end
 	end
 	
 	def serve_real(details)
@@ -267,8 +252,8 @@ class Knjappserver::Httpsession
 		cache_control = {}
 		cache_use = true
 		
-		if request.header["cache-control"] and request.header["cache-control"][0]
-			request.header["cache-control"][0].scan(/(.+)=(.+)/) do |match|
+		if @handler.headers["cache-control"] and @handler.headers["cache-control"][0]
+			@handler.headers["cache-control"][0].scan(/(.+)=(.+)/) do |match|
 				cache_control[match[1]] = match[2]
 			end
 		end
@@ -293,8 +278,8 @@ class Knjappserver::Httpsession
 			else
 				lastmod = Knj::Datet.new(File.new(details[:filepath]).mtime)
 				
-				if cache_use and request.header["if-modified-since"] and request.header["if-modified-since"][0]
-					request_mod = Knj::Datet.parse(request.header["if-modified-since"][0])
+				if cache_use and @handler.headers["if-modified-since"] and @handler.headers["if-modified-since"][0]
+					request_mod = Knj::Datet.parse(@handler.headers["if-modified-since"][0])
 					if request_mod == lastmod
 						cache = true
 					end

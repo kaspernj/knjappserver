@@ -45,5 +45,5 @@ end
 
 def _db
 	return Thread.current[:knjappserver][:db] if Thread.current[:knjappserver]
-	return $db #return the global database object, if we are not running in a thread with one.
+	return $db if $db #return the global database object, if we are not running in a thread with one.
 end

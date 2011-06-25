@@ -1,4 +1,11 @@
 class Knjappserver
+	def initialize_threadding
+		@threadpool = Knj::Threadpool.new(:threads => @config[:threadding][:max_running])
+		@threadpool.events.connect(:on_error) do |event, error|
+			self.handle_error(error)
+		end
+	end
+	
 	def thread(args = {})
 		raise "No block given." if !block_given?
 		args[:args] = [] if !args[:args]
@@ -18,8 +25,6 @@ class Knjappserver
 				Thread.current[:knjappserver] = nil
 			end
 		end
-		
-		return thread
 	end
 	
 	def timeout(args = {})

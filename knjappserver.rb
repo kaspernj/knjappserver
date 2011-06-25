@@ -12,8 +12,9 @@ end
 filepath = File.dirname(__FILE__) + "/"
 
 require "#{filepath}conf/conf_vars"
+require "webrick"
+require "#{$knjappserver_config["knjrbfw"]}knj/ext/webrick" 
 require "#{$knjappserver_config["knjrbfw"]}knj/autoload"
-require "#{$knjappserver_config["knjrbfw"]}knj/ext/webrick"
 
 $knjappserver = {
 	:path => Knj::Php.realpath(File.dirname(__FILE__))
@@ -30,7 +31,7 @@ $stdout = cio
 Knj::Thread.new do
 	loop do
 		sleep 30
-		GC.enable if RUBY_ENGINE != "jruby"
+		GC.enable if RUBY_PLATFORM != "java"
 		GC.start
 		ObjectSpace.garbage_collect
 	end
