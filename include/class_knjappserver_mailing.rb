@@ -75,7 +75,7 @@ class Knjappserver
 			if @args[:from]
 				mail.from = @args[:from]
 			else
-				mail.from = @config[:error_report_from]
+				mail.from = @args[:kas].config[:error_report_from]
 			end
 			
 			begin
