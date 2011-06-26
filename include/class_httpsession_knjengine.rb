@@ -117,7 +117,7 @@ class Knjappserver::Httpsession::Knjengine
 				end
 			end
 			
-			self.convert_webrick_post(@post, post_treated)
+			self.convert_webrick_post(@post, post_treated, {:urldecode => true})
 		end
 	end
 	
