@@ -113,7 +113,7 @@ class Knjappserver::Httpsession::Knjengine
 			else
 				post_data.split("&").each do |splitted|
 					splitted = splitted.split("=")
-					post_treated[splitted[0]] = splitted[1]
+					post_treated[Knj::Php.urldecode(splitted[0])] = splitted[1]
 				end
 			end
 			
