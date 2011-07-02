@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # rcov generated
 coverage
 
@@ -46,3 +47,8 @@ pkg
 
 # For rubinius:
 #*.rbc
+=======
+conf/conf.rb
+conf/conf_vars.rb
+files/run/knjappserver
+>>>>>>> 0fcd3def813f727e8453150fe7a5b22f9b275844
