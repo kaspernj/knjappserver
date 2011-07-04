@@ -1,12 +1,29 @@
 #!/usr/bin/env ruby
 
 require "rubygems"
-require "active_support"
-require "active_support/core_ext"
+require "knjappserver"
+require "knjrbfw"
 
-filepath = File.dirname(__FILE__) + "/"
+ARGV.each do |arg|
+   if arg == "--active_support"
+      ARGV.delete(arg)
+      require "active_support"
+      require "active_support/core_ext"
+   end
+end
 
-require "#{filepath}conf/conf_vars"
+filepath = File.dirname(__FILE__) + "/../lib/"
+
+print "Test: #{$0}\n"
+
+if File.exists?($0)
+  conf_path = File.dirname($0) + "/../"
+else
+  conf_path = File.dirname(__FILE__) + "/../"
+end
+
+require "#{conf_path}conf/conf_vars"
+require "webrick"
 require "#{$knjappserver_config["knjrbfw"]}knj/autoload"
 require "#{$knjappserver_config["knjrbfw"]}knj/ext/webrick"
 
@@ -33,5 +50,4 @@ Thread.new do
 end
 
 print "Starting knjAppServer.\n"
-require "./include/magic_methods.rb"
-require "./conf/conf"
+require "#{conf_path}conf/conf"

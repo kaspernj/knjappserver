@@ -118,8 +118,17 @@ class Knjappserver
     
     
     #Save the PID to the run-file.
-    run_file = Knj::Php.realpath("#{File.dirname(__FILE__)}/../files/run") + "/knjappserver"
-    Knj::Php.file_put_contents(run_file, Process.pid)
+    require "tmpdir"
+    tmpdir = "#{Dir.tmpdir}/knjappserver"
+    tmppath = "#{tmpdir}/run_#{@config[:title]}"
+    
+    if !Dir.exists?(tmpdir)
+      Dir.mkdir(tmpdir)
+    end
+    
+    File.open(tmppath, "w") do |fp|
+      fp.write(Process.pid)
+    end
     
     
     #Set up various events for the appserver.
