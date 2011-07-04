@@ -5,7 +5,7 @@ class Knjappserver::Session < Knj::Datarow
 		@edata = {}
 		super(d)
 		
-		if self[:sess_data].length > 0
+		if self[:sess_data].to_s.length > 0
 			begin
 				@sess_data = Marshal.load(Base64.decode64(self[:sess_data]))
 			rescue ArgumentError

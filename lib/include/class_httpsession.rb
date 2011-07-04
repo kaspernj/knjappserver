@@ -45,12 +45,12 @@ class Knjappserver::Httpsession
 						
 						Dir.chdir(@kas.config[:doc_root])
 						@working = true
-						@kas.db_handler.get_and_register_thread
-						@kas.ob.db.get_and_register_thread
+						@kas.db_handler.get_and_register_thread if @kas.db_handler.opts[:threadsafe]
+						@kas.ob.db.get_and_register_thread if @kas.ob.db.opts[:threadsafe]
 						self.serve
 					ensure
-						@kas.db_handler.free_thread
-						@kas.ob.db.free_thread
+						@kas.db_handler.free_thread if @kas.db_handler.opts[:threadsafe]
+						@kas.ob.db.free_thread if @kas.ob.db.opts[:threadsafe]
 						@kas.served += 1
 						@working = false
 					end
