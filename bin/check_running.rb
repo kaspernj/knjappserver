@@ -18,7 +18,7 @@ exit if count > 0
 
 begin
 	options = {
-		:command => "ruby1.9.1 knjappserver.rb"
+		:command => "ruby knjappserver_start.rb"
 	}
 	OptionParser.new do |opts|
 		opts.banner = "Usage: knjappserver.rb [options]"
