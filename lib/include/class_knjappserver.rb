@@ -78,6 +78,7 @@ class Knjappserver
       end
     end
     
+    
     @db = @config[:db]
     @ob = Knj::Objects.new(
       :db => db,
@@ -288,6 +289,11 @@ class Knjappserver
       
       dbpath = "#{File.dirname(__FILE__)}/../files/database.sqlite3"
       dbrev = Knjdbrevision.new
-      dbrev.check_db($tables, @db)
+      dbrev.init_db($tables, @db)
+  end
+  
+  def join
+    return false if !@httpserv or @httpserv.thread_accept
+    @httpserv.thread_accept.join
   end
 end

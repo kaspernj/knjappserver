@@ -1,5 +1,5 @@
 class Knjappserver::Httpserver
-	attr_reader :kas, :http_sessions
+	attr_reader :kas, :http_sessions, :thread_accept
 	
 	def initialize(kas)
 		@kas = kas

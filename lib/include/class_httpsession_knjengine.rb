@@ -24,7 +24,7 @@ class Knjappserver::Httpsession::Knjengine
 		self.read_socket
 		
 		#Parse URI (page_path and get).
-		match = @cont.match(/^(GET|POST) (.+) HTTP\/1\.1\s*/)
+		match = @cont.match(/^(GET|POST) (.+) HTTP\/1\.(\d+)\s*/)
 		if !match
 			raise "Could not parse request: '#{@cont.split("\n").first}'."
 		end
