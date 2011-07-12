@@ -65,7 +65,8 @@ class Knjappserver::Httpsession::Knjengine
 			"REMOTE_ADDR" => addr[2],
 			"REMOTE_PORT" => addr[1],
 			"SERVER_ADDR" => addr_peer[2],
-			"SERVER_PORT" => addr_peer[1]
+			"SERVER_PORT" => addr_peer[1],
+			"SCRIPT_NAME" => uri.path
 		}
 		
 		@cont.scan(/(\S+):\s*(.+)\r\n/) do |header_match|

@@ -28,7 +28,7 @@ class Knjappserver::Httpsession
     ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc) if @kas.config[:debug]
     STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if @kas.config[:debug]
     
-    Knj::Thread.new do
+    Thread.new do
       begin
         while @active
           begin
@@ -269,6 +269,9 @@ class Knjappserver::Httpsession
         ret = handler_info[:callback].call(details)
         cont = ret[:content] if ret[:content]
         headers = ret[:headers] if ret[:headers]
+        break
+      elsif handler_info[:path] and handler_info[:mount] and details[:meta]["SCRIPT_NAME"].slice(0, handler_info[:path].length) == handler_info[:path]
+        details[:filepath] = "#{handler_info[:mount]}#{details[:meta]["SCRIPT_NAME"].slice(handler_info[:path].length, details[:meta]["SCRIPT_NAME"].length)}"
         break
       end
     end

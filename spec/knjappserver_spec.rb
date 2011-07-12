@@ -19,7 +19,7 @@ describe "Knjappserver" do
     
     erbhandler = Knjappserver::ERBHandler.new
     
-    appserver = Knjappserver.new(
+    $appserver = Knjappserver.new(
       :debug => false,
       :autorestart => false,
       :autoload => false,
@@ -36,29 +36,40 @@ describe "Knjappserver" do
       :locale_default => "da_DK",
       :max_requests_working => 5,
       :filetypes => {
-          :jpg => "image/jpeg",
-          :gif => "image/gif",
-          :png => "image/png",
-          :html => "text/html",
-          :htm => "text/html",
-          :rhtml => "text/html",
-          :css => "text/css",
-          :xml => "text/xml",
-          :js => "text/javascript"
+        :jpg => "image/jpeg",
+        :gif => "image/gif",
+        :png => "image/png",
+        :html => "text/html",
+        :htm => "text/html",
+        :rhtml => "text/html",
+        :css => "text/css",
+        :xml => "text/xml",
+        :js => "text/javascript"
       },
       :handlers => [
+        {
           :file_ext => "rhtml",
           :callback => erbhandler.method(:erb_handler)
+        },{
+          :path => "/fckeditor",
+          :mount => "/usr/share/fckeditor"
+        }
       ],
       :db => db
     )
     
-    appserver.vars[:test] = "kasper"
-    appserver.define_magic_var(:_testvar1, "Kasper")
-    appserver.define_magic_var(:_testvar2, "Johansen")
+    $appserver.vars[:test] = "kasper"
+    $appserver.define_magic_var(:_testvar1, "Kasper")
+    $appserver.define_magic_var(:_testvar2, "Johansen")
+    $appserver.update_db
+    $appserver.start
+  end
+  
+  it "should be able to mount FCKeditor dir to /usr/share/fckeditor" do
     
-    appserver.update_db
-    appserver.start
-    appserver.join
+  end
+  
+  it "should be able to join the server so other tests can be made manually." do
+    $appserver.join
   end
 end

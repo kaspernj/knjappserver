@@ -13,7 +13,7 @@ class Knjappserver
   def initialize(config)
     require "rubygems"
     require "webrick"
-      
+    
     @config = config
     @config[:threadding] = {} if !@config.has_key?(:threadding)
     @config[:threadding][:max_running] = 10 if !@config[:threadding].has_key?(:max_running)
