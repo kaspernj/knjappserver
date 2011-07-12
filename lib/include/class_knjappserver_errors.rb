@@ -18,6 +18,8 @@ class Knjappserver
 				end
 				
 				@config[:error_report_emails].each do |email|
+          next if !email
+          
 					if error_email[:messages].length == 1
 						html = error_email[:messages].first
 					else

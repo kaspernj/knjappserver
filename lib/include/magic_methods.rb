@@ -43,6 +43,11 @@ def _kas
 	return $knjappserver[:knjappserver] if $knjappserver and $knjappserver[:knjappserver]
 end
 
+def _vars
+  return Thread.current[:knjappserver][:kas].vars if Thread.current[:knjappserver]
+  return $knjappserver[:knjappserver].vars if $knjappserver and $knjappserver[:knjappserver]
+end
+
 def _db
 	return Thread.current[:knjappserver][:db] if Thread.current[:knjappserver]
 	return $db if $db #return the global database object, if we are not running in a thread with one.

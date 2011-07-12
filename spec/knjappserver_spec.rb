@@ -52,6 +52,11 @@ describe "Knjappserver" do
       ],
       :db => db
     )
+    
+    appserver.vars[:test] = "kasper"
+    appserver.define_magic_var(:_testvar1, "Kasper")
+    appserver.define_magic_var(:_testvar2, "Johansen")
+    
     appserver.update_db
     appserver.start
     appserver.join

@@ -5,7 +5,7 @@ require "#{File.dirname(__FILE__)}/class_knjappserver_threadding"
 require "#{File.dirname(__FILE__)}/class_knjappserver_web"
 
 class Knjappserver
-  attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :cleaner, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool
+  attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :cleaner, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars
   attr_accessor :served, :should_restart
   
   autoload :ERBHandler, "#{File.dirname(__FILE__)}/class_erbhandler"
@@ -142,6 +142,11 @@ class Knjappserver
       :name => :ob,
       :connections_max => 1
     )
+    
+    
+    #Set up the 'vars'-variable that can be used to set custom global variables for web-requests.
+    @vars = Knj::Hash_methods.new
+    @magic_vars = {}
     
     
     #Initialize the various feature-modules.
@@ -295,5 +300,16 @@ class Knjappserver
   def join
     return false if !@httpserv or @httpserv.thread_accept
     @httpserv.thread_accept.join
+  end
+  
+  def define_magic_var(method_name, var)
+    @magic_vars[method_name] = var
+    
+    if !Object.respond_to?(method_name)
+      Object.send(:define_method, method_name) do
+        return Thread.current[:knjappserver][:kas].magic_vars[method_name] if Thread.current[:knjappserver]
+        return $knjappserver[:knjappserver].magic_vars[method_name] if $knjappserver and $knjappserver[:knjappserver]
+      end
+    end
   end
 end
