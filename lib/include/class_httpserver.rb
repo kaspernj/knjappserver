@@ -72,7 +72,7 @@ class Knjappserver::Httpserver
 		
 		@http_sessions_mutex.synchronize do
 			@http_sessions.each do |httpsession|
-				count += 1 if httpsession and httpsession.working
+				count += 1 if httpsession and httpsession.working == true and httpsession.active == true
 			end
 		end
 		

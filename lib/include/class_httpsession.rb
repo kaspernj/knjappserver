@@ -25,8 +25,8 @@ class Knjappserver::Httpsession
       raise "Unknown handler."
     end
     
-    ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc) if @kas.config[:debug]
-    STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if @kas.config[:debug]
+    ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc) if self.debug
+    STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if self.debug
     
     Thread.new do
       begin
@@ -38,7 +38,7 @@ class Knjappserver::Httpsession
             
             if @kas.config[:max_requests_working]
               while @httpserver.count_working > @kas.config[:max_requests_working]
-                #STDOUT.print "Maximum amounts of requests are working - sleeping.\n"
+                STDOUT.print "Maximum amounts of requests are working (#{@httpserver.count_working}, #{@kas.config[:max_requests_working]}) - sleeping.\n" if self.debug
                 sleep 0.1
               end
             end
@@ -49,14 +49,12 @@ class Knjappserver::Httpsession
             @kas.ob.db.get_and_register_thread if @kas.ob.db.opts[:threadsafe]
             self.serve
           ensure
+            @working = false
+            @kas.served += 1
             @kas.db_handler.free_thread if @kas.db_handler.opts[:threadsafe]
             @kas.ob.db.free_thread if @kas.ob.db.opts[:threadsafe]
-            @kas.served += 1
-            @working = false
           end
         end
-        
-        break
       rescue WEBrick::HTTPStatus::RequestTimeout, WEBrick::HTTPStatus::EOFError, Errno::ECONNRESET
         #Ignore - the user probaly left.
       rescue SystemExit, Interrupt => e
@@ -70,7 +68,7 @@ class Knjappserver::Httpsession
         end
         
         if first.index("webrick/httprequest.rb") != nil or first.index("webrick/httpresponse.rb") != nil
-          if @kas and @kas.config[:debug]
+          if debug
             STDOUT.print "Notice: Webrick error - properly faulty request - ignoring!\n"
             STDOUT.puts e.inspect
             STDOUT.puts e.backtrace
@@ -86,13 +84,18 @@ class Knjappserver::Httpsession
     end
   end
   
+  def debug
+    return true if @kas and @kas.config[:debug]
+    return false
+  end
+  
   def self.finalize(id)
-    STDOUT.print "Httpsession finalize #{id}.\n" if @kas.config[:debug]
+    STDOUT.print "Httpsession finalize #{id}.\n" if self.debug
   end
   
   def destruct
     @thread = nil
-    STDOUT.print "Httpsession destruct (#{@httpserver.http_sessions.count})\n" if @kas.config[:debug]
+    STDOUT.print "Httpsession destruct (#{@httpserver.http_sessions.count})\n" if self.debug
     @httpserver.http_sessions.delete(self)
     
     @httpserver = nil

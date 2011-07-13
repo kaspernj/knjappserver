@@ -15,8 +15,7 @@ class Knjappserver
     require "webrick"
     
     @config = config
-    @config[:threadding] = {} if !@config.has_key?(:threadding)
-    @config[:threadding][:max_running] = 10 if !@config[:threadding].has_key?(:max_running)
+    @config[:timeout] = 30 if !@config.has_key?(:timeout)
     
     @paused = 0
     @should_restart = false
@@ -281,17 +280,17 @@ class Knjappserver
   end
   
   def update_db
-      require "rubygems"
-      require "knjdbrevision"
-      
-      dbschemapath = "#{File.dirname(__FILE__)}/../files/database_schema.rb"
-      raise "'#{dbschemapath}' did not exist." if !File.exists?(dbschemapath)
-      require dbschemapath
-      raise "No schema-variable was spawned." if !$tables
-      
-      dbpath = "#{File.dirname(__FILE__)}/../files/database.sqlite3"
-      dbrev = Knjdbrevision.new
-      dbrev.init_db($tables, @db)
+    require "rubygems"
+    require "knjdbrevision"
+    
+    dbschemapath = "#{File.dirname(__FILE__)}/../files/database_schema.rb"
+    raise "'#{dbschemapath}' did not exist." if !File.exists?(dbschemapath)
+    require dbschemapath
+    raise "No schema-variable was spawned." if !$tables
+    
+    dbpath = "#{File.dirname(__FILE__)}/../files/database.sqlite3"
+    dbrev = Knjdbrevision.new
+    dbrev.init_db($tables, @db)
   end
   
   def join
@@ -304,8 +303,10 @@ class Knjappserver
     
     if !Object.respond_to?(method_name)
       Object.send(:define_method, method_name) do
-        return Thread.current[:knjappserver][:kas].magic_vars[method_name] if Thread.current[:knjappserver]
+        return Thread.current[:knjappserver][:kas].magic_vars[method_name] if Thread.current[:knjappserver] and Thread.current[:knjappserver][:kas]
         return $knjappserver[:knjappserver].magic_vars[method_name] if $knjappserver and $knjappserver[:knjappserver]
+        Knj::Php.print_r(Thread.current[:knjappserver])
+        raise "Could not figure out the object: '#{method_name}'."
       end
     end
   end

@@ -94,8 +94,8 @@ class Knjappserver::Httpsession::Knjengine
 				when "referer"
 					@meta["HTTP_REFERER"] = val
 				when "cookie"
-					WEBrick::Cookie.parse_set_cookies(val).each do |cookie|
-						@cookie[cookie.name] = cookie.value
+					Knj::Web.parse_cookies(val).each do |key, val|
+						@cookie[key] = val
 					end
 			end
 		end
