@@ -244,6 +244,9 @@ class Knjappserver::Httpsession
     
     res.status = serv_data[:statuscode] if serv_data[:statuscode]
     res.send_response(@socket)
+    
+    STDOUT.print res + "\n"
+    
     res.destroy if res.respond_to?(:destroy)
     
     #Letting them be nil is simply not enough (read that on a forum) - knj.
