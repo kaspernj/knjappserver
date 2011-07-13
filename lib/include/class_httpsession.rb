@@ -1,6 +1,6 @@
 class Knjappserver::Httpsession
   attr_accessor :data
-  attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :eruby, :browser
+  attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :eruby, :browser, :status, :debug
   
   def initialize(httpserver, socket)
     @data = {}
@@ -9,8 +9,10 @@ class Knjappserver::Httpsession
     @kas = httpserver.kas
     @db = @kas.db_handler
     @active = true
-    @working = true
+    @working = false
     @eruby = Knj::Eruby.new
+    @status = :starting_up
+    @debug = @kas.config[:debug]
     
     if @kas.config[:engine_webrick]
       require "#{File.dirname(__FILE__)}/class_httpsession_webrick"
@@ -25,30 +27,34 @@ class Knjappserver::Httpsession
       raise "Unknown handler."
     end
     
-    ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc) if self.debug
-    STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if self.debug
+    ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc) if @debug
+    STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if @debug
     
     Thread.new do
       begin
         while @active
           begin
+            @status = :waiting_for_parse
             @out = StringIO.new
             @handler.socket_parse(@socket)
             sleep 0.1 while @kas.paused? #Check if we should be waiting with executing the pending request.
             
             if @kas.config[:max_requests_working]
-              while @httpserver.count_working > @kas.config[:max_requests_working]
-                STDOUT.print "Maximum amounts of requests are working (#{@httpserver.count_working}, #{@kas.config[:max_requests_working]}) - sleeping.\n" if self.debug
+              while @httpserver.count_working >= @kas.config[:max_requests_working]
+                @status = :waiting_max_requests
+                STDOUT.print "Maximum amounts of requests are working (#{@httpserver.count_working}, #{@kas.config[:max_requests_working]}) - sleeping.\n" if @debug
                 sleep 0.1
               end
             end
             
+            @status = :serving
             Dir.chdir(@kas.config[:doc_root])
             @working = true
             @kas.db_handler.get_and_register_thread if @kas.db_handler.opts[:threadsafe]
             @kas.ob.db.get_and_register_thread if @kas.ob.db.opts[:threadsafe]
             self.serve
           ensure
+            @status = :closing
             @working = false
             @kas.served += 1
             @kas.db_handler.free_thread if @kas.db_handler.opts[:threadsafe]
@@ -57,9 +63,13 @@ class Knjappserver::Httpsession
         end
       rescue WEBrick::HTTPStatus::RequestTimeout, WEBrick::HTTPStatus::EOFError, Errno::ECONNRESET
         #Ignore - the user probaly left.
+        @status = :error
       rescue SystemExit, Interrupt => e
+        @status = :error
         raise e
       rescue RuntimeError, Exception => e
+        @status = :error
+        
         bt = e.backtrace
         first = nil
         bt.each do |key, val|
@@ -84,18 +94,13 @@ class Knjappserver::Httpsession
     end
   end
   
-  def debug
-    return true if @kas and @kas.config[:debug]
-    return false
-  end
-  
   def self.finalize(id)
-    STDOUT.print "Httpsession finalize #{id}.\n" if self.debug
+    STDOUT.print "Httpsession finalize #{id}.\n" if @debug
   end
   
   def destruct
     @thread = nil
-    STDOUT.print "Httpsession destruct (#{@httpserver.http_sessions.count})\n" if self.debug
+    STDOUT.print "Httpsession destruct (#{@httpserver.http_sessions.count})\n" if @debug
     @httpserver.http_sessions.delete(self)
     
     @httpserver = nil
@@ -111,6 +116,7 @@ class Knjappserver::Httpsession
     @out = nil
     @socket = nil
     @browser = nil
+    @status = nil
     
     @eruby.destroy if @eruby
     @eruby = nil

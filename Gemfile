@@ -5,7 +5,6 @@ source "http://rubygems.org"
 
 gem "knjrbfw", ">= 0.0.2"
 gem "erubis"
-gem "sqlite3"
 gem "knjdbrevision", ">= 0.0.2"
 
 # Add dependencies to develop your gem here.
@@ -15,4 +14,5 @@ group :development do
   gem "bundler", "~> 1.0.0"
   gem "jeweler", "~> 1.6.3"
   gem "rcov", ">= 0"
+  gem "sqlite3"
 end

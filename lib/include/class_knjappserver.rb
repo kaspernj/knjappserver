@@ -122,7 +122,7 @@ class Knjappserver
     tmpdir = "#{Dir.tmpdir}/knjappserver"
     tmppath = "#{tmpdir}/run_#{@config[:title]}"
     
-    Dir.mkdir(tmpdir) if !Dir.exists?(tmpdir)
+    Dir.mkdir(tmpdir) if !File.exists?(tmpdir)
     File.open(tmppath, "w") do |fp|
       fp.write(Process.pid)
     end
