@@ -1,10 +1,10 @@
 #!/usr/bin/env ruby1.9.1
 
 # This script checks if the knjappserver is running - if not it forks and start it.
-
+require "rubygems"
+require "knjrbfw"
 require "knj/autoload"
-Knj::Os.chdir_file(__FILE__)
-Dir.chdir("../")
+Dir.chdir("#{File.dirname(__FILE__)}/../")
 
 begin
 	options = {
@@ -32,7 +32,8 @@ begin
 		end
 	end.parse!
 rescue OptionParser::InvalidOption => e
-	Knj::Php.die(e.message + "\n")
+	print "#{e.message}\n"
+	exit
 end
 
 if !options[:title]
