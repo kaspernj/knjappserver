@@ -1,16 +1,24 @@
 class Knjappserver
+  attr_reader :error_emails_pending
+  
 	def initialize_errors
 		@error_emails_pending = {}
 		@error_emails_pending_mutex = Mutex.new
 		
-		self.timeout(:time => 180) do
+		if @config[:error_emails_time]
+      @error_emails_time = @config[:error_emails_time]
+    else
+      @error_emails_time = 180
+    end
+		
+		self.timeout(:time => @error_emails_time) do
 			self.flush_error_emails
 		end
 	end
 	
 	def flush_error_emails
 		@error_emails_pending_mutex.synchronize do
-			send_time_older_than = Time.new.to_i - 180
+			send_time_older_than = Time.new.to_i - @error_emails_time
 			
 			@error_emails_pending.each do |backtrace_hash, error_email|
 				if send_time_older_than < error_email[:last_time].to_i and error_email[:messages].length < 1000
@@ -65,7 +73,7 @@ class Knjappserver
 				STDOUT.print "\n\n"
 			end
 			
-			if @config.has_key?(:smtp_args) and @config[:error_report_emails] and !args.has_key?(:email) or args[:email]
+			if @config.has_key?(:smtp_args) and @config[:error_report_emails] and (!args.has_key?(:email) or args[:email])
 				backtrace_hash = Knj::ArrayExt.array_hash(e.backtrace)
 				
 				if !@error_emails_pending.has_key?(backtrace_hash)
