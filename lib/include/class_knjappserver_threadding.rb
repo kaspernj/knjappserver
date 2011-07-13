@@ -14,9 +14,8 @@ class Knjappserver
 		args[:args] = [] if !args[:args]
 		
 		@threadpool.run_async(self) do |kas|
-			Thread.current[:knjappserver] = {:kas => kas}
-			
 			begin
+        Thread.current[:knjappserver] = {:kas => kas}
 				kas.ob.db.get_and_register_thread if kas.ob.db.opts[:threadsafe]
 				kas.db_handler.get_and_register_thread if kas.db_handler.opts[:threadsafe]
 				yield(*args[:args])
