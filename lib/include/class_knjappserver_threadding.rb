@@ -13,18 +13,17 @@ class Knjappserver
 		raise "No block given." if !block_given?
 		args[:args] = [] if !args[:args]
 		
-		@threadpool.run_async(self) do |kas|
+		@threadpool.run_async(self) do
 			begin
-        Thread.current[:knjappserver] = {:kas => kas}
-				kas.ob.db.get_and_register_thread if kas.ob.db.opts[:threadsafe]
-				kas.db_handler.get_and_register_thread if kas.db_handler.opts[:threadsafe]
+        Thread.current[:knjappserver] = {:kas => self}
+				@ob.db.get_and_register_thread if @ob.db.opts[:threadsafe]
+				@db_handler.get_and_register_thread if @db_handler.opts[:threadsafe]
 				yield(*args[:args])
 			rescue Exception => e
-				kas.handle_error(e)
+				handle_error(e)
 			ensure
-				kas.ob.db.free_thread if kas.ob.db.opts[:threadsafe]
-				kas.db_handler.free_thread if kas.db_handler.opts[:threadsafe]
-				Thread.current[:knjappserver] = nil
+				@ob.db.free_thread if @ob.db.opts[:threadsafe]
+				@db_handler.free_thread if @db_handler.opts[:threadsafe]
 			end
 		end
 	end
@@ -34,8 +33,7 @@ class Knjappserver
 		raise "No block given." if !block_given?
 		args[:args] = [] if !args[:args]
 		
-		thread = Thread.new(self) do |kas|
-      Thread.current[:knjappserver] = {:kas => kas}
+		thread = Thread.new(self) do
 			loop do
 				begin
 					if args[:counting]
@@ -50,20 +48,19 @@ class Knjappserver
 					end
 					
 					@threadpool.run do
-            Thread.current[:knjappserver] = {:kas => kas}
-						kas.ob.db.get_and_register_thread if kas.ob.db.opts[:threadsafe]
-						kas.db_handler.get_and_register_thread if kas.db_handler.opts[:threadsafe]
+            Thread.current[:knjappserver] = {:kas => self}
+						@ob.db.get_and_register_thread if @ob.db.opts[:threadsafe]
+						@db_handler.get_and_register_thread if @db_handler.opts[:threadsafe]
 						
 						begin
 							yield(*args[:args])
 						ensure
-              Thread.current[:knjappserver] = nil
-							kas.ob.db.free_thread if kas.ob.db.opts[:threadsafe]
-							kas.db_handler.free_thread if kas.db_handler.opts[:threadsafe]
+							@ob.db.free_thread if @ob.db.opts[:threadsafe]
+							@db_handler.free_thread if @db_handler.opts[:threadsafe]
 						end
 					end
 				rescue Exception => e
-					kas.handle_error(e)
+					handle_error(e)
 				end
 			end
 		end
