@@ -290,7 +290,7 @@ class Knjappserver::Httpsession
         end
         
         if !cache
-          cont = File.read(details[:filepath]) #get plain content from file.
+          cont = File.new(details[:filepath], "r") #get plain content from file.
         end
       end
     end
