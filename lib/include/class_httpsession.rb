@@ -130,8 +130,9 @@ class Knjappserver::Httpsession
     pinfo = Knj::Php.pathinfo(page_path)
     ext = pinfo["extension"].downcase
     
-    ctype = @kas.config[:default_filetype] if @kas.config.has_key?(:default_filetype)
-    ctype = @kas.config[:filetypes][ext.to_sym] if @kas.config[:filetypes][ext.to_sym]
+    ctype = @kas.types[ext.to_sym] if @kas.types[ext.to_sym]
+    ctype = @kas.config[:default_filetype] if !ctype and @kas.config.has_key?(:default_filetype)
+    resp.header("Content-Type", ctype)
     
     @browser = Knj::Web.browser(meta)
     @ip = nil
@@ -209,6 +210,7 @@ class Knjappserver::Httpsession
       end
     end
     
+    
     resp.body = serv_data[:content]
     
     if serv_data[:lastmod]
@@ -268,7 +270,8 @@ class Knjappserver::Httpsession
     if !handler_use
       if !File.exists?(details[:filepath])
         statuscode = 404
-        cont = "File you are looking for was not found: '#{details[:filepath]}'."
+        headers["Content-Type"] = "text/html"
+        cont = StringIO.new("File you are looking for was not found: '#{details[:meta]["REQUEST_URI"]}'.")
       else
         lastmod = Knj::Datet.new(File.new(details[:filepath]).mtime)
         

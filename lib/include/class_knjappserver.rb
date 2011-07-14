@@ -5,7 +5,7 @@ require "#{File.dirname(__FILE__)}/class_knjappserver_threadding"
 require "#{File.dirname(__FILE__)}/class_knjappserver_web"
 
 class Knjappserver
-  attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :cleaner, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars
+  attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :cleaner, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars, :types
   attr_accessor :served, :should_restart
   
   autoload :ERBHandler, "#{File.dirname(__FILE__)}/class_erbhandler"
@@ -45,6 +45,21 @@ class Knjappserver
         @mod_event.destroy
       end
     end
+    
+    @types = {
+      :ico => "image/x-icon",
+      :jpeg => "image/jpeg",
+      :jpg => "image/jpeg",
+      :gif => "image/gif",
+      :png => "image/png",
+      :html => "text/html",
+      :htm => "text/html",
+      :rhtml => "text/html",
+      :css => "text/css",
+      :xml => "text/xml",
+      :js => "text/javascript"
+    }
+    @types = @types.merge(@config[:filetypes]) if @config[:filetypes]
     
     
     files = [

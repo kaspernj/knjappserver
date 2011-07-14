@@ -58,6 +58,7 @@ $knjappserver[:knjappserver] = Knjappserver.new(
 	:locales_root => "[path to locale files]",
 	:max_requests_working => 5,
 	:filetypes => {
+    :jpeg => "image/jpeg",
 		:jpg => "image/jpeg",
 		:gif => "image/gif",
 		:png => "image/png",
