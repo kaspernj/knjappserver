@@ -1,6 +1,6 @@
 class Knjappserver::Httpsession
   attr_accessor :data
-  attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :eruby, :browser, :status, :debug
+  attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :eruby, :browser, :debug
   
   def initialize(httpserver, socket)
     @data = {}
@@ -11,8 +11,8 @@ class Knjappserver::Httpsession
     @active = true
     @working = false
     @eruby = Knj::Eruby.new
-    @status = :starting_up
     @debug = @kas.config[:debug]
+    @out = StringIO.new
     
     if @kas.config[:engine_webrick]
       require "#{File.dirname(__FILE__)}/class_httpsession_webrick"
@@ -27,6 +27,10 @@ class Knjappserver::Httpsession
       raise "Unknown handler."
     end
     
+    Dir.chdir(@kas.config[:doc_root])
+    @kas.db_handler.get_and_register_thread if @kas.db_handler.opts[:threadsafe]
+    @kas.ob.db.get_and_register_thread if @kas.ob.db.opts[:threadsafe]
+    
     ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc) if @debug
     STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if @debug
     
@@ -34,48 +38,39 @@ class Knjappserver::Httpsession
       begin
         while @active
           begin
-            @status = :waiting_for_parse
-            @out = StringIO.new
-            @handler.socket_parse(@socket)
+            Timeout.timeout(30) do
+              @handler.socket_parse(@socket)
+            end
+            
             sleep 0.1 while @kas.paused? #Check if we should be waiting with executing the pending request.
             
             if @kas.config[:max_requests_working]
-              while @httpserver.count_working >= @kas.config[:max_requests_working]
-                @status = :waiting_max_requests
-                STDOUT.print "Maximum amounts of requests are working (#{@httpserver.count_working}, #{@kas.config[:max_requests_working]}) - sleeping.\n" if @debug
+              while @httpserver.working_count >= @kas.config[:max_requests_working]
+                STDOUT.print "Maximum amounts of requests are working (#{@httpserver.working_count}, #{@kas.config[:max_requests_working]}) - sleeping.\n" if @debug
                 sleep 0.1
               end
             end
             
-            @status = :serving
-            Dir.chdir(@kas.config[:doc_root])
+            @httpserver.working_count += 1
             @working = true
-            @kas.db_handler.get_and_register_thread if @kas.db_handler.opts[:threadsafe]
-            @kas.ob.db.get_and_register_thread if @kas.ob.db.opts[:threadsafe]
             self.serve
           ensure
-            @status = :closing
+            @httpserver.working_count -= 1
             @working = false
             @kas.served += 1
-            @kas.db_handler.free_thread if @kas.db_handler.opts[:threadsafe]
-            @kas.ob.db.free_thread if @kas.ob.db.opts[:threadsafe]
+            
+            @out.close
+            @out = StringIO.new
           end
         end
-      rescue WEBrick::HTTPStatus::RequestTimeout, WEBrick::HTTPStatus::EOFError, Errno::ECONNRESET
+      rescue WEBrick::HTTPStatus::RequestTimeout, WEBrick::HTTPStatus::EOFError, Errno::ECONNRESET, Errno::EPIPE, Timeout::Error => e
         #Ignore - the user probaly left.
-        @status = :error
+        #STDOUT.puts e.inspect
+        #STDOUT.puts e.backtrace
       rescue SystemExit, Interrupt => e
-        @status = :error
         raise e
       rescue RuntimeError, Exception => e
-        @status = :error
-        
-        bt = e.backtrace
-        first = nil
-        bt.each do |key, val|
-          first = key
-          break
-        end
+        first = e.backtrace.first
         
         if first.index("webrick/httprequest.rb") != nil or first.index("webrick/httpresponse.rb") != nil
           if debug
@@ -103,6 +98,9 @@ class Knjappserver::Httpsession
     STDOUT.print "Httpsession destruct (#{@httpserver.http_sessions.count})\n" if @debug
     @httpserver.http_sessions.delete(self)
     
+    @kas.db_handler.free_thread if @kas.db_handler.opts[:threadsafe]
+    @kas.ob.db.free_thread if @kas.ob.db.opts[:threadsafe]
+    
     @httpserver = nil
     @data = nil
     @kas = nil
@@ -116,7 +114,6 @@ class Knjappserver::Httpsession
     @out = nil
     @socket = nil
     @browser = nil
-    @status = nil
     
     @eruby.destroy if @eruby
     @eruby = nil
@@ -134,10 +131,7 @@ class Knjappserver::Httpsession
   end
   
   def serve
-    res = WEBrick::HTTPResponse.new({
-      :HTTPVersion => WEBrick::HTTPVersion.new("1.1")
-    })
-    res.status = 200
+    resp = Knjappserver::Httpresp.new
     
     meta = @handler.meta
     cookie = @handler.cookie
@@ -168,12 +162,13 @@ class Knjappserver::Httpsession
       @session_id = calc_id
       session = @kas.session_fromid(:idhash => @session_id, :ip => @ip)
       
-      res.cookies << CGI::Cookie.new(
+      cookie = CGI::Cookie.new(
         "name" => "KnjappserverSession",
         "value" => @session_id,
         "path" => "/",
         "expires" => (Knj::Datet.new.months + 12).time
-      ).to_s
+      )
+      resp.cookie(cookie.to_s)
     end
     
     @session = session[:dbobj]
@@ -217,34 +212,29 @@ class Knjappserver::Httpsession
       
       if keystr.match(/^set-cookie/)
         WEBrick::Cookie.parse_set_cookies(val).each do |cookie|
-          res.cookies << cookie
+          resp.cookie(cookie.to_s)
         end
-      elsif keystr.match(/^content-type/i)
-        raise "Could not parse content-type: '#{val}'." if !match = val.match(/^(.+)/)
-        ctype = match[1]
       else
-        res.header[key] = val
+        resp.header(key, val)
       end
     end
     
-    ctype = "text/html" if !ctype
-    res.content_type = ctype
-    res.body = serv_data[:content]
+    resp.body = serv_data[:content]
     
     if serv_data[:lastmod]
-      res["Last-Modified"] = serv_data[:lastmod].time
-      res["Expires"] = Time.now + (3600 * 24)
+      resp.header("Last-Modified", serv_data[:lastmod].time)
+      resp.header("Expires", Time.now + (3600 * 24))
     end
     
     if serv_data[:cache]
-      res.status = 304
-      res["Last-Modified"] = serv_data[:lastmod].time
-      res["Expires"] = Time.now + (3600 * 24)
+      resp.status = 304
+      resp.header("Last-Modified", serv_data[:lastmod].time)
+      resp.header("Expires", Time.now + (3600 * 24))
     end
     
-    res.status = serv_data[:statuscode] if serv_data[:statuscode]
-    res.send_response(@socket)
-    res.destroy if res.respond_to?(:destroy)
+    resp.status = serv_data[:statuscode] if serv_data[:statuscode]
+    resp.write_chunked(@socket)
+    resp.destroy
     
     #Letting them be nil is simply not enough (read that on a forum) - knj.
     serv_data.clear

@@ -1,3 +1,6 @@
+require "uri"
+BasicSocket.do_not_reverse_lookup = true
+
 class Knjappserver::Httpsession::Knjengine
 	attr_reader :get, :post, :cookie, :meta, :page_path, :headers
 	
@@ -12,7 +15,6 @@ class Knjappserver::Httpsession::Knjengine
 			raise WEBrick::HTTPStatus::EOFError, "Socket closed." if @socket.closed?
 			read = @socket.gets
 			raise WEBrick::HTTPStatus::EOFError, "Socket returned non-string." if !read.is_a?(String)
-			
 			@cont += read
 			break if @cont[-4..-1] == "\r\n\r\n" or @cont[-2..-1] == "\n\n"
 		end

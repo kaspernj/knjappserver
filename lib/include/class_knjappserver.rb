@@ -11,9 +11,6 @@ class Knjappserver
   autoload :ERBHandler, "#{File.dirname(__FILE__)}/class_erbhandler"
   
   def initialize(config)
-    require "rubygems"
-    require "webrick"
-    
     @config = config
     @config[:timeout] = 30 if !@config.has_key?(:timeout)
     
@@ -25,12 +22,12 @@ class Knjappserver
     
     @path_knjappserver = File.dirname(__FILE__)
     if @config[:knjrbfw_path]
-        @path_knjrbfw = @config[:knjrbfw_path]
-      elsif $knjappserver_config and @path_knjrbfw
-        @path_knjrbfw = @path_knjrbfw
-      else
-        @path_knjrbfw = ""
-      end
+      @path_knjrbfw = @config[:knjrbfw_path]
+    elsif $knjappserver_config and @path_knjrbfw
+      @path_knjrbfw = @path_knjrbfw
+    else
+      @path_knjrbfw = ""
+    end
     
     
     #If auto-restarting is enabled - start the modified events-module.
@@ -53,6 +50,7 @@ class Knjappserver
     files = [
       "#{@path_knjappserver}/class_cleaner.rb",
       "#{@path_knjappserver}/class_session_accessor.rb",
+      "#{@path_knjappserver}/class_httpresp.rb",
       "#{@path_knjappserver}/class_httpserver.rb",
       "#{@path_knjappserver}/class_httpsession.rb",
       "#{@path_knjappserver}/class_session.rb",
@@ -86,6 +84,7 @@ class Knjappserver
       :datarow => true,
       :knjappserver => self
     )
+    
     
     if @config[:httpsession_db_args]
       @db_handler = Knj::Db.new(@config[:httpsession_db_args])

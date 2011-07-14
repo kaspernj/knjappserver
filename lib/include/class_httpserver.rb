@@ -1,10 +1,12 @@
 class Knjappserver::Httpserver
+  attr_accessor :working_count
 	attr_reader :kas, :http_sessions, :thread_accept
 	
 	def initialize(kas)
 		@kas = kas
 		@http_sessions = []
 		@http_sessions_mutex = Mutex.new
+		@working_count = 0
 	end
 	
 	def start
