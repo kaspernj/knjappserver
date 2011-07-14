@@ -1,15 +1,13 @@
 class Knjappserver::Httpsession
   attr_accessor :data
-  attr_reader :session, :session_id, :session_hash, :kas, :working, :active, :out, :eruby, :browser, :debug
+  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug
   
   def initialize(httpserver, socket)
     @data = {}
     @socket = socket
     @httpserver = httpserver
     @kas = httpserver.kas
-    @db = @kas.db_handler
     @active = true
-    @working = false
     @eruby = Knj::Eruby.new
     @debug = @kas.config[:debug]
     @out = StringIO.new
@@ -28,13 +26,13 @@ class Knjappserver::Httpsession
     end
     
     Dir.chdir(@kas.config[:doc_root])
-    @kas.db_handler.get_and_register_thread if @kas.db_handler.opts[:threadsafe]
-    @kas.ob.db.get_and_register_thread if @kas.ob.db.opts[:threadsafe]
-    
     ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc) if @debug
     STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if @debug
     
     Thread.new do
+      @kas.db_handler.get_and_register_thread if @kas.db_handler.opts[:threadsafe]
+      @kas.ob.db.get_and_register_thread if @kas.ob.db.opts[:threadsafe]
+      
       begin
         while @active
           begin
@@ -52,11 +50,9 @@ class Knjappserver::Httpsession
             end
             
             @httpserver.working_count += 1
-            @working = true
             self.serve
           ensure
             @httpserver.working_count -= 1
-            @working = false
             @kas.served += 1
             
             @out.close
@@ -83,7 +79,8 @@ class Knjappserver::Httpsession
           STDOUT.puts e.backtrace
         end
       ensure
-        self.close
+        @kas.db_handler.free_thread if @kas and @kas.db_handler.opts[:threadsafe]
+        @kas.ob.db.free_thread if @kas and @kas.ob.db.opts[:threadsafe]
         self.destruct
       end
     end
@@ -94,19 +91,20 @@ class Knjappserver::Httpsession
   end
   
   def destruct
-    @thread = nil
     STDOUT.print "Httpsession destruct (#{@httpserver.http_sessions.count})\n" if @debug
-    @httpserver.http_sessions.delete(self)
     
-    @kas.db_handler.free_thread if @kas.db_handler.opts[:threadsafe]
-    @kas.ob.db.free_thread if @kas.ob.db.opts[:threadsafe]
+    begin
+      @socket.close if @socket
+    rescue => e
+      #ignore if it fails...
+    end
+    
+    @httpserver.http_sessions.delete(self) if @httpserver
     
     @httpserver = nil
     @data = nil
     @kas = nil
-    @db = nil
     @active = nil
-    @working = nil
     @session = nil
     @session_id = nil
     @session_accessor = nil
@@ -120,14 +118,6 @@ class Knjappserver::Httpsession
     
     @handler.destroy if @handler
     @handler = nil
-  end
-  
-  def close
-    begin
-      @socket.close if @socket
-    rescue => e
-      #ignore if it fails...
-    end
   end
   
   def serve
@@ -201,7 +191,7 @@ class Knjappserver::Httpsession
       :session_accessor => @session_accessor,
       :session_hash => @session_hash,
       :httpsession => self,
-      :db => @db,
+      :db => @kas.db_handler,
       :kas => @kas
     )
     
