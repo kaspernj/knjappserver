@@ -35,7 +35,7 @@ class Knjappserver::Httpsession::Knjengine
 		@cont = @cont.gsub(match[0], "")
 		uri = URI.parse(match[2])
 		
-		page_filepath = uri.path
+		page_filepath = CGI.unescape(uri.path)
 		if page_filepath.length <= 0 or page_filepath == "/" or File.directory?("#{@kas.config[:doc_root]}/#{page_filepath}")
 			page_filepath = "#{page_filepath}/#{@kas.config[:default_page]}"
 		end

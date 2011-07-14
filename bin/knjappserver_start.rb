@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 
-require "rubygems"
-require "knjappserver"
+require "#{File.dirname(__FILE__)}/../lib/knjappserver.rb"
 require "knjrbfw"
 
 ARGV.each do |arg|
@@ -13,8 +12,6 @@ ARGV.each do |arg|
 end
 
 filepath = File.dirname(__FILE__) + "/../lib/"
-
-print "Test: #{$0}\n"
 
 if File.exists?($0)
   conf_path = File.dirname($0) + "/../"
