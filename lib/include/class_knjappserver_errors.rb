@@ -101,4 +101,12 @@ class Knjappserver
 			end
 		end
 	end
+	
+	def on_error_go_back(&block)
+    begin
+      block.call
+    rescue => e
+      self.alert(e.message).back
+    end
+	end
 end
