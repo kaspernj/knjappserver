@@ -132,13 +132,15 @@ class Knjappserver
     
     
     #Save the PID to the run-file.
-    require "tmpdir"
-    tmpdir = "#{Dir.tmpdir}/knjappserver"
-    tmppath = "#{tmpdir}/run_#{@config[:title]}"
-    
-    Dir.mkdir(tmpdir) if !File.exists?(tmpdir)
-    File.open(tmppath, "w") do |fp|
-      fp.write(Process.pid)
+    if RUBY_ENGINE != "rbx"
+      require "tmpdir"
+      tmpdir = "#{Dir.tmpdir}/knjappserver"
+      tmppath = "#{tmpdir}/run_#{@config[:title]}"
+      
+      Dir.mkdir(tmpdir) if !File.exists?(tmpdir)
+      File.open(tmppath, "w") do |fp|
+        fp.write(Process.pid)
+      end
     end
     
     
