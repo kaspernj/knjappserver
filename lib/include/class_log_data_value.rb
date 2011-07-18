@@ -25,4 +25,10 @@ class Knjappserver::Log_data_value < Knj::Datarow
 		
 		return value_obj
 	end
+	
+	def self.force_id(d, value)
+    value_obj = d.db.query("SELECT * FROM Log_data_value WHERE value = '#{d.db.esc(value)}' LIMIT 1").fetch
+    return value_obj[:id].to_i if value_obj
+    return d.db.insert(:Log_data_value, {:value => value}, {:return_id => true}).to_i
+	end
 end
