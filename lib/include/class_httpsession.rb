@@ -141,7 +141,6 @@ class Knjappserver::Httpsession
     @active = nil
     @session = nil
     @session_id = nil
-    @session_accessor = nil
     @session_hash = nil
     @out = nil
     @socket = nil
@@ -195,7 +194,6 @@ class Knjappserver::Httpsession
     
     @session = session[:dbobj]
     @session_hash = session[:hash]
-    @session_accessor = @session.accessor
     
     if @kas.config[:logging] and @kas.config[:logging][:access_db]
       @kas.logs_access_pending << {
@@ -221,7 +219,6 @@ class Knjappserver::Httpsession
       :ext => ext,
       :session => @session,
       :session_id => @session_id,
-      :session_accessor => @session_accessor,
       :session_hash => @session_hash,
       :httpsession => self,
       :db => @kas.db_handler,

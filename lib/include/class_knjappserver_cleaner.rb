@@ -41,7 +41,7 @@ class Knjappserver
       end
     end
     
-    self.timeout(:time => 5) do
+    self.timeout(:time => 30) do
       STDOUT.print "Cleaning sessions on appserver.\n"
       
       self.paused_exec do
@@ -49,6 +49,7 @@ class Knjappserver
         @sessions.each do |ip, ip_sessions|
           ip_sessions.each do |session_hash, session_data|
             if session_data[:time_lastused].to_i <= time_check
+              session_data[:dbobj].flush
               @ob.unset(session_data[:dbobj])
               session_data[:hash].clear
               ip_sessions.delete(session_hash)

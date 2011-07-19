@@ -1,5 +1,6 @@
 class Knjappserver::Session < Knj::Datarow
-	attr_reader :accessor, :edata
+	attr_reader :edata
+	attr_accessor :sess_data
 	
 	def initialize(d)
 		@edata = {}
@@ -14,8 +15,6 @@ class Knjappserver::Session < Knj::Datarow
 		else
 			@sess_data = {}
 		end
-		
-		@accessor = Knjappserver::Session_accessor.new(self)
 	end
 	
 	def self.list(d)
@@ -37,13 +36,8 @@ class Knjappserver::Session < Knj::Datarow
 		d.data[:date_added] = Knj::Datet.new.dbstr if !d.data[:date_added]
 	end
 	
-	def sess_data
-		return @sess_data
-	end
-	
-	def sess_data=(newdata)
-		m_newdata = Base64.encode64(Marshal.dump(newdata))
-		self[:sess_data] = m_newdata
-		@sess_data = newdata
+	def flush
+    m_newdata = Base64.encode64(Marshal.dump(@sess_data))
+    self[:sess_data] = m_newdata
 	end
 end

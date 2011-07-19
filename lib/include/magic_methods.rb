@@ -11,7 +11,7 @@ def _post
 end
 
 def _session
-	return Thread.current[:knjappserver][:session_accessor] if Thread.current[:knjappserver]
+	return Thread.current[:knjappserver][:session].sess_data if Thread.current[:knjappserver] and Thread.current[:knjappserver][:session]
 end
 
 def _session_hash

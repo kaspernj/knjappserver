@@ -16,6 +16,7 @@ class Knjappserver
     @config[:timeout] = 30 if !@config.has_key?(:timeout)
     
     @paused = 0
+    @paused_mutex = Mutex.new
     @should_restart = false
     @mod_events = {}
     @served = 0
@@ -65,7 +66,6 @@ class Knjappserver
     
     
     files = [
-      "#{@path_knjappserver}/class_session_accessor.rb",
       "#{@path_knjappserver}/class_httpresp.rb",
       "#{@path_knjappserver}/class_httpserver.rb",
       "#{@path_knjappserver}/class_httpsession.rb",
@@ -170,6 +170,12 @@ class Knjappserver
     
     #Start the appserver.
     @httpserv = Knjappserver::Httpserver.new(self)
+    
+    
+    #Clear memory at exit.
+    at_exit do
+      self.stop
+    end
   end
   
   def loadfile(fpath)
@@ -202,7 +208,22 @@ class Knjappserver
   end
   
   def stop
-    @httpserv.stop
+    paused_exec do
+      @httpserv.stop if @httpserv
+      
+      if @sessions
+        @sessions.each do |ip, ip_sessions|
+          ip_sessions.each do |session_hash, session_data|
+            session_data[:dbobj].flush
+            @ob.unset(session_data[:dbobj])
+            session_data[:hash].clear
+            ip_sessions.delete(session_hash)
+            session_data.clear
+          end
+        end
+        @sessions.clear
+      end
+    end
   end
   
   # Stop running any more http requests - make them wait.
@@ -229,7 +250,10 @@ class Knjappserver
           next
         end
         
-        yield
+        @paused_mutex.synchronize do
+          yield
+        end
+        
         break
       end
     ensure
@@ -238,13 +262,7 @@ class Knjappserver
   end
   
   def working?
-    sess_arr = @httpserv.http_sessions
-    sess_arr.each do |sess|
-      if sess.working
-        return true
-      end
-    end
-    
+    return true if @httpserv and @httpserv.working_count > 0
     return false
   end
   
