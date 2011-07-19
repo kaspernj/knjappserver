@@ -176,25 +176,22 @@ class Knjappserver::Httpsession
     @ips = [meta["REMOTE_ADDR"]]
     @ips << meta["HTTP_X_FORWARDED_FOR"].split(",")[0].strip if meta["HTTP_X_FORWARDED_FOR"]
     
-    if @browser["browser"] == "bot"
-      @session_id = "bot"
-      session = @kas.session_fromid(:idhash => @session_id, :ip => @ip)
-    elsif cookie["KnjappserverSession"].to_s.length > 0 and @kas.has_session?(:idhash => cookie["KnjappserverSession"].to_s, :ip => @ip)
-      @session_id = cookie["KnjappserverSession"]
-      session = @kas.session_fromid(:idhash => @session_id, :ip => @ip)
-    else
-      calc_id = Digest::MD5.hexdigest("#{Time.new.to_f}_#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}")
-      @session_id = calc_id
-      session = @kas.session_fromid(:idhash => @session_id, :ip => @ip)
+    @session_id = nil
+    @session_id = "bot"  if @browser["browser"] == "bot"
+    @session_id = cookie["KnjappserverSession"] if cookie["KnjappserverSession"].to_s.length > 0
+    
+    if !@session_id
+      @session_id = Digest::MD5.hexdigest("#{Time.new.to_f}_#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}")
       
-      cookie = CGI::Cookie.new(
+      resp.cookie(CGI::Cookie.new(
         "name" => "KnjappserverSession",
         "value" => @session_id,
         "path" => "/",
         "expires" => (Knj::Datet.new.months + 12).time
-      )
-      resp.cookie(cookie.to_s)
+      ).to_s)
     end
+    
+    session = @kas.session_fromid(:idhash => @session_id, :ip => @ip)
     
     @session = session[:dbobj]
     @session_hash = session[:hash]

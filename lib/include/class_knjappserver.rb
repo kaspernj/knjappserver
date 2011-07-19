@@ -253,26 +253,24 @@ class Knjappserver
     return Thread.current[:knjappserver]
   end
   
-  def has_session?(args)
-    ip = args[:ip].to_s
-    idhash = args[:idhash].to_s
-    
-    return false if !@sessions.has_key?(ip) or !@sessions[ip].has_key?(idhash)
-    return true
-  end
-  
   def session_fromid(args)
     ip = args[:ip].to_s
     idhash = args[:idhash].to_s
     ip = "bot" if idhash == "bot"
     
-    if !@sessions.has_key?(ip) or !@sessions[ip].has_key?(idhash)
-      @sessions[ip] = {} if !@sessions.has_key?(ip)
-      @sessions[ip][idhash] = {
-        :dbobj => @ob.add(:Session, {
+    @sessions[ip] = {} if !@sessions.has_key?(ip)
+    
+    if !@sessions[ip].has_key?(idhash)
+      session = @ob.get_by(:Session, {"idhash" => args[:idhash]})
+      if !session
+        session = @ob.add(:Session, {
           :idhash => idhash,
           :ip => ip
-        }),
+        })
+      end
+      
+      @sessions[ip][idhash] = {
+        :dbobj => session,
         :hash => {}
       }
     end
