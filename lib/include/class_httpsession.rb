@@ -1,3 +1,5 @@
+require "digest"
+
 class Knjappserver::Httpsession
   attr_accessor :data
   attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug
@@ -10,7 +12,7 @@ class Knjappserver::Httpsession
     @active = true
     @eruby = Knj::Eruby.new
     @debug = @kas.config[:debug]
-    @out = StringIO.new
+    self.reset
     
     if @kas.config[:engine_webrick]
       require "#{File.dirname(__FILE__)}/class_httpsession_webrick"
@@ -54,9 +56,7 @@ class Knjappserver::Httpsession
           ensure
             @httpserver.working_count -= 1
             @kas.served += 1
-            
-            @out.close
-            @out = StringIO.new
+            self.reset
           end
         end
       rescue WEBrick::HTTPStatus::RequestTimeout, WEBrick::HTTPStatus::EOFError, Errno::ECONNRESET, Errno::EPIPE, Timeout::Error => e
@@ -84,6 +84,40 @@ class Knjappserver::Httpsession
         self.destruct
       end
     end
+  end
+  
+  def threadded_content(block)
+    raise "No block was given." if !block
+    @out = StringIO.new
+    
+    thread_out = StringIO.new
+    thread = Thread.new(Thread.current[:knjappserver].clone) do |data|
+      Thread.current[:knjappserver] = data
+      Thread.current[:knjappserver][:stringio] = thread_out
+      
+      @kas.ob.db.get_and_register_thread if @kas.ob.db.opts[:threadsafe]
+      @kas.db_handler.get_and_register_thread if @kas.db_handler.opts[:threadsafe]
+      
+      begin
+        block.call
+      ensure
+        @kas.ob.db.free_thread if @kas.ob.db.opts[:threadsafe]
+        @kas.db_handler.free_thread if @kas.db_handler.opts[:threadsafe]
+      end
+    end
+    
+    @parts << {
+      :thread => thread,
+      :stringio => thread_out
+    }
+    
+    @parts << @out
+  end
+  
+  def reset
+    @out.close if @out
+    @out = StringIO.new
+    @parts = [@out]
   end
   
   def self.finalize(id)
@@ -178,6 +212,7 @@ class Knjappserver::Httpsession
       }
     end
     
+    time_start = Time.now if @debug
     serv_data = self.serve_real(
       :filepath => page_path,
       :get => @handler.get,
@@ -211,7 +246,20 @@ class Knjappserver::Httpsession
     end
     
     
-    resp.body = serv_data[:content]
+    body_parts = []
+    @parts.each do |part|
+      if part.is_a?(Hash) and part[:thread]
+        part[:thread].join
+        part[:stringio].rewind
+        body_parts << part[:stringio]
+      elsif part.is_a?(StringIO)
+        part.rewind
+        body_parts << part
+      else
+        raise "Unknown object: '#{part.class.name}'."
+      end
+    end
+    resp.body = body_parts
     
     if serv_data[:lastmod]
       resp.header("Last-Modified", serv_data[:lastmod].time)
@@ -225,6 +273,8 @@ class Knjappserver::Httpsession
     end
     
     resp.status = serv_data[:statuscode] if serv_data[:statuscode]
+    STDOUT.print "Served '#{meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start.to_f} secs.\n"
+    
     resp.write_chunked(@socket)
     resp.destroy
     

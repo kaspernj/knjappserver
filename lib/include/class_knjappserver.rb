@@ -3,9 +3,10 @@ require "#{File.dirname(__FILE__)}/class_knjappserver_logging"
 require "#{File.dirname(__FILE__)}/class_knjappserver_mailing"
 require "#{File.dirname(__FILE__)}/class_knjappserver_threadding"
 require "#{File.dirname(__FILE__)}/class_knjappserver_web"
+require "#{File.dirname(__FILE__)}/class_knjappserver_cleaner"
 
 class Knjappserver
-  attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :cleaner, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars, :types
+  attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars, :types
   attr_accessor :served, :should_restart
   
   autoload :ERBHandler, "#{File.dirname(__FILE__)}/class_erbhandler"
@@ -19,6 +20,7 @@ class Knjappserver
     @mod_events = {}
     @served = 0
     @mod_files = {}
+    @sessions = {}
     
     @path_knjappserver = File.dirname(__FILE__)
     if @config[:knjrbfw_path]
@@ -63,7 +65,6 @@ class Knjappserver
     
     
     files = [
-      "#{@path_knjappserver}/class_cleaner.rb",
       "#{@path_knjappserver}/class_session_accessor.rb",
       "#{@path_knjappserver}/class_httpresp.rb",
       "#{@path_knjappserver}/class_httpserver.rb",
@@ -106,8 +107,6 @@ class Knjappserver
     else
       @db_handler = @db
     end
-    
-    @cleaner = Knjappserver::Cleaner.new(self)
     
     
     #Start the Knj::Gettext_threadded- and Knj::Translations modules for translations.
@@ -166,6 +165,7 @@ class Knjappserver
     initialize_mailing
     initialize_errors
     initialize_logging
+    initialize_cleaner
     
     
     #Start the appserver.
@@ -191,17 +191,6 @@ class Knjappserver
   end
   
   def start
-    if !@sessions
-      @sessions = {}
-      @ob.list(:Session).each do |session|
-        @sessions[session[:ip].to_s] = {} if !@sessions.has_key?(session[:ip].to_s)
-        @sessions[session[:ip].to_s][session[:idhash].to_s] = {
-          :dbobj => session,
-          :hash => {}
-        }
-      end
-    end
-    
     Thread.current[:knjappserver] = {:kas => self} if !Thread.current[:knjappserver]
     
     if @config[:autoload]
@@ -228,6 +217,24 @@ class Knjappserver
   def paused?
     return true if @paused > 0
     return false
+  end
+  
+  def paused_exec
+    self.pause
+    
+    begin
+      loop do
+        if @httpserv.working_count > 0
+          sleep 0.2
+          next
+        end
+        
+        yield
+        break
+      end
+    ensure
+      self.unpause
+    end
   end
   
   def working?
@@ -270,6 +277,7 @@ class Knjappserver
       }
     end
     
+    @sessions[ip][idhash][:time_lastused] = Time.now
     return @sessions[ip][idhash]
   end
   

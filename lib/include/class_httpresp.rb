@@ -66,11 +66,12 @@ class Knjappserver::Httpresp
   
   def write_chunked(socket)
     socket.write(self.header_str)
-    raise "The body given does now have a read method: '#{@body.class.name}': '#{@body}'." if !@body.respond_to?(:read)
     
-    while buf = @body.read(1024)
-      next if buf.empty?
-      socket.write("#{format("%x", buf.bytesize)}#{NL}#{buf}#{NL}")
+    @body.each do |part|
+      while buf = part.read(1024)
+        next if buf.empty?
+        socket.write("#{format("%x", buf.bytesize)}#{NL}#{buf}#{NL}")
+      end
     end
     
     socket.write("0#{NL}#{NL}")

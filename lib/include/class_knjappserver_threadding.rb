@@ -13,7 +13,7 @@ class Knjappserver
 		raise "No block given." if !block_given?
 		args[:args] = [] if !args[:args]
 		
-		@threadpool.run_async(self) do
+		@threadpool.run_async do
 			begin
         Thread.current[:knjappserver] = {:kas => self}
 				@ob.db.get_and_register_thread if @ob.db.opts[:threadsafe]
@@ -33,7 +33,7 @@ class Knjappserver
 		raise "No block given." if !block_given?
 		args[:args] = [] if !args[:args]
 		
-		thread = Thread.new(self) do
+		thread = Thread.new do
 			loop do
 				begin
 					if args[:counting]
@@ -66,5 +66,9 @@ class Knjappserver
 		end
 		
 		return thread
+	end
+	
+	def threadded_content(&block)
+    _httpsession.threadded_content(block)
 	end
 end

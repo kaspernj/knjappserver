@@ -52,7 +52,7 @@ class Knjappserver::Httpserver
 					#ignore
 				end
 				
-				STDOUT.print "Starting new server:\n"
+				STDOUT.print "Starting new server.\n"
 				@server = TCPServer.new(@kas.config[:host], @kas.config[:port])
 				STDOUT.print "Done.\n"
 			end

@@ -1,5 +1,9 @@
 require "uri"
-BasicSocket.do_not_reverse_lookup = true
+require "cgi"
+
+if RUBY_PLATFORM == "java" or RUBY_ENGINE == "rbx"
+  BasicSocket.do_not_reverse_lookup = true
+end
 
 class Knjappserver::Httpsession::Knjengine
 	attr_reader :get, :post, :cookie, :meta, :page_path, :headers
