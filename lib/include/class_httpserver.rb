@@ -60,7 +60,7 @@ class Knjappserver::Httpserver
 	end
 	
 	def stop
-		@server.close
+		@server.close if @server and @server.respond_to?(:close)
 	end
 	
 	def spawn_httpsession(socket)

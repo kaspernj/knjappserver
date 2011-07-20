@@ -209,7 +209,7 @@ class Knjappserver
   
   def stop
     paused_exec do
-      @httpserv.stop if @httpserv
+      @httpserv.stop if @httpserv and @httpserv.respond_to?(:stop)
       
       if @sessions
         @sessions.each do |ip, ip_sessions|

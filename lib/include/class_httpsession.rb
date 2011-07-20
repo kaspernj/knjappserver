@@ -225,6 +225,8 @@ class Knjappserver::Httpsession
       :kas => @kas
     )
     
+    STDOUT.print Knj::Php.print_r(serv_data, true)
+    
     serv_data[:headers].each do |header|
       key = header[0]
       val = header[1]
@@ -239,14 +241,13 @@ class Knjappserver::Httpsession
       end
     end
     
-    
     body_parts = []
     @parts.each do |part|
       if part.is_a?(Hash) and part[:thread]
         part[:thread].join
         part[:stringio].rewind
         body_parts << part[:stringio]
-      elsif part.is_a?(StringIO)
+      elsif part.is_a?(StringIO) or part.is_a?(File)
         part.rewind
         body_parts << part
       else
@@ -315,7 +316,7 @@ class Knjappserver::Httpsession
       if !File.exists?(details[:filepath])
         statuscode = 404
         headers["Content-Type"] = "text/html"
-        cont = StringIO.new("File you are looking for was not found: '#{details[:meta]["REQUEST_URI"]}'.")
+        @parts << StringIO.new("File you are looking for was not found: '#{details[:meta]["REQUEST_URI"]}'.")
       else
         lastmod = Knj::Datet.new(File.new(details[:filepath]).mtime)
         
@@ -327,7 +328,7 @@ class Knjappserver::Httpsession
         end
         
         if !cache
-          cont = File.new(details[:filepath], "r") #get plain content from file.
+          @parts << File.new(details[:filepath]) #get plain content from file.
         end
       end
     end
