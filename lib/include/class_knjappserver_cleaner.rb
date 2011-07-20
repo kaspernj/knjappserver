@@ -41,11 +41,11 @@ class Knjappserver
       end
     end
     
-    self.timeout(:time => 30) do
-      STDOUT.print "Cleaning sessions on appserver.\n"
+    self.timeout(:time => 300) do
+      STDOUT.print "Cleaning sessions on appserver.\n" if @config[:debug]
       
       self.paused_exec do
-        time_check = Time.now.to_i - 900
+        time_check = Time.now.to_i - 300
         @sessions.each do |ip, ip_sessions|
           ip_sessions.each do |session_hash, session_data|
             if session_data[:time_lastused].to_i <= time_check

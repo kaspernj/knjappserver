@@ -70,7 +70,6 @@ class Knjappserver
       "#{@path_knjappserver}/class_httpserver.rb",
       "#{@path_knjappserver}/class_httpsession.rb",
       "#{@path_knjappserver}/class_session.rb",
-      "#{@path_knjappserver}/class_session_accessor.rb",
       "#{@path_knjappserver}/class_log.rb",
       "#{@path_knjappserver}/class_log_access.rb",
       "#{@path_knjappserver}/class_log_data_value.rb",

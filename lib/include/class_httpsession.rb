@@ -267,7 +267,7 @@ class Knjappserver::Httpsession
     end
     
     resp.status = serv_data[:statuscode] if serv_data[:statuscode]
-    STDOUT.print "Served '#{meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start.to_f} secs.\n"
+    STDOUT.print "Served '#{meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start.to_f} secs.\n" if @debug
     
     resp.write_chunked(@socket)
     resp.destroy
