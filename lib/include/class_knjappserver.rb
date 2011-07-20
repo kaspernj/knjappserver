@@ -6,7 +6,7 @@ require "#{File.dirname(__FILE__)}/class_knjappserver_web"
 require "#{File.dirname(__FILE__)}/class_knjappserver_cleaner"
 
 class Knjappserver
-  attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars, :types
+  attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars, :types, :eruby_cache
   attr_accessor :served, :should_restart
   
   autoload :ERBHandler, "#{File.dirname(__FILE__)}/class_erbhandler"
@@ -22,6 +22,7 @@ class Knjappserver
     @served = 0
     @mod_files = {}
     @sessions = {}
+    @eruby_cache = {}
     
     @path_knjappserver = File.dirname(__FILE__)
     if @config[:knjrbfw_path]

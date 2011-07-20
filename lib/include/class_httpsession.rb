@@ -10,7 +10,7 @@ class Knjappserver::Httpsession
     @httpserver = httpserver
     @kas = httpserver.kas
     @active = true
-    @eruby = Knj::Eruby.new
+    @eruby = Knj::Eruby.new(:cache_hash => @kas.eruby_cache)
     @debug = @kas.config[:debug]
     self.reset
     
