@@ -94,7 +94,7 @@ class Knjappserver::Httpsession
     thread = Thread.new(Thread.current[:knjappserver].clone) do |data|
       Thread.current[:knjappserver] = data
       Thread.current[:knjappserver][:stringio] = thread_out
-      Thread.current[:knjappserver][:db] = @db_handler
+      Thread.current[:knjappserver][:db] = @kas.db_handler
       
       @kas.db_handler.get_and_register_thread  if @kas.db_handler.opts[:threadsafe]
       @kas.ob.db.get_and_register_thread if @kas.ob.db.opts[:threadsafe]
