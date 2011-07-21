@@ -15,14 +15,12 @@ class Knjappserver
 		
 		@threadpool.run_async do
       @ob.db.get_and_register_thread if @ob.db.opts[:threadsafe]
+      @db_handler.get_and_register_thread if @db_handler.opts[:threadsafe]
       
-      if @db_handler.opts[:threadsafe]
-        db = @db_handler.get_and_register_thread
-        Thread.current[:knjappserver] = {
-          :kas => self,
-          :db => db
-        }
-      end
+      Thread.current[:knjappserver] = {
+        :kas => self,
+        :db => @db_handler
+      }
       
 			begin
 				yield(*args[:args])
@@ -56,14 +54,12 @@ class Knjappserver
 					
 					@threadpool.run do
             @ob.db.get_and_register_thread if @ob.db.opts[:threadsafe]
+            @db_handler.get_and_register_thread if @db_handler.opts[:threadsafe]
             
-            if @db_handler.opts[:threadsafe]
-              db = @db_handler.get_and_register_thread
-              Thread.current[:knjappserver] = {
-                :kas => self,
-                :db => db
-              }
-            end
+            Thread.current[:knjappserver] = {
+              :kas => self,
+              :db => @db_handler
+            }
 						
 						begin
 							yield(*args[:args])
