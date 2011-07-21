@@ -233,6 +233,7 @@ class Knjappserver
 		html = "<table class=\"list knjappserver_log_table\">"
 		html += "<thead>"
 		html += "<tr>"
+		html += "<th>ID</th>"
 		html += "<th>Message</th>"
 		html += "<th>Date &amp; time</th>"
 		html += "<th>Objects</th>" if args[:ob_use]
@@ -248,6 +249,7 @@ class Knjappserver
 			classes << "knjappserver_log_multiple_lines" if msg_lines.length > 1
 			
 			html += "<tr class=\"#{classes.join(" ")}\">"
+			html += "<td>#{log.id}</td>"
 			html += "<td>#{first_line.html}</td>"
 			html += "<td>#{Knj::Datet.in(log[:date_saved]).out}</td>"
 			html += "<td>#{log.objects_html(args[:ob_use])}</td>" if args[:ob_use]
