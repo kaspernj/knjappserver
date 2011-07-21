@@ -96,7 +96,13 @@ class Knjappserver::Httpsession
       Thread.current[:knjappserver][:stringio] = thread_out
       
       @kas.ob.db.get_and_register_thread if @kas.ob.db.opts[:threadsafe]
-      @kas.db_handler.get_and_register_thread if @kas.db_handler.opts[:threadsafe]
+      
+      if @kas.db_handler.opts[:threadsafe]
+        db = @kas.db_handler.get_and_register_thread 
+        Thread.current[:db] = db
+      else
+        Thread.current[:db] = @kas.db_handler
+      end
       
       begin
         block.call

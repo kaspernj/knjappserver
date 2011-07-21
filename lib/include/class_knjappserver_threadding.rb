@@ -14,10 +14,17 @@ class Knjappserver
 		args[:args] = [] if !args[:args]
 		
 		@threadpool.run_async do
+      @ob.db.get_and_register_thread if @ob.db.opts[:threadsafe]
+      
+      if @db_handler.opts[:threadsafe]
+        db = @db_handler.get_and_register_thread
+        Thread.current[:knjappserver] = {
+          :kas => self,
+          :db => db
+        }
+      end
+      
 			begin
-        Thread.current[:knjappserver] = {:kas => self}
-				@ob.db.get_and_register_thread if @ob.db.opts[:threadsafe]
-				@db_handler.get_and_register_thread if @db_handler.opts[:threadsafe]
 				yield(*args[:args])
 			rescue Exception => e
 				handle_error(e)
@@ -48,9 +55,15 @@ class Knjappserver
 					end
 					
 					@threadpool.run do
-            Thread.current[:knjappserver] = {:kas => self}
-						@ob.db.get_and_register_thread if @ob.db.opts[:threadsafe]
-						@db_handler.get_and_register_thread if @db_handler.opts[:threadsafe]
+            @ob.db.get_and_register_thread if @ob.db.opts[:threadsafe]
+            
+            if @db_handler.opts[:threadsafe]
+              db = @db_handler.get_and_register_thread
+              Thread.current[:knjappserver] = {
+                :kas => self,
+                :db => db
+              }
+            end
 						
 						begin
 							yield(*args[:args])
