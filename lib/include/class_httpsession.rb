@@ -225,8 +225,6 @@ class Knjappserver::Httpsession
       :kas => @kas
     )
     
-    STDOUT.print Knj::Php.print_r(serv_data, true)
-    
     serv_data[:headers].each do |header|
       key = header[0]
       val = header[1]
