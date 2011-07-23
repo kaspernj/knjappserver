@@ -20,7 +20,7 @@ class Knjappserver::Log < Knj::Datarow
 		d.args.each do |key, val|
 			case key
 				when "object_lookup"
-          #ignore.
+          sql += " AND Log_link.id IS NOT NULL"
 				else
 					raise "Invalid key: #{key}."
 				end
