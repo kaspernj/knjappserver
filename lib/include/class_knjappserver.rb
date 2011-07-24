@@ -204,8 +204,12 @@ class Knjappserver
       require @config[:autoload]
     end
     
-    @httpserv.start
-    @threadpool.start if @threadpool
+    begin
+      @threadpool.start if @threadpool
+      @httpserv.start
+    rescue Interrupt
+      STDOUT.print "Got interrupt - stopping appserver.\n"
+    end
   end
   
   def stop
