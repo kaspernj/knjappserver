@@ -31,7 +31,7 @@ class Knjappserver::Httpsession
     ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc) if @debug
     STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if @debug
     
-    Thread.new do
+    @thread_request = Thread.new do
       @kas.db_handler.get_and_register_thread if @kas.db_handler.opts[:threadsafe]
       @kas.ob.db.get_and_register_thread if @kas.ob.db.opts[:threadsafe]
       
@@ -51,11 +51,11 @@ class Knjappserver::Httpsession
               end
             end
             
-            @httpserver.working_count += 1
-            self.serve
+            @httpserver.handle_request do
+              self.serve
+            end
           ensure
-            @httpserver.working_count -= 1
-            @kas.served += 1
+            @kas.served += 1 if @kas
             self.reset
           end
         end
@@ -129,10 +129,15 @@ class Knjappserver::Httpsession
     STDOUT.print "Httpsession destruct (#{@httpserver.http_sessions.count})\n" if @debug
     
     begin
-      @socket.close if @socket
+      @socket.close if @socket and !@socket.closed?
     rescue => e
+      STDOUT.puts e.inspect
+      STDOUT.puts e.backtrace
       #ignore if it fails...
     end
+    
+    @thread_request.kill if @thread_request and @thread_request.alive?
+    @thread_request = nil
     
     @httpserver.http_sessions.delete(self) if @httpserver
     

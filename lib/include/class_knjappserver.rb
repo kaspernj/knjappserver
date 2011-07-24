@@ -7,7 +7,7 @@ require "#{File.dirname(__FILE__)}/class_knjappserver_cleaner"
 
 class Knjappserver
   attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars, :types, :eruby_cache
-  attr_accessor :served, :should_restart
+  attr_accessor :served, :should_restart, :should_restart_done
   
   autoload :ERBHandler, "#{File.dirname(__FILE__)}/class_erbhandler"
   
@@ -205,12 +205,18 @@ class Knjappserver
     end
     
     @httpserv.start
+    @threadpool.start if @threadpool
   end
   
   def stop
-    paused_exec do
+    proc_stop = proc{
+      STDOUT.print "Stopping appserver for real.\n"
       @httpserv.stop if @httpserv and @httpserv.respond_to?(:stop)
       
+      STDOUT.print "Stopping threadpool.\n"
+      @threadpool.stop if @threadpool
+      
+      STDOUT.print "Cleaning out loaded sessions.\n"
       if @sessions
         @sessions.each do |ip, ip_sessions|
           ip_sessions.each do |session_hash, session_data|
@@ -223,6 +229,24 @@ class Knjappserver
         end
         @sessions.clear
       end
+      
+      STDOUT.print "Stopping databases.\n"
+      @db.destroy if @db.is_a?(Knj::Threadhandler)
+      @db.close if @db.is_a?(Knj::Db)
+      
+      @db_handler.destroy if @db.is_a?(Knj::Threadhandler)
+      @db_handler.close if @db_handler.is_a?(Knj::Db)
+    }
+    
+    #If we cant get a paused-execution in 10 secs - we just force the stop.
+    begin
+      Timeout.timeout(10) do
+        self.paused_exec do
+          proc_stop.call
+        end
+      end
+    rescue Timeout::Error
+      proc_stop.call
     end
   end
   
@@ -336,6 +360,17 @@ class Knjappserver
   def join
     return false if !@httpserv or @httpserv.thread_accept
     @httpserv.thread_accept.join
+    
+    if @should_restart
+      loop do
+        if @should_restart_done
+          STDOUT.print "Ending join because the restart is done.\n"
+          break
+        end
+        
+        sleep 1
+      end
+    end
   end
   
   def define_magic_var(method_name, var)

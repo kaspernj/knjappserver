@@ -46,11 +46,14 @@ class Knjappserver
 						
 						while Thread.current[:knjappserver_timeout] > 0
 							Thread.current[:knjappserver_timeout] += -1
+							break if @should_restart
 							sleep 1
 						end
 					else
 						sleep args[:time]
 					end
+					
+					break if @should_restart
 					
 					@threadpool.run do
             @ob.db.get_and_register_thread if @ob.db.opts[:threadsafe]
