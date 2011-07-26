@@ -74,6 +74,7 @@ class Knjappserver
       "#{@path_knjappserver}/class_log.rb",
       "#{@path_knjappserver}/class_log_access.rb",
       "#{@path_knjappserver}/class_log_data_value.rb",
+      "#{@path_knjrbfw}knjrbfw.rb",
       "#{@path_knjrbfw}knj/objects.rb",
       "#{@path_knjrbfw}knj/web.rb",
       "#{@path_knjrbfw}knj/datet.rb",
@@ -349,7 +350,7 @@ class Knjappserver
   
   def update_db
     require "rubygems"
-    require "knjdbrevision"
+    require "#{@config[:knjdbrevision_path]}knjdbrevision"
     
     dbschemapath = "#{File.dirname(__FILE__)}/../files/database_schema.rb"
     raise "'#{dbschemapath}' did not exist." if !File.exists?(dbschemapath)
