@@ -45,7 +45,7 @@ class Knjappserver::Httpsession::Knjengine
 		end
 		
 		@page_path = "#{@kas.config[:doc_root]}/#{page_filepath}"
-		@get = Knj::Web.parse_urlquery(uri.query.to_s)
+		@get = Knj::Web.parse_urlquery(uri.query.to_s, {:urldecode => true})
 		
 		
 		#Parse headers, cookies and meta.
