@@ -2,8 +2,7 @@
 
 # This script checks if the knjappserver is running - if not it forks and start it.
 require "rubygems"
-require "knjrbfw"
-require "knj/autoload"
+require "optparse"
 Dir.chdir("#{File.dirname(__FILE__)}/../")
 
 begin
@@ -30,6 +29,10 @@ begin
         options[:forking] = false
       end
 		end
+		
+		opts.on("--knjrbfw_path=[path]") do |path|
+      options[:knjrbfw_path] = path
+		end
 	end.parse!
 rescue OptionParser::InvalidOption => e
 	print "#{e.message}\n"
@@ -46,7 +49,10 @@ if !options[:command]
   exit
 end
 
+require "#{options[:knjrbfw_path]}knjrbfw"
+require "knj/autoload"
 require "tmpdir"
+
 tmpdir = "#{Dir.tmpdir}/knjappserver"
 tmppath = "#{tmpdir}/run_#{options[:title]}"
 count = 0
