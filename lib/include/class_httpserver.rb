@@ -32,16 +32,18 @@ class Knjappserver::Httpserver
 			end
 		end
 		
-		loop do
-      sleep 10
-      break if @kas.should_restart and @kas.should_restart_done
-      
-      if !@kas.should_restart and (!@server or @server.closed?)
-        STDOUT.print "Socket does not exist or is closed - restarting HTTP-server!\n"
-        @server = TCPServer.new(@kas.config[:host], @kas.config[:port])
-        STDOUT.print "Done.\n"
+		@thread_restart = Knj::Thread.new do
+      loop do
+        sleep 10
+        break if @kas.should_restart and @kas.should_restart_done
+        
+        if !@kas.should_restart and (!@server or @server.closed?)
+          STDOUT.print "Socket does not exist or is closed - restarting HTTP-server!\n"
+          @server = TCPServer.new(@kas.config[:host], @kas.config[:port])
+          STDOUT.print "Done.\n"
+        end
       end
-		end
+    end
 	end
 	
 	def stop
@@ -56,6 +58,7 @@ class Knjappserver::Httpserver
     begin
       STDOUT.print "Stopping accept-thread.\n"
       @thread_accept.kill if @thread_accept and @thread_accept.alive?
+      @thread_restart.kill if @thread_restart and @thread_restart.alive?
     rescue => e
       STDOUT.print "Could not stop accept-thread.\n"
       STDOUT.puts e.inspect
