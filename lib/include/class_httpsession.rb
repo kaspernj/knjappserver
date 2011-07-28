@@ -275,7 +275,7 @@ class Knjappserver::Httpsession
     resp.status = serv_data[:statuscode] if serv_data[:statuscode]
     STDOUT.print "Served '#{meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start.to_f} secs.\n" if @debug
     
-    resp.write_chunked(@socket)
+    resp.write_chunked(@socket) if meta["METHOD"] != "HEAD"
     resp.destroy
     
     #Letting them be nil is simply not enough (read that on a forum) - knj.

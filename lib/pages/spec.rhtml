@@ -1,3 +1,7 @@
 <%
-  print "Test"
+  if _meta["REQUEST_METHOD"] == "POST"
+    print _post["postdata"]
+  else
+    print "Test"
+  end
 %>

@@ -69,7 +69,35 @@ describe "Knjappserver" do
     
   end
   
+  it "should be able to handle a GET-request." do
+    $http = Knj::Http.new("host" => "localhost", "port" => 1515)
+    data = $http.get("/spec.rhtml")
+    raise "Unexpected HTML: '#{data["data"]}'." if data["data"].to_s.strip != "Test"
+  end
+  
+  it "should be able to handle a HEAD-request." do
+    data = $http.head("/spec.rhtml")
+    raise "HEAD-request returned content - it shouldnt?" if data["data"].to_s.length > 0
+  end
+  
+  it "should be able to handle a POST-request." do
+    data = $http.post("/spec.rhtml", {
+      "postdata" => "Test post"
+    })
+    raise "POST-request did not return expected data: '#{data["data"]}'." if data["data"].to_s.strip != "Test post"
+  end
+  
   it "should be able to join the server so other tests can be made manually." do
-    $appserver.join
+    begin
+      Timeout.timeout(1) do
+        $appserver.join
+      end
+    rescue Timeout::Error
+      #ignore.
+    end
+  end
+  
+  it "should be able to stop." do
+    $appserver.stop
   end
 end

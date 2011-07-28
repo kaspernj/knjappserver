@@ -21,7 +21,7 @@ class Knjappserver::Httpserver
 				
 				begin
 					self.spawn_httpsession(@server.accept)
-					STDOUT.print "Starting new HTTP-request.\n" if @kas.config[:verbose]
+					STDOUT.print "Starting new HTTP-request.\n" if @kas.config[:debug]
 				rescue => e
 					STDOUT.puts e.inspect
 					STDOUT.puts e.backtrace
