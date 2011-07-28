@@ -91,6 +91,7 @@ describe "Knjappserver" do
     begin
       Timeout.timeout(1) do
         $appserver.join
+        raise "Appserver didnt join."
       end
     rescue Timeout::Error
       #ignore.

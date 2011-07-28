@@ -5,6 +5,7 @@ class Knjappserver
     
 		@threadpool = Knj::Threadpool.new(:threads => @config[:threadding][:max_running])
 		@threadpool.events.connect(:on_error) do |event, error|
+      STDOUT.print "Error!\n"
 			self.handle_error(error)
 		end
 	end

@@ -15,6 +15,25 @@ class Knjappserver
     @config = config
     @config[:timeout] = 30 if !@config.has_key?(:timeout)
     
+    if !@config.has_key?(:handlers)
+      @erbhandler = Knjappserver::ERBHandler.new
+      @config[:handlers] = [
+        {
+          :file_ext => "rhtml",
+          :callback => @erbhandler.method(:erb_handler)
+        },{
+          :path => "/fckeditor",
+          :mount => "/usr/share/fckeditor"
+        }
+      ]
+    end
+    
+    @config[:default_page] = "index.rhtml" if !@config.has_key?(:default_page)
+    @config[:default_filetype] = "text/html" if !@config.has_key?(:default_filetype)
+    @config[:engine_knjengine] = true if !@config[:engine_knjengine] and !@config[:engine_webrick] and !@config[:engine_mongrel]
+    
+    raise "No ':doc_root' was given in arguments." if !@config.has_key?(:doc_root)
+    
     @paused = 0
     @paused_mutex = Mutex.new
     @should_restart = false
@@ -46,7 +65,7 @@ class Knjappserver
       @mod_event = Knj::Event_filemod.new(:wait => 2, :paths => paths) do |event, path|
         print "File changed - restart server: #{path}\n"
         @should_restart = true
-        @mod_event.destroy
+        @mod_event.destroy if @mod_event
       end
     end
     
@@ -392,8 +411,9 @@ class Knjappserver
   end
   
   def join
-    return false if !@httpserv or @httpserv.thread_accept
+    raise "No http-server or http-server not running." if !@httpserv or !@httpserv.thread_accept
     @httpserv.thread_accept.join
+    @httpserv.thread_restart.join
     
     if @should_restart
       loop do
