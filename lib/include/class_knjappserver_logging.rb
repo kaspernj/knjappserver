@@ -228,7 +228,7 @@ class Knjappserver
 	end
 	
 	def logs_table(obj, args = {})
-		logs = @ob.list(:Log, {"object_lookup" => obj, "limit" => 500, "orderby" => [["id", "desc"]]})
+		links = @ob.list(:Log_link, {"object_class" => obj.class.name, "object_id" => obj.id, "limit" => 500, "orderby" => [["id", "desc"]]})
 		
 		html = "<table class=\"list knjappserver_log_table\">"
 		html += "<thead>"
@@ -241,7 +241,9 @@ class Knjappserver
 		html += "</thead>"
 		html += "<tbody>"
 		
-		logs.each do |log|
+		links.each do |link|
+      log = link.log
+      
 			msg_lines = log.text.split("\n")
 			first_line = msg_lines[0].to_s
 			
@@ -256,7 +258,7 @@ class Knjappserver
 			html += "</tr>"
 		end
 		
-		if logs.empty?
+		if links.empty?
 			html += "<tr>"
 			html += "<td colspan=\"2\" class=\"error\">No logs were found for that object.</td>"
 			html += "</tr>"
