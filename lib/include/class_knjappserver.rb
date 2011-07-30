@@ -5,6 +5,8 @@ require "#{File.dirname(__FILE__)}/class_knjappserver_threadding"
 require "#{File.dirname(__FILE__)}/class_knjappserver_web"
 require "#{File.dirname(__FILE__)}/class_knjappserver_cleaner"
 
+require "timeout"
+
 class Knjappserver
   attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars, :types, :eruby_cache
   attr_accessor :served, :should_restart, :should_restart_done
@@ -258,6 +260,7 @@ class Knjappserver
       print "Appserver startet.\n" if @config[:debug]
     rescue Interrupt
       print "Got interrupt - stopping appserver.\n" if @config[:debug]
+      stop
     end
   end
   
@@ -412,8 +415,13 @@ class Knjappserver
   
   def join
     raise "No http-server or http-server not running." if !@httpserv or !@httpserv.thread_accept
-    @httpserv.thread_accept.join
-    @httpserv.thread_restart.join
+    
+    begin
+      @httpserv.thread_accept.join
+      @httpserv.thread_restart.join
+    rescue Interrupt
+      stop
+    end
     
     if @should_restart
       loop do
@@ -434,7 +442,6 @@ class Knjappserver
       Object.send(:define_method, method_name) do
         return Thread.current[:knjappserver][:kas].magic_vars[method_name] if Thread.current[:knjappserver] and Thread.current[:knjappserver][:kas]
         return $knjappserver[:knjappserver].magic_vars[method_name] if $knjappserver and $knjappserver[:knjappserver]
-        Knj::Php.print_r(Thread.current[:knjappserver])
         raise "Could not figure out the object: '#{method_name}'."
       end
     end
