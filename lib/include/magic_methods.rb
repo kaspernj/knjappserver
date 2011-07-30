@@ -52,3 +52,8 @@ def _db
 	return Thread.current[:knjappserver][:db] if Thread.current[:knjappserver]
 	return $db if $db #return the global database object, if we are not running in a thread with one.
 end
+
+#This function makes it possible to define methods in ERubis-parsed files (else _buf-variable wouldnt be globally available).
+def _buf
+  return $stdout
+end
