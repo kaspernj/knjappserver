@@ -47,7 +47,7 @@ class Knjappserver::Httpserver
 	end
 	
 	def stop
-    STDOUT.print "Stopping all HTTP sessions.\n"
+    STDOUT.print "Stopping all HTTP sessions.\n" if @kas.config[:debug]
     @http_sessions_mutex.synchronize do
       @http_sessions.each do |httpsession|
         httpsession.destruct
@@ -56,19 +56,19 @@ class Knjappserver::Httpserver
     sleep 0.5 #wait for all HTTP sessions to exit for real (they are in threads so it make take half a sec)...
     
     begin
-      STDOUT.print "Stopping accept-thread.\n"
+      STDOUT.print "Stopping accept-thread.\n" if @kas.config[:debug]
       @thread_accept.kill if @thread_accept and @thread_accept.alive?
       @thread_restart.kill if @thread_restart and @thread_restart.alive?
     rescue => e
-      STDOUT.print "Could not stop accept-thread.\n"
+      STDOUT.print "Could not stop accept-thread.\n" if @kas.config[:debug]
       STDOUT.puts e.inspect
       STDOUT.puts e.backtrace
     end
     
     begin
-      STDOUT.print "Stopping TCPServer.\n"
+      STDOUT.print "Stopping TCPServer.\n" if @kas.config[:debug]
       @server.close if @server and !@server.closed?
-      STDOUT.print "TCPServer was closed.\n"
+      STDOUT.print "TCPServer was closed.\n" if @kas.config[:debug]
     rescue Timeout::Error
       raise "Could not close TCPserver.\n"
     rescue IOError => e

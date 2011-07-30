@@ -98,6 +98,12 @@ describe "Knjappserver" do
     end
   end
   
+  it "it should be able to use the header-methods." do
+    data = $http.get("/spec.rhtml")
+    raise "Normal header data could not be detected." if data["response"].header["testheader"] != "NormalHeader"
+    raise "Raw header data could not be detected." if data["response"].header["testraw"]!= "RawHeader"
+  end
+  
   it "should be able to stop." do
     $appserver.stop
   end

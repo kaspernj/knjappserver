@@ -263,13 +263,13 @@ class Knjappserver
   
   def stop
     proc_stop = proc{
-      print "Stopping appserver for real.\n"
+      print "Stopping appserver for real.\n" if @config[:debug]
       @httpserv.stop if @httpserv and @httpserv.respond_to?(:stop)
       
-      print "Stopping threadpool.\n"
+      print "Stopping threadpool.\n" if @config[:debug]
       @threadpool.stop if @threadpool
       
-      print "Cleaning out loaded sessions.\n"
+      print "Cleaning out loaded sessions.\n" if @config[:debug]
       if @sessions
         @sessions.each do |ip, ip_sessions|
           ip_sessions.each do |session_hash, session_data|
@@ -283,7 +283,7 @@ class Knjappserver
         @sessions.clear
       end
       
-      print "Stopping databases.\n"
+      print "Stopping databases.\n" if @config[:debug]
       @db.destroy if @db.is_a?(Knj::Threadhandler)
       @db.close if @db.is_a?(Knj::Db)
       
