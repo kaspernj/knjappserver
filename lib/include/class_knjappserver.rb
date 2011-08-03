@@ -95,7 +95,7 @@ class Knjappserver
       "#{@path_knjrbfw}knjrbfw.rb",
       "#{@path_knjrbfw}knj/objects.rb",
       "#{@path_knjrbfw}knj/web.rb",
-      "#{@path_knjrbfw}knj/daterow.rb",
+      "#{@path_knjrbfw}knj/datarow.rb",
       "#{@path_knjrbfw}knj/datet.rb",
       "#{@path_knjrbfw}knj/thread.rb",
       "#{@path_knjrbfw}knj/threadhandler.rb",
