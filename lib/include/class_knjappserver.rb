@@ -88,7 +88,7 @@ class Knjappserver
       :xml => "text/xml",
       :js => "text/javascript"
     }
-    @types = @types.merge(@config[:filetypes]) 
+    @types = @types.merge(@config[:filetypes]) if @config.has_key?(:filetypes)
     
     
     files = [
