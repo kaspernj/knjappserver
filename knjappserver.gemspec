@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjappserver}
-  s.version = "0.0.5"
+  s.version = "0.0.6"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
@@ -28,6 +28,7 @@ Gem::Specification.new do |s|
     "VERSION",
     "bin/check_running.rb",
     "bin/knjappserver_start.rb",
+    "knjappserver.gemspec",
     "lib/conf/README",
     "lib/conf/conf_example.rb",
     "lib/conf/conf_vars_example.rb",
