@@ -5,12 +5,13 @@ describe "Knjappserver" do
     require "rubygems"
     require "knjappserver"
     require "knjrbfw"
-    require "knj/autoload"
     require "tmpdir"
     
     db_path = "#{Dir.tmpdir}/knjappserver_rspec.sqlite3"
     File.unlink(db_path) if File.exists?(db_path)
     
+    require "knj/knjdb/libknjdb.rb"
+    require "sqlite3"
     db = Knj::Db.new(
       :type => "sqlite3",
       :path => db_path,
@@ -70,6 +71,7 @@ describe "Knjappserver" do
   end
   
   it "should be able to handle a GET-request." do
+    require "knj/http"
     $http = Knj::Http.new("host" => "localhost", "port" => 1515)
     data = $http.get("/spec.rhtml")
     raise "Unexpected HTML: '#{data["data"]}'." if data["data"].to_s.strip != "Test"

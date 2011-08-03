@@ -10,7 +10,7 @@ GEM
       rake
     knjdbrevision (0.0.2)
       knjrbfw
-    knjrbfw (0.0.3)
+    knjrbfw (0.0.7)
     rake (0.9.2)
     rcov (0.9.9)
     rcov (0.9.9-java)
@@ -33,7 +33,7 @@ DEPENDENCIES
   erubis
   jeweler (~> 1.6.3)
   knjdbrevision (>= 0.0.2)
-  knjrbfw (>= 0.0.3)
+  knjrbfw (>= 0.0.7)
   rcov
   rspec (~> 2.3.0)
   sqlite3

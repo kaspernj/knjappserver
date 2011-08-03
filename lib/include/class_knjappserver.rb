@@ -7,6 +7,8 @@ require "#{File.dirname(__FILE__)}/class_knjappserver_cleaner"
 
 require "timeout"
 require "digest"
+require "erubis"
+require "base64"
 
 class Knjappserver
   attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars, :types, :eruby_cache
@@ -94,12 +96,19 @@ class Knjappserver
     files = [
       "#{@path_knjrbfw}knjrbfw.rb",
       "#{@path_knjrbfw}knj/arrayext.rb",
+      "#{@path_knjrbfw}knj/event_handler.rb",
+      "#{@path_knjrbfw}knj/errors.rb",
+      "#{@path_knjrbfw}knj/eruby.rb",
+      "#{@path_knjrbfw}knj/hash_methods.rb",
       "#{@path_knjrbfw}knj/objects.rb",
       "#{@path_knjrbfw}knj/web.rb",
       "#{@path_knjrbfw}knj/datarow.rb",
       "#{@path_knjrbfw}knj/datet.rb",
+      "#{@path_knjrbfw}knj/php.rb",
       "#{@path_knjrbfw}knj/thread.rb",
       "#{@path_knjrbfw}knj/threadhandler.rb",
+      "#{@path_knjrbfw}knj/threadpool.rb",
+      "#{@path_knjrbfw}knj/translations.rb",
       "#{@path_knjrbfw}knj/knjdb/libknjdb.rb",
       "#{@path_knjappserver}/class_httpresp.rb",
       "#{@path_knjappserver}/class_httpserver.rb",
@@ -111,12 +120,7 @@ class Knjappserver
     ]
     files.each do |file|
       STDOUT.print "Loading: '#{file}'.\n" if @config[:debug]
-      
-      if @config[:autorestart]
-        self.loadfile(file)
-      else
-        require file
-      end
+      self.loadfile(file)
     end
     
     
