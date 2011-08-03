@@ -88,13 +88,14 @@ class Knjappserver
       :xml => "text/xml",
       :js => "text/javascript"
     }
-    @types = @types.merge(@config[:filetypes]) if @config[:filetypes]
+    @types = @types.merge(@config[:filetypes]) 
     
     
     files = [
       "#{@path_knjrbfw}knjrbfw.rb",
       "#{@path_knjrbfw}knj/objects.rb",
       "#{@path_knjrbfw}knj/web.rb",
+      "#{@path_knjrbfw}knj/daterow.rb",
       "#{@path_knjrbfw}knj/datet.rb",
       "#{@path_knjrbfw}knj/thread.rb",
       "#{@path_knjrbfw}knj/threadhandler.rb",
