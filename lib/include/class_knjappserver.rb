@@ -93,6 +93,7 @@ class Knjappserver
     
     files = [
       "#{@path_knjrbfw}knjrbfw.rb",
+      "#{@path_knjrbfw}knj/arrayext.rb",
       "#{@path_knjrbfw}knj/objects.rb",
       "#{@path_knjrbfw}knj/web.rb",
       "#{@path_knjrbfw}knj/datarow.rb",
