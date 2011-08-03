@@ -9,6 +9,8 @@ class Knjappserver::Httpserver
 	end
 	
 	def start
+    raise "No host was given." if !@kas.config.has_key?(:host)
+    raise "No port was given." if !@kas.config.has_key?(:port)
 		@server = TCPServer.new(@kas.config[:host], @kas.config[:port])
 		
 		@thread_accept = Knj::Thread.new do
