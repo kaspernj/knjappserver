@@ -15,6 +15,7 @@ class Knjappserver
   autoload :ERBHandler, "#{File.dirname(__FILE__)}/class_erbhandler"
   
   def initialize(config)
+    raise "No arguments given." if !config.is_a?(Hash)
     @config = {
       :timeout => 30,
       :default_page => "index.rhtml",
@@ -91,20 +92,20 @@ class Knjappserver
     
     
     files = [
-      "#{@path_knjappserver}/class_httpresp.rb",
-      "#{@path_knjappserver}/class_httpserver.rb",
-      "#{@path_knjappserver}/class_httpsession.rb",
-      "#{@path_knjappserver}/class_session.rb",
-      "#{@path_knjappserver}/class_log.rb",
-      "#{@path_knjappserver}/class_log_access.rb",
-      "#{@path_knjappserver}/class_log_data_value.rb",
       "#{@path_knjrbfw}knjrbfw.rb",
       "#{@path_knjrbfw}knj/objects.rb",
       "#{@path_knjrbfw}knj/web.rb",
       "#{@path_knjrbfw}knj/datet.rb",
       "#{@path_knjrbfw}knj/thread.rb",
       "#{@path_knjrbfw}knj/threadhandler.rb",
-      "#{@path_knjrbfw}knj/knjdb/libknjdb.rb"
+      "#{@path_knjrbfw}knj/knjdb/libknjdb.rb",
+      "#{@path_knjappserver}/class_httpresp.rb",
+      "#{@path_knjappserver}/class_httpserver.rb",
+      "#{@path_knjappserver}/class_httpsession.rb",
+      "#{@path_knjappserver}/class_session.rb",
+      "#{@path_knjappserver}/class_log.rb",
+      "#{@path_knjappserver}/class_log_access.rb",
+      "#{@path_knjappserver}/class_log_data_value.rb"
     ]
     files.each do |file|
       STDOUT.print "Loading: '#{file}'.\n" if @config[:debug]
