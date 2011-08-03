@@ -253,7 +253,7 @@ class Knjappserver
 			html += "<tr class=\"#{classes.join(" ")}\">"
 			html += "<td>#{log.id}</td>"
 			html += "<td>#{first_line.html}</td>"
-			html += "<td>#{Knj::Datet.in(log[:date_saved]).out}</td>"
+			html += "<td>#{log.date_saved_str}</td>"
 			html += "<td>#{log.objects_html(args[:ob_use])}</td>" if args[:ob_use]
 			html += "</tr>"
 		end

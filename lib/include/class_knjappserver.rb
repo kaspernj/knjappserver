@@ -135,6 +135,9 @@ class Knjappserver
       :datarow => true,
       :knjappserver => self
     )
+    @ob.events.connect(:no_date) do |event, classname|
+      "[no date]"
+    end
     
     
     if @config[:httpsession_db_args]
