@@ -9,6 +9,7 @@ require "timeout"
 require "digest"
 require "erubis"
 require "base64"
+require "stringio"
 
 class Knjappserver
   attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars, :types, :eruby_cache
