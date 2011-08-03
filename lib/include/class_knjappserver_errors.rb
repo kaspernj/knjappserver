@@ -7,6 +7,8 @@ class Knjappserver
 		
 		if @config[:error_emails_time]
       @error_emails_time = @config[:error_emails_time]
+    elsif @config[:debug]
+      @error_emails_time = 5
     else
       @error_emails_time = 180
     end
@@ -91,9 +93,12 @@ class Knjappserver
 					html += line.html + "<br />"
 				end
 				
-				html += "<br />Post:<br /><pre>#{Knj::Php.print_r(_post, true)}</pre>" if _post
-				html += "<br />Get:<br /><pre>#{Knj::Php.print_r(_get, true)}</pre>" if _get
-				html += "<br />Server:<br /><pre>#{Knj::Php.print_r(_server, true).html}</pre>" if _server
+				html += "<br /><b>Post:</b><br /><pre>#{Knj::Php.print_r(_post, true)}</pre>" if _post
+				html += "<br /><b>Get:</b><br /><pre>#{Knj::Php.print_r(_get, true)}</pre>" if _get
+				html += "<br /><b>Server:</b><br /><pre>#{Knj::Php.print_r(_server, true).html}</pre>" if _server
+				html += "<br /><b>Cookie:</b><br /><pre>#{Knj::Php.print_r(_cookie, true).html}</pre>" if _meta
+				html += "<br /><b>Session:</b><br /><pre>#{Knj::Php.print_r(_session, true).html}</pre>" if _session
+				html += "<br /><b>Session hash:</b><br /><pre>#{Knj::Php.print_r(_session_hash, true).html}</pre>" if _session_hash
 				
 				error_hash = @error_emails_pending[backtrace_hash]
 				error_hash[:last_time] = Time.new

@@ -111,7 +111,6 @@ class Knjappserver::Httpsession
       :thread => thread,
       :stringio => thread_out
     }
-    
     @parts << @out
   end
   

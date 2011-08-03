@@ -15,8 +15,16 @@ class Knjappserver
   autoload :ERBHandler, "#{File.dirname(__FILE__)}/class_erbhandler"
   
   def initialize(config)
-    @config = config
+    @config = {
+      :timeout => 30,
+      :default_page => "index.rhtml",
+      :default_filetype => "text/html",
+      :max_requests_working => 20
+    }.merge(config)
+    
     @config[:timeout] = 30 if !@config.has_key?(:timeout)
+    @config[:engine_knjengine] = true if !@config[:engine_knjengine] and !@config[:engine_webrick] and !@config[:engine_mongrel]
+    raise "No ':doc_root' was given in arguments." if !@config.has_key?(:doc_root)
     
     if !@config.has_key?(:handlers)
       @erbhandler = Knjappserver::ERBHandler.new
@@ -30,12 +38,6 @@ class Knjappserver
         }
       ]
     end
-    
-    @config[:default_page] = "index.rhtml" if !@config.has_key?(:default_page)
-    @config[:default_filetype] = "text/html" if !@config.has_key?(:default_filetype)
-    @config[:engine_knjengine] = true if !@config[:engine_knjengine] and !@config[:engine_webrick] and !@config[:engine_mongrel]
-    
-    raise "No ':doc_root' was given in arguments." if !@config.has_key?(:doc_root)
     
     @paused = 0
     @paused_mutex = Mutex.new
