@@ -173,3 +173,29 @@ It should print in the right order, even though "Test 1" will finish as the last
   %>
 
 4. Dont do "require 'gettext'" or anything like this - the appserver does it all for you!
+
+
+=== How to use multithreadded MySQL without mutex'ing around it.
+
+1. Install the 'mysql2' gem.
+  gem install mysql2
+
+2. Start the appserver with the following arguments:
+  <%
+    appsrv = Knjappserver.new(
+      ...
+      :db => {
+        :type => "mysql",
+        :subtype => "mysql2",
+        :host => "localhost",
+        :user => "username",
+        :pass => "password",
+        :db => "database",
+        :return_keys => "symbols",
+        :threadsafe => true,
+        :encoding => "utf8",
+        :query_args => {:cast => false}
+      }
+      ...
+    )
+  %>
