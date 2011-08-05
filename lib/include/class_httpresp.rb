@@ -56,7 +56,7 @@ class Knjappserver::Httpresp
     end
     
     @cookies.each do |cookie|
-      res += "Set-Cookie: #{cookie}#{NL}"
+      res += "Set-Cookie: #{Knj::Web.cookie_str(cookie)}#{NL}"
     end
     
     res += NL

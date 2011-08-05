@@ -66,6 +66,16 @@ Then go to your browser and type "localhost:10080".
     _kas.header("SomeHeader", "SomeValue")
   %>
 
+=== How to send set a cookie
+
+  <%
+    _kas.cookie(
+      "name" => "MyCookie",
+      "value" => "SomeValue",
+      "expires" => Time.new + 3600,
+      "path" => "/"
+    )
+  %>
 
 === How to do threadded content
 

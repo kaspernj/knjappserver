@@ -2,7 +2,7 @@ require "digest"
 
 class Knjappserver::Httpsession
   attr_accessor :data
-  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug
+  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp
   
   def initialize(httpserver, socket)
     @data = {}
@@ -148,6 +148,9 @@ class Knjappserver::Httpsession
     @socket = nil
     @browser = nil
     
+    @resp.destroy if @resp
+    @resp = nil
+    
     @eruby.destroy if @eruby
     @eruby = nil
     
@@ -160,40 +163,34 @@ class Knjappserver::Httpsession
   end
   
   def serve
-    resp = Knjappserver::Httpresp.new
+    @resp = Knjappserver::Httpresp.new
     
     meta = @handler.meta
     cookie = @handler.cookie
     page_path = @handler.page_path
-    
-    pinfo = Knj::Php.pathinfo(page_path)
-    ext = pinfo["extension"].downcase
+    ext = File.extname(page_path).downcase[1..-1]
     
     ctype = @kas.types[ext.to_sym] if @kas.types[ext.to_sym]
     ctype = @kas.config[:default_filetype] if !ctype and @kas.config.has_key?(:default_filetype)
-    resp.header("Content-Type", ctype)
+    @resp.header("Content-Type", ctype)
     
     @browser = Knj::Web.browser(meta)
     @ip = nil
     @ip = meta["HTTP_X_FORWARDED_FOR"].split(",")[0].strip if !@ip and meta["HTTP_X_FORWARDED_FOR"]
     @ip = meta["REMOTE_ADDR"] if !@ip and meta["REMOTE_ADDR"]
     
-    @ips = [meta["REMOTE_ADDR"]]
-    @ips << meta["HTTP_X_FORWARDED_FOR"].split(",")[0].strip if meta["HTTP_X_FORWARDED_FOR"]
-    
     @session_id = nil
     @session_id = "bot"  if @browser["browser"] == "bot"
     @session_id = cookie["KnjappserverSession"] if cookie["KnjappserverSession"].to_s.length > 0
     
     if !@session_id
-      @session_id = Digest::MD5.hexdigest("#{Time.new.to_f}_#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}")
-      
-      resp.cookie(CGI::Cookie.new(
+      @session_id = Digest::MD5.hexdigest("#{Time.now.to_f}_#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}")
+      @resp.cookie(
         "name" => "KnjappserverSession",
         "value" => @session_id,
         "path" => "/",
-        "expires" => Time.new + 32140800 #add around 12 months
-      ).to_s)
+        "expires" => Time.now + 32140800 #add around 12 months
+      )
     end
     
     session = @kas.session_fromid(:idhash => @session_id, :ip => @ip)
@@ -202,9 +199,11 @@ class Knjappserver::Httpsession
     @session_hash = session[:hash]
     
     if @kas.config[:logging] and @kas.config[:logging][:access_db]
+      @ips = [meta["REMOTE_ADDR"]]
+      @ips << meta["HTTP_X_FORWARDED_FOR"].split(",")[0].strip if meta["HTTP_X_FORWARDED_FOR"]
       @kas.logs_access_pending << {
         :session_id => @session.id,
-        :date_request => Knj::Datet.new.dbstr,
+        :date_request => Time.now,
         :ips => @ips,
         :get => @handler.get,
         :post => @handler.post,
@@ -232,11 +231,11 @@ class Knjappserver::Httpsession
     )
     
     serv_data[:headers].each do |header|
-      resp.header(header[0], header[1])
+      @resp.header(header[0], header[1])
     end
     
     serv_data[:cookies].each do |cookie|
-      resp.cookie(cookie)
+      @resp.cookie(cookie)
     end
     
     body_parts = []
@@ -252,24 +251,25 @@ class Knjappserver::Httpsession
         raise "Unknown object: '#{part.class.name}'."
       end
     end
-    resp.body = body_parts
+    @resp.body = body_parts
     
     if serv_data[:lastmod]
-      resp.header("Last-Modified", serv_data[:lastmod].time)
-      resp.header("Expires", Time.now + (3600 * 24))
+      @resp.header("Last-Modified", serv_data[:lastmod].time)
+      @resp.header("Expires", Time.now + (3600 * 24))
     end
     
     if serv_data[:cache]
-      resp.status = 304
-      resp.header("Last-Modified", serv_data[:lastmod].time)
-      resp.header("Expires", Time.now + (3600 * 24))
+      @resp.status = 304
+      @resp.header("Last-Modified", serv_data[:lastmod].time)
+      @resp.header("Expires", Time.now + (3600 * 24))
     end
     
-    resp.status = serv_data[:statuscode] if serv_data[:statuscode]
+    @resp.status = serv_data[:statuscode] if serv_data[:statuscode]
     STDOUT.print "Served '#{meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start.to_f} secs.\n" if @debug
     
-    resp.write_chunked(@socket) if meta["METHOD"] != "HEAD"
-    resp.destroy
+    @resp.write_chunked(@socket) if meta["METHOD"] != "HEAD"
+    @resp.destroy
+    @resp = nil
     
     #Letting them be nil is simply not enough (read that on a forum) - knj.
     serv_data.clear
