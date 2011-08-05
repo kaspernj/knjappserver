@@ -212,7 +212,7 @@ class Knjappserver::Httpsession
       }
     end
     
-    time_start = Time.now if @debug
+    time_start = Time.now.to_f if @debug
     serv_data = self.serve_real(
       :filepath => page_path,
       :get => @handler.get,
@@ -265,7 +265,7 @@ class Knjappserver::Httpsession
     end
     
     @resp.status = serv_data[:statuscode] if serv_data[:statuscode]
-    STDOUT.print "Served '#{meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start.to_f} secs.\n" if @debug
+    STDOUT.print "Served '#{meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start} secs.\n" if @debug
     
     @resp.write_chunked(@socket) if meta["METHOD"] != "HEAD"
     @resp.destroy
