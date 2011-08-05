@@ -1,6 +1,9 @@
 = knjappserver
 
-Description goes here.
+This is a multithreadded webserver that runs under Ruby 1.9.2 or JRuby. It runs under one single process and is able to handle multiple simultanious HTTP requests with thread-safety.
+
+It uses ERubis to parse .rhtml files and caches the bytecode for Ruby-files.
+
 
 == Contributing to knjappserver
  
@@ -17,3 +20,146 @@ Description goes here.
 Copyright (c) 2011 Kasper Johansen. See LICENSE.txt for
 further details.
 
+== Installing
+
+  gem install knjappserver
+
+
+== Usage
+
+=== Basic example
+
+Create a file called "start.rb":
+
+  require "rubygems"
+  require "knjappserver"
+  
+  require "knjrbfw"
+  require "knj/knjdb/libknjdb.rb"
+  require "sqlite3"
+  
+  appsrv = Knjappserver.new(
+    :port => 10080,
+    :doc_root => "#{File.dirname(__FILE__)}/doc_root",
+    :db => Knj::Db.new(
+      :type => "sqlite3",
+      :path => "#{File.dirname(__FILE__)}/test.sqlite3"
+    )
+  )
+  appsrv.start
+  appsrv.join
+
+
+Place a file called "index.rhtml" with the start-script and write something like:
+
+  <%
+    print "Hello world."
+  %>
+
+
+Then go to your browser and type "localhost:10080".
+
+
+=== How to send a header
+
+  <%
+    _kas.header("SomeHeader", "SomeValue")
+  %>
+
+
+=== How to do threadded content
+
+  <%
+    _kas.threadded_content do
+      sleep 4
+      print "Test 1<br />"
+    end
+    
+    _kas.threadded_content do
+      sleep 1
+      print "Test 2<br />"
+    end
+    
+    _kas.threadded_content do
+      sleep 3
+      print "Test 3<br />"
+    end
+  %>
+
+It should print in the right order, even though "Test 1" will finish as the last thread:
+  Test 1
+  Test 2
+  Test 3
+
+
+=== How to access request data
+
+  <%
+    puts _get
+    puts _post
+    puts _meta
+    puts _cookie
+    puts _session
+    puts _session_hash
+  %>
+
+
+=== How to access the database
+
+  <%
+    _db.q("SELECT * FROM Session") do |data|
+      puts data
+    end
+  %>
+
+
+=== How to create a thread with database access that runs in background via the threadpool
+
+  <%
+    _kas.thread do
+      sleep 2
+      print "Trala!\n"  #will be outputted to the command line, since the thread is being executed in the background and the http-request wont depend on it!
+    end
+  %>
+
+
+=== How to do execute something every 10 seconds.
+
+  <%
+    _kas.timeout(:time => 10) do
+      print "This will be printed to the command line every 10 secs.\n"
+    end
+  %>
+
+
+=== How to send a mail
+  
+  <%
+    _kas.mail(
+      :to => "friends@email.com",
+      :subject => "The subject",
+      :html => "The HTML content.",
+      :from => "your@email.com"
+    )
+  %>
+
+
+=== How to use Gettext / Locales
+
+1. Make folders and po-files so you have something like: "locales/en_GB/LC_MESSAGES/default.po".
+
+2. Start the appserver with the following arguments:
+  appsrv = Knjappserver.new(
+    ...
+    :locales_root => "#{File.dirname(__FILE__)}/../locales",
+    :locales_gettext_funcs => true,
+    :locale_default => "da_DK",
+    ...
+  )
+
+3. Use gettext like your normally would:
+  <%
+    print _("Hello world.")
+  %>
+
+4. Dont do "require 'gettext'" or anything like this - the appserver does it all for you!

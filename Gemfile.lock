@@ -32,8 +32,13 @@ DEPENDENCIES
   bundler (~> 1.0.0)
   erubis
   jeweler (~> 1.6.3)
+<<<<<<< HEAD
+  knjdbrevision
+  knjrbfw
+=======
   knjdbrevision (>= 0.0.2)
   knjrbfw (>= 0.0.7)
+>>>>>>> 5632574baea0cc1e5a739bb979115c4c0830e7b6
   rcov
   rspec (~> 2.3.0)
   sqlite3
