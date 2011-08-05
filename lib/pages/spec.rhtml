@@ -1,4 +1,23 @@
 <%
+  if _get["choice"] == "test_cookie"
+    _kas.cookie(CGI::Cookie.new(
+      "name" => "TestCookie",
+      "value" => "TestValue",
+      "expires" => Time.new + 3600 #add an hour
+    ))
+    _kas.cookie(CGI::Cookie.new(
+      "name" => "TestCookie2",
+      "value" => "TestValue2",
+      "expires" => Time.new + 7200 #add an hour
+    ))
+    exit
+  end
+  
+  if _get["choice"] == "get_cookies"
+    print Knj::Php.json_encode(_cookie)
+    exit
+  end
+  
   _kas.header("TestHeader", "NormalHeader")
   _kas.header_raw("TestRaw: RawHeader")
   

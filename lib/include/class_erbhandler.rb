@@ -21,16 +21,15 @@ class Knjappserver::ERBHandler
 			:custom_io => true
 		})
 		headers = eruby.headers
+		cookies = eruby.cookies
 		eruby.reset_headers
-		
-		headers_ret = {}
-		headers.each do |header|
-			headers_ret[header[0]] = [header[1]]
-		end
 		
 		Thread.current[:knjappserver].clear
     Thread.current[:knjappserver] = nil
 		
-    return {:headers => headers}
+		raise "No headers given." if !headers
+    raise "No cookies given." if !cookies
+		
+    return {:headers => headers, :cookies => cookies}
 	end
 end

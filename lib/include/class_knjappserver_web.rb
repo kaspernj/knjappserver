@@ -8,6 +8,10 @@ class Knjappserver
 		return self
 	end
 	
+	def cookie(cgi_cookie)
+    _httpsession.eruby.cookie(cgi_cookie)
+	end
+	
 	def header(key, val)
     Knj::Php.header("#{key}: #{val}")
 	end

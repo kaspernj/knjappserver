@@ -192,7 +192,7 @@ class Knjappserver::Httpsession
         "name" => "KnjappserverSession",
         "value" => @session_id,
         "path" => "/",
-        "expires" => (Knj::Datet.new.months + 12).time
+        "expires" => Time.new + 32140800 #add around 12 months
       ).to_s)
     end
     
@@ -232,17 +232,11 @@ class Knjappserver::Httpsession
     )
     
     serv_data[:headers].each do |header|
-      key = header[0]
-      val = header[1]
-      keystr = key.to_s.strip.downcase
-      
-      if keystr.match(/^set-cookie/)
-        WEBrick::Cookie.parse_set_cookies(val).each do |cookie|
-          resp.cookie(cookie.to_s)
-        end
-      else
-        resp.header(key, val)
-      end
+      resp.header(header[0], header[1])
+    end
+    
+    serv_data[:cookies].each do |cookie|
+      resp.cookie(cookie)
     end
     
     body_parts = []
@@ -284,6 +278,7 @@ class Knjappserver::Httpsession
   def serve_real(details)
     request = details[:request]
     headers = {}
+    cookies = []
     cont = ""
     statuscode = nil
     lastmod = false
@@ -307,8 +302,9 @@ class Knjappserver::Httpsession
       if handler_info[:file_ext] and handler_info[:file_ext] == details[:ext]
         handler_use = true
         ret = handler_info[:callback].call(details)
-        cont = ret[:content] if ret[:content]
-        headers = ret[:headers] if ret[:headers]
+        cont = ret[:content] if ret.has_key?(:content)
+        headers = ret[:headers] if ret.has_key?(:headers)
+        cookies = ret[:cookies] if ret.has_key?(:cookies)
         break
       elsif handler_info[:path] and handler_info[:mount] and details[:meta]["SCRIPT_NAME"].slice(0, handler_info[:path].length) == handler_info[:path]
         details[:filepath] = "#{handler_info[:mount]}#{details[:meta]["SCRIPT_NAME"].slice(handler_info[:path].length, details[:meta]["SCRIPT_NAME"].length)}"
@@ -343,6 +339,7 @@ class Knjappserver::Httpsession
       :statuscode => statuscode,
       :content => cont,
       :headers => headers,
+      :cookies => cookies,
       :lastmod => lastmod,
       :cache => cache
     }

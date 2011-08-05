@@ -15,4 +15,5 @@ group :development do
   gem "jeweler", "~> 1.6.3"
   gem "rcov", ">= 0"
   gem "sqlite3"
+  gem "json"
 end
