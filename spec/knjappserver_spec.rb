@@ -100,10 +100,23 @@ describe "Knjappserver" do
     end
   end
   
-  it "it should be able to use the header-methods." do
+  it "should be able to use the header-methods." do
     data = $http.get("/spec.rhtml")
     raise "Normal header data could not be detected." if data["response"].header["testheader"] != "NormalHeader"
     raise "Raw header data could not be detected." if data["response"].header["testraw"]!= "RawHeader"
+  end
+  
+  it "should be able to set and get multiple cookies at the same time." do
+    require "json"
+    
+    data = $http.get("/spec.rhtml?choice=test_cookie")
+    raise data["data"] if data["data"].to_s.length > 0
+    
+    data = $http.get("/spec.rhtml?choice=get_cookies")
+    parsed = Knj::Php.json_decode(data["data"])
+    
+    raise "Unexpected value for 'TestCookie': '#{parsed["TestCookie"]}'." if parsed["TestCookie"] != "TestValue"
+    raise "Unexpected value for 'TestCookie2': '#{parsed["TestCookie2"]}'." if parsed["TestCookie2"] != "TestValue2"
   end
   
   it "should be able to stop." do
