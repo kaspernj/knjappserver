@@ -1,7 +1,11 @@
 class Knjappserver
 	def initialize_threadding
+    @config[:threadding] = {} if !@config.has_key?(:threadding)
+    @config[:threadding][:max_running] = 25 if !@config[:threadding].has_key?(:max_running)
+    
 		@threadpool = Knj::Threadpool.new(:threads => @config[:threadding][:max_running])
 		@threadpool.events.connect(:on_error) do |event, error|
+      STDOUT.print "Error!\n"
 			self.handle_error(error)
 		end
 	end
@@ -10,19 +14,22 @@ class Knjappserver
 		raise "No block given." if !block_given?
 		args[:args] = [] if !args[:args]
 		
-		@threadpool.run_async(self) do |kas|
-			Thread.current[:knjappserver] = {:kas => kas}
-			
+		@threadpool.run_async do
+      @ob.db.get_and_register_thread if @ob.db.opts[:threadsafe]
+      @db_handler.get_and_register_thread if @db_handler.opts[:threadsafe]
+      
+      Thread.current[:knjappserver] = {
+        :kas => self,
+        :db => @db_handler
+      }
+      
 			begin
-				kas.ob.db.get_and_register_thread if kas.ob.db.opts[:threadsafe]
-				kas.db_handler.get_and_register_thread if kas.db_handler.opts[:threadsafe]
 				yield(*args[:args])
 			rescue Exception => e
-				kas.handle_error(e)
+				handle_error(e)
 			ensure
-				kas.ob.db.free_thread if kas.ob.db.opts[:threadsafe]
-				kas.db_handler.free_thread if kas.db_handler.opts[:threadsafe]
-				Thread.current[:knjappserver] = nil
+				@ob.db.free_thread if @ob.db.opts[:threadsafe]
+				@db_handler.free_thread if @db_handler.opts[:threadsafe]
 			end
 		end
 	end
@@ -32,9 +39,7 @@ class Knjappserver
 		raise "No block given." if !block_given?
 		args[:args] = [] if !args[:args]
 		
-		thread = Thread.new(self) do |kas|
-			Thread.current[:knjappserver] = {:kas => kas}
-			
+		thread = Thread.new do
 			loop do
 				begin
 					if args[:counting]
@@ -42,29 +47,41 @@ class Knjappserver
 						
 						while Thread.current[:knjappserver_timeout] > 0
 							Thread.current[:knjappserver_timeout] += -1
+							break if @should_restart
 							sleep 1
 						end
 					else
 						sleep args[:time]
 					end
 					
+					break if @should_restart
+					
 					@threadpool.run do
-						kas.ob.db.get_and_register_thread if kas.ob.db.opts[:threadsafe]
-						kas.db_handler.get_and_register_thread if kas.db_handler.opts[:threadsafe]
+            @ob.db.get_and_register_thread if @ob.db.opts[:threadsafe]
+            @db_handler.get_and_register_thread if @db_handler.opts[:threadsafe]
+            
+            Thread.current[:knjappserver] = {
+              :kas => self,
+              :db => @db_handler
+            }
 						
 						begin
 							yield(*args[:args])
 						ensure
-							kas.ob.db.free_thread if kas.ob.db.opts[:threadsafe]
-							kas.db_handler.free_thread if kas.db_handler.opts[:threadsafe]
+							@ob.db.free_thread if @ob.db.opts[:threadsafe]
+							@db_handler.free_thread if @db_handler.opts[:threadsafe]
 						end
 					end
 				rescue Exception => e
-					kas.handle_error(e)
+					handle_error(e)
 				end
 			end
 		end
 		
 		return thread
+	end
+	
+	def threadded_content(&block)
+    _httpsession.threadded_content(block)
 	end
 end

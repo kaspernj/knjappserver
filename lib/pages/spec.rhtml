@@ -1,0 +1,10 @@
+<%
+  _kas.header("TestHeader", "NormalHeader")
+  _kas.header_raw("TestRaw: RawHeader")
+  
+  if _meta["REQUEST_METHOD"] == "POST"
+    print _post["postdata"]
+  else
+    print "Test"
+  end
+%>

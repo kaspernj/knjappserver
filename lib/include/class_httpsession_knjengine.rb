@@ -1,3 +1,10 @@
+require "uri"
+require "cgi"
+
+if RUBY_PLATFORM == "java" or RUBY_ENGINE == "rbx"
+  BasicSocket.do_not_reverse_lookup = true
+end
+
 class Knjappserver::Httpsession::Knjengine
 	attr_reader :get, :post, :cookie, :meta, :page_path, :headers
 	
@@ -9,10 +16,9 @@ class Knjappserver::Httpsession::Knjengine
 	
 	def read_socket
 		loop do
-			raise WEBrick::HTTPStatus::EOFError, "Socket closed." if @socket.closed?
+			raise Errno::ECONNRESET, "Socket closed." if @socket.closed?
 			read = @socket.gets
-			raise WEBrick::HTTPStatus::EOFError, "Socket returned non-string." if !read.is_a?(String)
-			
+			raise Errno::ECONNRESET, "Socket returned non-string." if !read.is_a?(String)
 			@cont += read
 			break if @cont[-4..-1] == "\r\n\r\n" or @cont[-2..-1] == "\n\n"
 		end
@@ -24,7 +30,7 @@ class Knjappserver::Httpsession::Knjengine
 		self.read_socket
 		
 		#Parse URI (page_path and get).
-		match = @cont.match(/^(GET|POST) (.+) HTTP\/1\.1\s*/)
+		match = @cont.match(/^(GET|POST|HEAD) (.+) HTTP\/1\.(\d+)\s*/)
 		if !match
 			raise "Could not parse request: '#{@cont.split("\n").first}'."
 		end
@@ -33,13 +39,13 @@ class Knjappserver::Httpsession::Knjengine
 		@cont = @cont.gsub(match[0], "")
 		uri = URI.parse(match[2])
 		
-		page_filepath = uri.path
+		page_filepath = CGI.unescape(uri.path)
 		if page_filepath.length <= 0 or page_filepath == "/" or File.directory?("#{@kas.config[:doc_root]}/#{page_filepath}")
 			page_filepath = "#{page_filepath}/#{@kas.config[:default_page]}"
 		end
 		
 		@page_path = "#{@kas.config[:doc_root]}/#{page_filepath}"
-		@get = Knj::Web.parse_urlquery(uri.query.to_s)
+		@get = Knj::Web.parse_urlquery(uri.query.to_s, {:urldecode => true})
 		
 		
 		#Parse headers, cookies and meta.
@@ -65,7 +71,8 @@ class Knjappserver::Httpsession::Knjengine
 			"REMOTE_ADDR" => addr[2],
 			"REMOTE_PORT" => addr[1],
 			"SERVER_ADDR" => addr_peer[2],
-			"SERVER_PORT" => addr_peer[1]
+			"SERVER_PORT" => addr_peer[1],
+			"SCRIPT_NAME" => uri.path
 		}
 		
 		@cont.scan(/(\S+):\s*(.+)\r\n/) do |header_match|
@@ -93,8 +100,8 @@ class Knjappserver::Httpsession::Knjengine
 				when "referer"
 					@meta["HTTP_REFERER"] = val
 				when "cookie"
-					WEBrick::Cookie.parse_set_cookies(val).each do |cookie|
-						@cookie[cookie.name] = cookie.value
+					Knj::Web.parse_cookies(val).each do |key, val|
+						@cookie[key] = val
 					end
 			end
 		end

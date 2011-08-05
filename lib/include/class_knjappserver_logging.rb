@@ -19,12 +19,6 @@ class Knjappserver
 			inserts = []
 			inserts_links = []
 			
-			data_cache = {}
-			q_data = @db.query("SELECT id, id_hash FROM Log_data")
-			while d_data = q_data.fetch
-				data_cache[d_data[:id_hash]] = d_data[:id]
-			end
-			
 			ins_arr.each do |ins|
 				gothrough = [{
 					:col => :get_keys_data_id,
@@ -71,10 +65,9 @@ class Knjappserver
 						hash = Knj::ArrayExt.hash_values_hash(data[:hash])
 					end
 					
-					data_id = data_cache[hash]
+					data_id = @ob.static(:Log_data, :by_id_hash, hash)
 					if !data_id
 						data_id = @db.insert(:Log_data, {"id_hash" => hash}, {:return_id => true})
-						data_cache[hash] = data_id
 						
 						link_count = 0
 						data[:hash].keys.sort.each do |key|
@@ -85,14 +78,7 @@ class Knjappserver
 							end
 							
 							ins_data = ins_data.force_encoding("UTF-8") if ins_data.respond_to?(:force_encoding)
-							
-							data_value = @db.single(:Log_data_value, {"value" => ins_data})
-							if data_value
-								data_value_id = data_value[:id]
-							else
-								data_value_id = @db.insert(:Log_data_value, {"value" => ins_data}, {:return_id => true})
-							end
-							
+							data_value_id = @ob.static(:Log_data_value, :force_id, ins_data)
 							inserts_links << {:no => link_count, :data_id => data_id, :value_id => data_value_id}
 							link_count += 1
 						end
@@ -102,22 +88,14 @@ class Knjappserver
 				end
 				
 				hash = Knj::ArrayExt.array_hash(ins[:ips])
-				data_id = data_cache[hash]
+				data_id = @ob.static(:Log_data, :by_id_hash, hash)
 				
 				if !data_id
 					data_id = @db.insert(:Log_data, {"id_hash" => hash}, {:return_id => true})
-					data_cache[hash] = data_id
 					
 					link_count = 0
 					ins[:ips].each do |ip|
-						data_value = @db.single(:Log_data_value, {"value" => ip})
-						
-						if data_value
-							data_value_id = data_value[:id]
-						else
-							data_value_id = @db.insert(:Log_data_value, {"value" => ip}, {:return_id => true})
-						end
-						
+            data_value_id = @ob.static(:Log_data_value, :force_id, ip)
 						inserts_links << {:no => link_count, :data_id => data_id, :value_id => data_value_id}
 						link_count += 1
 					end
@@ -158,14 +136,7 @@ class Knjappserver
 					end
 					
 					ins_data = ins_data.force_encoding("UTF-8") if ins_data.respond_to?(:force_encoding)
-					
-					data_value = @db.single(:Log_data_value, {"value" => ins_data})
-					if data_value
-						data_value_id = data_value[:id]
-					else
-						data_value_id = @db.insert(:Log_data_value, {"value" => ins_data}, {:return_id => true})
-					end
-					
+					data_value_id = @ob.static(:Log_data_value, :force_id, ins_data)
 					inserts_links << {:no => link_count, :data_id => data_id, :value_id => data_value_id}
 					link_count += 1
 				end
@@ -221,10 +192,10 @@ class Knjappserver
 	def log(msg, objs)
 		@logs_mutex.synchronize do
 			objs = [objs] if !objs.is_a?(Array)
-			log_value = @ob.static(:Log_data_value, :force, msg)
+			log_value_id = @ob.static(:Log_data_value, :force_id, msg)
 			ins_data = {
 				:date_saved => Time.new,
-				:text_value_id => log_value.id
+				:text_value_id => log_value_id
 			}
 			
 			get_hash = log_hash_ins(_get) if _get
@@ -239,27 +210,30 @@ class Knjappserver
 				ins_data[:post_values_data_id] = post_hash[:values_data_id]
 			end
 			
-			log_id = @ob.db.insert(:Log, ins_data, {:return_id => true})
+			log_id = @db.insert(:Log, ins_data, {:return_id => true})
 			
 			log_links = []
 			objs.each do |obj|
-				log_links << @ob.add(:Log_link, {
-					:object => obj,
-					:log_id => log_id
-				})
+        class_data_id = @ob.static(:Log_data_value, :force_id, obj.class.name)
+        
+        log_links << {
+          :object_class_value_id => class_data_id,
+          :object_id => obj.id,
+          :log_id => log_id
+        }
 			end
 			
-			@ob.unset(log_value)
-			@ob.unset(log_links)
+			@db.insert_multi(:Log_link, log_links)
 		end
 	end
 	
 	def logs_table(obj, args = {})
-		logs = @ob.list(:Log, {"object_lookup" => obj, "limit" => 500, "orderby" => [["id", "desc"]]})
+		links = @ob.list(:Log_link, {"object_class" => obj.class.name, "object_id" => obj.id, "limit" => 500, "orderby" => [["id", "desc"]]})
 		
 		html = "<table class=\"list knjappserver_log_table\">"
 		html += "<thead>"
 		html += "<tr>"
+		html += "<th>ID</th>"
 		html += "<th>Message</th>"
 		html += "<th>Date &amp; time</th>"
 		html += "<th>Objects</th>" if args[:ob_use]
@@ -267,7 +241,9 @@ class Knjappserver
 		html += "</thead>"
 		html += "<tbody>"
 		
-		logs.each do |log|
+		links.each do |link|
+      log = link.log
+      
 			msg_lines = log.text.split("\n")
 			first_line = msg_lines[0].to_s
 			
@@ -275,13 +251,14 @@ class Knjappserver
 			classes << "knjappserver_log_multiple_lines" if msg_lines.length > 1
 			
 			html += "<tr class=\"#{classes.join(" ")}\">"
+			html += "<td>#{log.id}</td>"
 			html += "<td>#{first_line.html}</td>"
-			html += "<td>#{Knj::Datet.in(log[:date_saved]).out}</td>"
+			html += "<td>#{log.date_saved_str}</td>"
 			html += "<td>#{log.objects_html(args[:ob_use])}</td>" if args[:ob_use]
 			html += "</tr>"
 		end
 		
-		if logs.empty?
+		if links.empty?
 			html += "<tr>"
 			html += "<td colspan=\"2\" class=\"error\">No logs were found for that object.</td>"
 			html += "</tr>"

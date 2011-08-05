@@ -8,6 +8,14 @@ class Knjappserver
 		return self
 	end
 	
+	def header(key, val)
+    Knj::Php.header("#{key}: #{val}")
+	end
+	
+	def header_raw(str)
+    Knj::Php.header(str)
+	end
+	
 	def back
 		Knj::Web.back
 		return self

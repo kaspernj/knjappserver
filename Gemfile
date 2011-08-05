@@ -3,8 +3,9 @@ source "http://rubygems.org"
 # Example:
 #   gem "activesupport", ">= 2.3.5"
 
-gem "knjrbfw"
-gem "knjdbrevision"
+gem "knjrbfw", ">= 0.0.7"
+gem "erubis"
+gem "knjdbrevision", ">= 0.0.2"
 
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.
@@ -13,4 +14,5 @@ group :development do
   gem "bundler", "~> 1.0.0"
   gem "jeweler", "~> 1.6.3"
   gem "rcov", ">= 0"
+  gem "sqlite3"
 end

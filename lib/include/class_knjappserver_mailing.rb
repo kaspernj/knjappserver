@@ -1,4 +1,6 @@
 class Knjappserver
+  attr_reader :mails_waiting
+  
 	def initialize_mailing
 		@mails_waiting = []
 		@mails_mutex = Mutex.new

@@ -1,10 +1,21 @@
 class Knjappserver::Log_link < Knj::Datarow
+  has_one [
+    {:class => :Log, :col => :log_id}
+  ]
+  
 	def self.list(d)
 		sql = "SELECT * FROM #{table} WHERE 1=1"
 		
 		ret = list_helper(d)
 		d.args.each do |key, val|
-			raise "Invalid key: #{key}."
+      case key
+        when "object_class"
+          data_val = d.db.single(:Log_data_value, {"value" => val})
+          return [] if !data_val #if this data-value cannot be found, nothing has been logged for the object. So just return empty array here and skip the rest.
+          sql += " AND object_class_value_id = '#{d.db.esc(data_val[:id])}'"
+        else
+          raise "Invalid key: #{key}."
+      end
 		end
 		
 		sql += ret[:sql_where]

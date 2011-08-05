@@ -1,16 +1,26 @@
 class Knjappserver
+  attr_reader :error_emails_pending
+  
 	def initialize_errors
 		@error_emails_pending = {}
 		@error_emails_pending_mutex = Mutex.new
 		
-		self.timeout(:time => 180) do
+		if @config[:error_emails_time]
+      @error_emails_time = @config[:error_emails_time]
+    elsif @config[:debug]
+      @error_emails_time = 5
+    else
+      @error_emails_time = 180
+    end
+		
+		self.timeout(:time => @error_emails_time) do
 			self.flush_error_emails
 		end
 	end
 	
 	def flush_error_emails
 		@error_emails_pending_mutex.synchronize do
-			send_time_older_than = Time.new.to_i - 180
+			send_time_older_than = Time.new.to_i - @error_emails_time
 			
 			@error_emails_pending.each do |backtrace_hash, error_email|
 				if send_time_older_than < error_email[:last_time].to_i and error_email[:messages].length < 1000
@@ -18,6 +28,8 @@ class Knjappserver
 				end
 				
 				@config[:error_report_emails].each do |email|
+          next if !email
+          
 					if error_email[:messages].length == 1
 						html = error_email[:messages].first
 					else
@@ -63,7 +75,7 @@ class Knjappserver
 				STDOUT.print "\n\n"
 			end
 			
-			if @config.has_key?(:smtp_args) and @config[:error_report_emails] and !args.has_key?(:email) or args[:email]
+			if @config.has_key?(:smtp_args) and @config[:error_report_emails] and (!args.has_key?(:email) or args[:email])
 				backtrace_hash = Knj::ArrayExt.array_hash(e.backtrace)
 				
 				if !@error_emails_pending.has_key?(backtrace_hash)
@@ -81,14 +93,25 @@ class Knjappserver
 					html += line.html + "<br />"
 				end
 				
-				html += "<br />Post:<br /><pre>#{Knj::Php.print_r(_post, true)}</pre>" if _post
-				html += "<br />Get:<br /><pre>#{Knj::Php.print_r(_get, true)}</pre>" if _get
-				html += "<br />Server:<br /><pre>#{Knj::Php.print_r(_server, true).html}</pre>" if _server
+				html += "<br /><b>Post:</b><br /><pre>#{Knj::Php.print_r(_post, true)}</pre>" if _post
+				html += "<br /><b>Get:</b><br /><pre>#{Knj::Php.print_r(_get, true)}</pre>" if _get
+				html += "<br /><b>Server:</b><br /><pre>#{Knj::Php.print_r(_server, true).html}</pre>" if _server
+				html += "<br /><b>Cookie:</b><br /><pre>#{Knj::Php.print_r(_cookie, true).html}</pre>" if _meta
+				html += "<br /><b>Session:</b><br /><pre>#{Knj::Php.print_r(_session, true).html}</pre>" if _session
+				html += "<br /><b>Session hash:</b><br /><pre>#{Knj::Php.print_r(_session_hash, true).html}</pre>" if _session_hash
 				
 				error_hash = @error_emails_pending[backtrace_hash]
 				error_hash[:last_time] = Time.new
 				error_hash[:messages] << html
 			end
 		end
+	end
+	
+	def on_error_go_back(&block)
+    begin
+      block.call
+    rescue => e
+      self.alert(e.message).back
+    end
 	end
 end

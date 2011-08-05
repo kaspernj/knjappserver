@@ -101,8 +101,10 @@ $tables = {
 			],
 			"indexes" => [
 				{"name" => "log_id", "columns" => ["log_id"]},
+				{"name" => "object_id", "columns" => ["object_id"]},
+				{"name" => "object_class_value_id", "columns" => ["object_class_value_id"]},
 				{"name" => "object_lookup", "columns" => ["object_class_value_id", "object_id"]},
-				{"name" => "object_class_value_id", "columns" => ["object_class_value_id"]}
+				{"name" => "log_lookup", "columns" => ["object_class_value_id", "object_id", "log_id"]}
 			]
 		}
 	}

@@ -1,20 +1,28 @@
 #!/usr/bin/env ruby
 
+require "#{File.dirname(__FILE__)}/../lib/knjappserver.rb"
+require "knjrbfw"
+
 ARGV.each do |arg|
-	if arg == "--active_support"
-		ARGV.delete(arg)
-		require "rubygems"
-		require "active_support"
-		require "active_support/core_ext"
-	end
+   if arg == "--active_support"
+      ARGV.delete(arg)
+      require "active_support"
+      require "active_support/core_ext"
+   end
 end
 
-filepath = File.dirname(__FILE__) + "/"
+filepath = File.dirname(__FILE__) + "/../lib/"
 
-require "#{filepath}conf/conf_vars"
+if File.exists?($0)
+  conf_path = File.dirname($0) + "/../"
+else
+  conf_path = File.dirname(__FILE__) + "/../"
+end
+
+require "#{conf_path}conf/conf_vars"
 require "webrick"
-require "#{$knjappserver_config["knjrbfw"]}knj/ext/webrick" 
 require "#{$knjappserver_config["knjrbfw"]}knj/autoload"
+require "#{$knjappserver_config["knjrbfw"]}knj/ext/webrick"
 
 $knjappserver = {
 	:path => Knj::Php.realpath(File.dirname(__FILE__))
@@ -28,15 +36,15 @@ require "#{filepath}include/class_customio.rb"
 cio = Knjappserver::CustomIO.new
 $stdout = cio
 
-Knj::Thread.new do
+Thread.new do
 	loop do
 		sleep 30
-		GC.enable if RUBY_PLATFORM != "java"
+		GC.enable if RUBY_ENGINE != "jruby"
+		GC.enable
 		GC.start
 		ObjectSpace.garbage_collect
 	end
 end
 
 print "Starting knjAppServer.\n"
-require "./include/magic_methods.rb"
-require "./conf/conf"
+require "#{conf_path}conf/conf"

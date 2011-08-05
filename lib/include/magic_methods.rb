@@ -11,7 +11,7 @@ def _post
 end
 
 def _session
-	return Thread.current[:knjappserver][:session_accessor] if Thread.current[:knjappserver]
+	return Thread.current[:knjappserver][:session].sess_data if Thread.current[:knjappserver] and Thread.current[:knjappserver][:session]
 end
 
 def _session_hash
@@ -43,7 +43,17 @@ def _kas
 	return $knjappserver[:knjappserver] if $knjappserver and $knjappserver[:knjappserver]
 end
 
+def _vars
+  return Thread.current[:knjappserver][:kas].vars if Thread.current[:knjappserver]
+  return $knjappserver[:knjappserver].vars if $knjappserver and $knjappserver[:knjappserver]
+end
+
 def _db
 	return Thread.current[:knjappserver][:db] if Thread.current[:knjappserver]
 	return $db if $db #return the global database object, if we are not running in a thread with one.
+end
+
+#This function makes it possible to define methods in ERubis-parsed files (else _buf-variable wouldnt be globally available).
+def _buf
+  return $stdout
 end

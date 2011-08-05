@@ -3,35 +3,64 @@ require "#{File.dirname(__FILE__)}/class_knjappserver_logging"
 require "#{File.dirname(__FILE__)}/class_knjappserver_mailing"
 require "#{File.dirname(__FILE__)}/class_knjappserver_threadding"
 require "#{File.dirname(__FILE__)}/class_knjappserver_web"
+require "#{File.dirname(__FILE__)}/class_knjappserver_cleaner"
+
+require "timeout"
+require "digest"
+require "erubis"
+require "base64"
+require "stringio"
+require "socket"
 
 class Knjappserver
-  attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :cleaner, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool
-  attr_accessor :served, :should_restart
+  attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars, :types, :eruby_cache
+  attr_accessor :served, :should_restart, :should_restart_done
   
   autoload :ERBHandler, "#{File.dirname(__FILE__)}/class_erbhandler"
   
   def initialize(config)
-    require "rubygems"
-    require "webrick"
-      
-    @config = config
-    @config[:threadding] = {} if !@config.has_key?(:threadding)
-    @config[:threadding][:max_running] = 10 if !@config[:threadding].has_key?(:max_running)
+    raise "No arguments given." if !config.is_a?(Hash)
+    @config = {
+      :timeout => 30,
+      :default_page => "index.rhtml",
+      :default_filetype => "text/html",
+      :max_requests_working => 20
+    }.merge(config)
+    
+    @config[:timeout] = 30 if !@config.has_key?(:timeout)
+    @config[:engine_knjengine] = true if !@config[:engine_knjengine] and !@config[:engine_webrick] and !@config[:engine_mongrel]
+    raise "No ':doc_root' was given in arguments." if !@config.has_key?(:doc_root)
+    
+    if !@config.has_key?(:handlers)
+      @erbhandler = Knjappserver::ERBHandler.new
+      @config[:handlers] = [
+        {
+          :file_ext => "rhtml",
+          :callback => @erbhandler.method(:erb_handler)
+        },{
+          :path => "/fckeditor",
+          :mount => "/usr/share/fckeditor"
+        }
+      ]
+    end
     
     @paused = 0
+    @paused_mutex = Mutex.new
     @should_restart = false
     @mod_events = {}
     @served = 0
     @mod_files = {}
+    @sessions = {}
+    @eruby_cache = {}
     
     @path_knjappserver = File.dirname(__FILE__)
     if @config[:knjrbfw_path]
-        @path_knjrbfw = @config[:knjrbfw_path]
-      elsif $knjappserver_config and @path_knjrbfw
-        @path_knjrbfw = @path_knjrbfw
-      else
-        @path_knjrbfw = ""
-      end
+      @path_knjrbfw = @config[:knjrbfw_path]
+    elsif $knjappserver_config and $knjappserver_config["knjrbfw"]
+      @path_knjrbfw = $knjappserver_config["knjrbfw"]
+    else
+      @path_knjrbfw = ""
+    end
     
     
     #If auto-restarting is enabled - start the modified events-module.
@@ -42,43 +71,72 @@ class Knjappserver
         "#{@path_knjappserver}/class_customio.rb"
       ]
       
-      print "Auto restarting.\n"
+      print "Auto restarting.\n" if @config[:debug]
       @mod_event = Knj::Event_filemod.new(:wait => 2, :paths => paths) do |event, path|
         print "File changed - restart server: #{path}\n"
         @should_restart = true
-        @mod_event.destroy
+        @mod_event.destroy if @mod_event
       end
     end
+    
+    @types = {
+      :ico => "image/x-icon",
+      :jpeg => "image/jpeg",
+      :jpg => "image/jpeg",
+      :gif => "image/gif",
+      :png => "image/png",
+      :html => "text/html",
+      :htm => "text/html",
+      :rhtml => "text/html",
+      :css => "text/css",
+      :xml => "text/xml",
+      :js => "text/javascript"
+    }
+    @types = @types.merge(@config[:filetypes]) if @config.has_key?(:filetypes)
     
     
     files = [
-      "#{@path_knjappserver}/class_cleaner.rb",
-      "#{@path_knjappserver}/class_session_accessor.rb",
+      "#{@path_knjrbfw}knjrbfw.rb",
+      "#{@path_knjrbfw}knj/arrayext.rb",
+      "#{@path_knjrbfw}knj/event_handler.rb",
+      "#{@path_knjrbfw}knj/errors.rb",
+      "#{@path_knjrbfw}knj/eruby.rb",
+      "#{@path_knjrbfw}knj/hash_methods.rb",
+      "#{@path_knjrbfw}knj/objects.rb",
+      "#{@path_knjrbfw}knj/web.rb",
+      "#{@path_knjrbfw}knj/datarow.rb",
+      "#{@path_knjrbfw}knj/datet.rb",
+      "#{@path_knjrbfw}knj/php.rb",
+      "#{@path_knjrbfw}knj/thread.rb",
+      "#{@path_knjrbfw}knj/threadhandler.rb",
+      "#{@path_knjrbfw}knj/threadpool.rb",
+      "#{@path_knjrbfw}knj/translations.rb",
+      "#{@path_knjrbfw}knj/knjdb/libknjdb.rb",
+      "#{@path_knjappserver}/class_httpresp.rb",
       "#{@path_knjappserver}/class_httpserver.rb",
       "#{@path_knjappserver}/class_httpsession.rb",
       "#{@path_knjappserver}/class_session.rb",
-      "#{@path_knjappserver}/class_session_accessor.rb",
       "#{@path_knjappserver}/class_log.rb",
       "#{@path_knjappserver}/class_log_access.rb",
-      "#{@path_knjappserver}/class_log_data_value.rb",
-      "#{@path_knjrbfw}knj/objects.rb",
-      "#{@path_knjrbfw}knj/web.rb",
-      "#{@path_knjrbfw}knj/datet.rb",
-      "#{@path_knjrbfw}knj/thread.rb",
-      "#{@path_knjrbfw}knj/threadhandler.rb",
-      "#{@path_knjrbfw}knj/knjdb/libknjdb.rb"
+      "#{@path_knjappserver}/class_log_data_value.rb"
     ]
     files.each do |file|
-      STDOUT.print "Loading: '#{file}'.\n"
-      
-      if @config[:autorestart]
-        self.loadfile(file)
-      else
-        require file
-      end
+      STDOUT.print "Loading: '#{file}'.\n" if @config[:debug]
+      self.loadfile(file)
     end
     
-    @db = @config[:db]
+    
+    print "Setting up database.\n" if @config[:debug]
+    if @config[:db].is_a?(Knj::Db)
+      @db = @config[:db]
+    elsif @config[:db].is_a?(Hash)
+      @db = Knj::Db.new(@config[:db])
+    else
+      raise "Unknown object given as db: '#{@config[:db].class.name}'."
+    end
+    
+    
+    print "Starting objects.\n" if @config[:debug]
     @ob = Knj::Objects.new(
       :db => db,
       :class_path => @path_knjappserver,
@@ -86,6 +144,10 @@ class Knjappserver
       :datarow => true,
       :knjappserver => self
     )
+    @ob.events.connect(:no_date) do |event, classname|
+      "[no date]"
+    end
+    
     
     if @config[:httpsession_db_args]
       @db_handler = Knj::Db.new(@config[:httpsession_db_args])
@@ -93,10 +155,9 @@ class Knjappserver
       @db_handler = @db
     end
     
-    @cleaner = Knjappserver::Cleaner.new(self)
-    
     
     #Start the Knj::Gettext_threadded- and Knj::Translations modules for translations.
+    print "Loading Gettext and translations.\n" if @config[:debug]
     @translations = Knj::Translations.new(:db => @db)
     if @config[:locales_root]
       @gettext = Knj::Gettext_threadded.new("dir" => config[:locales_root])
@@ -107,10 +168,12 @@ class Knjappserver
     end
     
     if @config[:magic_methods] or !@config.has_key?(:magic_methods)
+      print "Loading magic-methods.\n" if @config[:debug]
       require "#{@path_knjappserver}/magic_methods"
     end
     
     if @config[:customio] or !@config.has_key?(:customio)
+      print "Loading custom-io.\n" if @config[:debug]
       require "#{@path_knjappserver}/class_customio.rb"
       cio = Knjappserver::CustomIO.new
       $stdout = cio
@@ -118,11 +181,19 @@ class Knjappserver
     
     
     #Save the PID to the run-file.
-    run_file = Knj::Php.realpath("#{File.dirname(__FILE__)}/../files/run") + "/knjappserver"
-    Knj::Php.file_put_contents(run_file, Process.pid)
+    print "Setting run-file.\n" if @config[:debug]
+    require "tmpdir"
+    tmpdir = "#{Dir.tmpdir}/knjappserver"
+    tmppath = "#{tmpdir}/run_#{@config[:title]}"
+    
+    Dir.mkdir(tmpdir) if !File.exists?(tmpdir)
+    File.open(tmppath, "w") do |fp|
+      fp.write(Process.pid)
+    end
     
     
     #Set up various events for the appserver.
+    print "Loading events.\n" if @config[:debug]
     @events = Knj::Event_handler.new
     @events.add_event(
       :name => :check_page_access,
@@ -134,15 +205,40 @@ class Knjappserver
     )
     
     
+    #Set up the 'vars'-variable that can be used to set custom global variables for web-requests.
+    @vars = Knj::Hash_methods.new
+    @magic_vars = {}
+    
+    
     #Initialize the various feature-modules.
+    print "Init threadding.\n" if @config[:debug]
     initialize_threadding
+    
+    print "Init mailing.\n" if @config[:debug]
     initialize_mailing
+    
+    print "Init errors.\n" if @config[:debug]
     initialize_errors
+    
+    print "Init logging.\n" if @config[:debug]
     initialize_logging
+    
+    print "Init cleaner.\n" if @config[:debug]
+    initialize_cleaner
     
     
     #Start the appserver.
+    print "Spawning appserver.\n" if @config[:debug]
     @httpserv = Knjappserver::Httpserver.new(self)
+    
+    
+    #Clear memory at exit.
+    at_exit do
+      self.stop
+    end
+    
+    
+    print "Appserver spawned.\n" if @config[:debug]
   end
   
   def loadfile(fpath)
@@ -164,29 +260,65 @@ class Knjappserver
   end
   
   def start
-    if !@sessions
-      @sessions = {}
-      @ob.list(:Session).each do |session|
-        @sessions[session[:ip].to_s] = {} if !@sessions.has_key?(session[:ip].to_s)
-        @sessions[session[:ip].to_s][session[:idhash].to_s] = {
-          :dbobj => session,
-          :hash => {}
-        }
-      end
-    end
-    
+    print "Starting appserver.\n" if @config[:debug]
     Thread.current[:knjappserver] = {:kas => self} if !Thread.current[:knjappserver]
     
     if @config[:autoload]
-      print "Autoloading #{@config[:autoload]}\n"
+      print "Autoloading #{@config[:autoload]}\n" if @config[:debug]
       require @config[:autoload]
     end
     
-    @httpserv.start
+    begin
+      @threadpool.start if @threadpool
+      print "Threadpool startet.\n" if @config[:debug]
+      @httpserv.start
+      print "Appserver startet.\n" if @config[:debug]
+    rescue Interrupt
+      print "Got interrupt - stopping appserver.\n" if @config[:debug]
+      stop
+    end
   end
   
   def stop
-    @httpserv.stop
+    proc_stop = proc{
+      print "Stopping appserver for real.\n" if @config[:debug]
+      @httpserv.stop if @httpserv and @httpserv.respond_to?(:stop)
+      
+      print "Stopping threadpool.\n" if @config[:debug]
+      @threadpool.stop if @threadpool
+      
+      print "Cleaning out loaded sessions.\n" if @config[:debug]
+      if @sessions
+        @sessions.each do |ip, ip_sessions|
+          ip_sessions.each do |session_hash, session_data|
+            session_data[:dbobj].flush
+            @ob.unset(session_data[:dbobj])
+            session_data[:hash].clear
+            ip_sessions.delete(session_hash)
+            session_data.clear
+          end
+        end
+        @sessions.clear
+      end
+      
+      print "Stopping databases.\n" if @config[:debug]
+      @db.destroy if @db.is_a?(Knj::Threadhandler)
+      @db.close if @db.is_a?(Knj::Db)
+      
+      @db_handler.destroy if @db.is_a?(Knj::Threadhandler)
+      @db_handler.close if @db_handler.is_a?(Knj::Db)
+    }
+    
+    #If we cant get a paused-execution in 10 secs - we just force the stop.
+    begin
+      Timeout.timeout(10) do
+        self.paused_exec do
+          proc_stop.call
+        end
+      end
+    rescue Timeout::Error
+      proc_stop.call
+    end
   end
   
   # Stop running any more http requests - make them wait.
@@ -203,14 +335,29 @@ class Knjappserver
     return false
   end
   
-  def working?
-    sess_arr = @httpserv.http_sessions
-    sess_arr.each do |sess|
-      if sess.working
-        return true
-      end
-    end
+  def paused_exec
+    self.pause
     
+    begin
+      loop do
+        if @httpserv.working_count > 0
+          sleep 0.2
+          next
+        end
+        
+        @paused_mutex.synchronize do
+          yield
+        end
+        
+        break
+      end
+    ensure
+      self.unpause
+    end
+  end
+  
+  def working?
+    return true if @httpserv and @httpserv.working_count > 0
     return false
   end
   
@@ -219,30 +366,29 @@ class Knjappserver
     return Thread.current[:knjappserver]
   end
   
-  def has_session?(args)
-    ip = args[:ip].to_s
-    idhash = args[:idhash].to_s
-    
-    return false if !@sessions.has_key?(ip) or !@sessions[ip].has_key?(idhash)
-    return true
-  end
-  
   def session_fromid(args)
     ip = args[:ip].to_s
     idhash = args[:idhash].to_s
     ip = "bot" if idhash == "bot"
     
-    if !@sessions.has_key?(ip) or !@sessions[ip].has_key?(idhash)
-      @sessions[ip] = {} if !@sessions.has_key?(ip)
-      @sessions[ip][idhash] = {
-        :dbobj => @ob.add(:Session, {
+    @sessions[ip] = {} if !@sessions.has_key?(ip)
+    
+    if !@sessions[ip].has_key?(idhash)
+      session = @ob.get_by(:Session, {"idhash" => args[:idhash]})
+      if !session
+        session = @ob.add(:Session, {
           :idhash => idhash,
           :ip => ip
-        }),
+        })
+      end
+      
+      @sessions[ip][idhash] = {
+        :dbobj => session,
         :hash => {}
       }
     end
     
+    @sessions[ip][idhash][:time_lastused] = Time.now
     return @sessions[ip][idhash]
   end
   
@@ -269,16 +415,50 @@ class Knjappserver
   end
   
   def update_db
-      require "rubygems"
-      require "knjdbrevision"
-      
-      dbschemapath = "#{File.dirname(__FILE__)}/../files/database_schema.rb"
-      raise "'#{dbschemapath}' did not exist." if !File.exists?(dbschemapath)
-      require dbschemapath
-      raise "No schema-variable was spawned." if !$tables
-      
-      dbpath = "#{File.dirname(__FILE__)}/../files/database.sqlite3"
-      dbrev = Knjdbrevision.new
-      dbrev.check_db($tables, @db)
+    require "rubygems"
+    require "#{@config[:knjdbrevision_path]}knjdbrevision"
+    
+    dbschemapath = "#{File.dirname(__FILE__)}/../files/database_schema.rb"
+    raise "'#{dbschemapath}' did not exist." if !File.exists?(dbschemapath)
+    require dbschemapath
+    raise "No schema-variable was spawned." if !$tables
+    
+    dbpath = "#{File.dirname(__FILE__)}/../files/database.sqlite3"
+    dbrev = Knjdbrevision.new
+    dbrev.init_db($tables, @db)
+  end
+  
+  def join
+    raise "No http-server or http-server not running." if !@httpserv or !@httpserv.thread_accept
+    
+    begin
+      @httpserv.thread_accept.join
+      @httpserv.thread_restart.join
+    rescue Interrupt
+      stop
+    end
+    
+    if @should_restart
+      loop do
+        if @should_restart_done
+          STDOUT.print "Ending join because the restart is done.\n"
+          break
+        end
+        
+        sleep 1
+      end
+    end
+  end
+  
+  def define_magic_var(method_name, var)
+    @magic_vars[method_name] = var
+    
+    if !Object.respond_to?(method_name)
+      Object.send(:define_method, method_name) do
+        return Thread.current[:knjappserver][:kas].magic_vars[method_name] if Thread.current[:knjappserver] and Thread.current[:knjappserver][:kas]
+        return $knjappserver[:knjappserver].magic_vars[method_name] if $knjappserver and $knjappserver[:knjappserver]
+        raise "Could not figure out the object: '#{method_name}'."
+      end
+    end
   end
 end
