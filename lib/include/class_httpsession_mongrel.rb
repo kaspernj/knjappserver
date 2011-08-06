@@ -40,7 +40,7 @@ class Knjappserver::Httpsession::Webrick
 		@cookie = {}
 		
 		req.cookies.each do |cookie_enum|
-			@cookie[cookie_enum.name] = CGI.unescape(cookie_enum.value)
+			@cookie[cookie_enum.name] = Knj::Web.urldec(cookie_enum.value)
 		end
 		
 		
