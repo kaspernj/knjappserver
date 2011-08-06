@@ -339,17 +339,9 @@ class Knjappserver
     self.pause
     
     begin
-      loop do
-        if @httpserv.working_count > 0
-          sleep 0.2
-          next
-        end
-        
-        @paused_mutex.synchronize do
-          yield
-        end
-        
-        break
+      sleep 0.2 while @httpserv.working_count > 0
+      @paused_mutex.synchronize do
+        yield
       end
     ensure
       self.unpause

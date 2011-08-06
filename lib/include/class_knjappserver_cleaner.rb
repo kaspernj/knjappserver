@@ -103,6 +103,12 @@ class Knjappserver
           
           @sessions.delete(ip) if ip_sessions.empty?
         end
+        
+        if RUBY_ENGINE != "jruby" or JRuby.objectspace == true
+          STDOUT.print "Cleaning objects in internal object-handler.\n" if @config[:debug]
+          @ob.clean_all
+          @ob.clean_recover
+        end
       end
     end
 	end
