@@ -168,9 +168,9 @@ class Knjappserver::Httpsession
     meta = @handler.meta
     cookie = @handler.cookie
     page_path = @handler.page_path
-    ext = File.extname(page_path).downcase[1..-1]
+    ext = File.extname(page_path).downcase[1..-1].to_s
     
-    ctype = @kas.types[ext.to_sym] if @kas.types[ext.to_sym]
+    ctype = @kas.types[ext.to_sym] if ext.length > 0 and @kas.types.has_key?(ext.to_sym)
     ctype = @kas.config[:default_filetype] if !ctype and @kas.config.has_key?(:default_filetype)
     @resp.header("Content-Type", ctype)
     
