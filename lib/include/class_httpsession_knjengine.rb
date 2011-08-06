@@ -1,5 +1,4 @@
 require "uri"
-require "cgi"
 
 if RUBY_PLATFORM == "java" or RUBY_ENGINE == "rbx"
   BasicSocket.do_not_reverse_lookup = true
