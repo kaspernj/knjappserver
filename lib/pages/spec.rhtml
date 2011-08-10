@@ -28,6 +28,8 @@
   
   if _meta["REQUEST_METHOD"] == "POST"
     print _post["postdata"]
+  elsif _get["choice"] == "check_get_parse"
+    print _get["value"]
   else
     print "Test"
   end

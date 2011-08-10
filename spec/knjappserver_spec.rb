@@ -71,10 +71,15 @@ describe "Knjappserver" do
   end
   
   it "should be able to handle a GET-request." do
+    #Check that we are able to perform a simple GET request and get the correct data back.
     require "knj/http"
     $http = Knj::Http.new("host" => "localhost", "port" => 1515)
     data = $http.get("/spec.rhtml")
-    raise "Unexpected HTML: '#{data["data"]}'." if data["data"].to_s.strip != "Test"
+    raise "Unexpected HTML: '#{data["data"]}'." if data["data"].to_s != "Test"
+    
+    #Check that URL-decoding are being done.
+    data = $http.get("/spec.rhtml?choice=check_get_parse&value=#{Knj::Php.urlencode("gfx/nopic.png")}")
+    raise "Unexpected HTML: '#{data["data"]}'." if data["data"].to_s != "gfx/nopic.png"
   end
   
   it "should be able to handle a HEAD-request." do
