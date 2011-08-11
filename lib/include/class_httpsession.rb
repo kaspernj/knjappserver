@@ -42,7 +42,10 @@ class Knjappserver::Httpsession
               @handler.socket_parse(@socket)
             end
             
-            sleep 0.1 while @kas.paused? #Check if we should be waiting with executing the pending request.
+            while @kas.paused? #Check if we should be waiting with executing the pending request.
+              STDOUT.print "Paused! (#{@kas.paused}) - sleeping.\n" if @debug
+              sleep 0.1
+            end
             
             if @kas.config[:max_requests_working]
               while @httpserver.working_count >= @kas.config[:max_requests_working]
@@ -59,25 +62,15 @@ class Knjappserver::Httpsession
             self.reset
           end
         end
-      rescue WEBrick::HTTPStatus::RequestTimeout, WEBrick::HTTPStatus::EOFError, Errno::ECONNRESET, Errno::EPIPE, Timeout::Error => e
+      rescue WEBrick::HTTPStatus::RequestTimeout, WEBrick::HTTPStatus::EOFError, Errno::ECONNRESET, Errno::ENOTCONN, Errno::EPIPE, Timeout::Error => e
         #Ignore - the user probaly left.
         #STDOUT.puts e.inspect
         #STDOUT.puts e.backtrace
       rescue SystemExit, Interrupt => e
         raise e
       rescue RuntimeError, Exception => e
-        first = e.backtrace.first
-        
-        if first.index("webrick/httprequest.rb") != nil or first.index("webrick/httpresponse.rb") != nil
-          if debug
-            STDOUT.print "Notice: Webrick error - properly faulty request - ignoring!\n"
-            STDOUT.puts e.inspect
-            STDOUT.puts e.backtrace
-          end
-        else
-          STDOUT.puts e.inspect
-          STDOUT.puts e.backtrace
-        end
+        STDOUT.puts e.inspect
+        STDOUT.puts e.backtrace
       ensure
         @kas.db_handler.free_thread if @kas and @kas.db_handler.opts[:threadsafe]
         @kas.ob.db.free_thread if @kas and @kas.ob.db.opts[:threadsafe]

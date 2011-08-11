@@ -13,7 +13,7 @@ require "stringio"
 require "socket"
 
 class Knjappserver
-  attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :paused, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars, :types, :eruby_cache
+  attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars, :types, :eruby_cache
   attr_accessor :served, :should_restart, :should_restart_done
   
   autoload :ERBHandler, "#{File.dirname(__FILE__)}/class_erbhandler"
