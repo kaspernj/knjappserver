@@ -68,7 +68,7 @@ class Knjappserver::Httpresp
     socket.write(self.header_str)
     
     @body.each do |part|
-      while buf = part.read(1024)
+      while buf = part.read(512)
         next if buf.empty?
         socket.write("#{format("%x", buf.bytesize)}#{NL}#{buf}#{NL}")
       end
