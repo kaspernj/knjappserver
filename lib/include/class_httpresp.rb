@@ -31,7 +31,7 @@ class Knjappserver::Httpresp
       "Date" => Time.now.httpdate,
       "Connection" => "Keep-Alive",
       "Transfer-Encoding" => "chunked",
-      "Keep-Alive" => "timeout=30, max=100"
+      "Keep-Alive" => "timeout=15, max=30"
     }
     @cookies = []
   end
