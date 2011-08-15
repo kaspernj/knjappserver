@@ -49,7 +49,8 @@ def _vars
 end
 
 def _db
-	return Thread.current[:knjappserver][:db] if Thread.current[:knjappserver]
+	return Thread.current[:knjappserver][:db] if Thread.current[:knjappserver] and Thread.current[:knjappserver][:db] #This is the default use from a .rhtml-file.
+	return Thread.current[:knjappserver][:kas].db_handler if Thread.current[:knjappserver] and Thread.current[:knjappserver][:kas] #This is useually used when using autoload-argument for the appserver.
 	return $db if $db #return the global database object, if we are not running in a thread with one.
 end
 
