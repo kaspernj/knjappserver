@@ -94,6 +94,9 @@ class Knjappserver::Httpsession
       
       begin
         block.call
+      rescue => e
+        thread_out.print Knj::Errors.error_str(e, {:html => true})
+        _kas.handle_error(e)
       ensure
         @kas.ob.db.free_thread if @kas.ob.db.opts[:threadsafe]
         @kas.db_handler.free_thread if @kas.db_handler.opts[:threadsafe]
