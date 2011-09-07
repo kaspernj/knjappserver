@@ -188,10 +188,15 @@ class Knjappserver
     tmpdir = "#{Dir.tmpdir}/knjappserver"
     tmppath = "#{tmpdir}/run_#{@config[:title]}"
     
-    Dir.mkdir(tmpdir) if !File.exists?(tmpdir)
+    if !File.exists?(tmpdir)
+      Dir.mkdir(tmpdir)
+      File.chmod(0777, tmpdir)
+    end
+    
     File.open(tmppath, "w") do |fp|
       fp.write(Process.pid)
     end
+    File.chmod(0777, tmppath)
     
     
     #Set up various events for the appserver.
