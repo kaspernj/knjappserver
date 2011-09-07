@@ -62,7 +62,7 @@ class Knjappserver
 			
 			raise "No knjappserver-object was given (as :kas)." if !@args[:kas].is_a?(Knjappserver)
 			raise "No :to was given." if !@args[:to]
-			raise "No content was given (:html)." if !@args[:html]
+      raise "No content was given (:html or :text)." if !@args[:html] and !@args[:text]
 		end
 		
 		def [](key)
@@ -77,6 +77,7 @@ class Knjappserver
         mail.to = @args[:to]
         mail.subject = @args[:subject] if @args[:subject]
         mail.html = @args[:html] if @args[:html]
+        mail.text = @args[:text] if @args[:text]
         
         if @args[:from]
           mail.from = @args[:from]
