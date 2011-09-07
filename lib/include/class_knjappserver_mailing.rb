@@ -23,6 +23,7 @@ class Knjappserver
 			end
 			
 			mailobj = Knjappserver::Mail.new({:kas => self, :errors => {}, :status => :waiting}.merge(mail_args))
+			STDOUT.print "Added mail '#{mailobj.__id__}' to the mail-send-queue.\n" if debug
 			@mails_waiting << mailobj
 			return mailobj
 		end
@@ -69,27 +70,39 @@ class Knjappserver
 		end
 		
 		def send
-			mail = Knj::Mailobj.new(@args[:kas].config[:smtp_args])
-			mail.to = @args[:to]
-			mail.subject = @args[:subject] if @args[:subject]
-			mail.html = @args[:html] if @args[:html]
-			
-			if @args[:from]
-				mail.from = @args[:from]
-			else
-				mail.from = @args[:kas].config[:error_report_from]
-			end
-			
-			begin
+      STDOUT.print "Sending mail '#{__id__}'.\n" if @args[:kas].debug
+      
+      begin
+        mail = Knj::Mailobj.new(@args[:kas].config[:smtp_args])
+        mail.to = @args[:to]
+        mail.subject = @args[:subject] if @args[:subject]
+        mail.html = @args[:html] if @args[:html]
+        
+        if @args[:from]
+          mail.from = @args[:from]
+        elsif @args[:kas].config[:error_report_from]
+          mail.from = @args[:kas].config[:error_report_from]
+        else
+          raise "Dont know where to take the 'from'-paramter from - none given in appserver config or mail-method-arguments?"
+        end
+        
 				mail.send
 				@args[:status] = :sent
+				STDOUT.print "Sent email #{self.__id__}\n" if @args[:kas].debug
 				return true
-			rescue SocketError => e
+			rescue Exception => e
+        if @args[:kas].debug
+          STDOUT.print "Could not send email.\n"
+          STDOUT.puts e.inspect
+          STDOUT.puts e.backtrace
+        end
+        
 				@args[:errors][e.class.name] = {:count => 0} if !@args[:errors].has_key?(e.class.name)
 				@args[:errors][e.class.name][:count] += 1
 				raise e if @args[:errors][e.class.name][:count] >= 5
 				@args[:status] = :error
 				@args[:error] = e
+				
 				return false
 			end
 		end

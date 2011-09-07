@@ -20,13 +20,15 @@ class Knjappserver
   
   def initialize(config)
     raise "No arguments given." if !config.is_a?(Hash)
+    
     @config = {
       :timeout => 30,
       :default_page => "index.rhtml",
       :default_filetype => "text/html",
-      :max_requests_working => 20
+      :max_requests_working => 20,
     }.merge(config)
     
+    @config[:smtp_args] = {"smtp_host" => "localhost", "smtp_port" => 25} if !@config[:smtp_args]
     @config[:timeout] = 30 if !@config.has_key?(:timeout)
     @config[:engine_knjengine] = true if !@config[:engine_knjengine] and !@config[:engine_webrick] and !@config[:engine_mongrel]
     raise "No ':doc_root' was given in arguments." if !@config.has_key?(:doc_root)
@@ -440,6 +442,10 @@ class Knjappserver
         sleep 1
       end
     end
+  end
+  
+  def debug
+    return @config[:debug]
   end
   
   def define_magic_var(method_name, var)
