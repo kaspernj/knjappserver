@@ -44,7 +44,7 @@ class Knjappserver::Httpsession::Knjengine
 		end
 		
 		@page_path = "#{@kas.config[:doc_root]}/#{page_filepath}"
-		@get = Knj::Web.parse_urlquery(uri.query.to_s, {:urldecode => true})
+		@get = Knj::Web.parse_urlquery(uri.query.to_s, {:urldecode => true, :force_utf8 => true})
 		
 		
 		#Parse headers, cookies and meta.
@@ -123,7 +123,7 @@ class Knjappserver::Httpsession::Knjengine
 				end
 			end
 			
-			self.convert_webrick_post(@post, post_treated, {:urldecode => true})
+			self.convert_webrick_post(@post, post_treated, {:urldecode => true, :force_utf8 => true})
 		end
 	end
 	
