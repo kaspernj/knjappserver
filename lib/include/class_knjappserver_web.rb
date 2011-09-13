@@ -29,6 +29,5 @@ class Knjappserver
 	
 	def back
 		Knj::Web.back
-		return self
 	end
 end
