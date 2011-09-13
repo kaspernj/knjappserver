@@ -30,4 +30,8 @@ class Knjappserver
 	def back
 		Knj::Web.back
 	end
+	
+	def inputs(*args)
+    return Knj::Web.inputs(args)
+	end
 end
