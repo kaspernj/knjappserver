@@ -22,6 +22,7 @@ class Knjappserver
     raise "No arguments given." if !config.is_a?(Hash)
     
     @config = {
+      :host => "0.0.0.0",
       :timeout => 30,
       :default_page => "index.rhtml",
       :default_filetype => "text/html",
