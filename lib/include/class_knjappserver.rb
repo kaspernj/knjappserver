@@ -24,7 +24,8 @@ class Knjappserver
       :timeout => 30,
       :default_page => "index.rhtml",
       :default_filetype => "text/html",
-      :max_requests_working => 20
+      :max_requests_working => 20,
+      :host => "0.0.0.0"
     }.merge(config)
     
     @config[:timeout] = 30 if !@config.has_key?(:timeout)
@@ -120,6 +121,7 @@ class Knjappserver
       "#{@path_knjappserver}/class_log_access.rb",
       "#{@path_knjappserver}/class_log_data_value.rb"
     ]
+    files << "#{@path_knjrbfw}knj/gettext_threadded.rb" if @config[:locales_root]
     files.each do |file|
       STDOUT.print "Loading: '#{file}'.\n" if @config[:debug]
       self.loadfile(file)
