@@ -20,14 +20,16 @@ class Knjappserver
   
   def initialize(config)
     raise "No arguments given." if !config.is_a?(Hash)
+    
     @config = {
+      :host => "0.0.0.0",
       :timeout => 30,
       :default_page => "index.rhtml",
       :default_filetype => "text/html",
-      :max_requests_working => 20,
-      :host => "0.0.0.0"
+      :max_requests_working => 20
     }.merge(config)
     
+    @config[:smtp_args] = {"smtp_host" => "localhost", "smtp_port" => 25} if !@config[:smtp_args]
     @config[:timeout] = 30 if !@config.has_key?(:timeout)
     @config[:engine_knjengine] = true if !@config[:engine_knjengine] and !@config[:engine_webrick] and !@config[:engine_mongrel]
     raise "No ':doc_root' was given in arguments." if !@config.has_key?(:doc_root)
@@ -188,10 +190,15 @@ class Knjappserver
     tmpdir = "#{Dir.tmpdir}/knjappserver"
     tmppath = "#{tmpdir}/run_#{@config[:title]}"
     
-    Dir.mkdir(tmpdir) if !File.exists?(tmpdir)
+    if !File.exists?(tmpdir)
+      Dir.mkdir(tmpdir)
+      File.chmod(0777, tmpdir)
+    end
+    
     File.open(tmppath, "w") do |fp|
       fp.write(Process.pid)
     end
+    File.chmod(0777, tmppath)
     
     
     #Set up various events for the appserver.
@@ -442,6 +449,10 @@ class Knjappserver
         sleep 1
       end
     end
+  end
+  
+  def debug
+    return @config[:debug]
   end
   
   def define_magic_var(method_name, var)

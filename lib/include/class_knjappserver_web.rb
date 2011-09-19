@@ -29,6 +29,9 @@ class Knjappserver
 	
 	def back
 		Knj::Web.back
-		return self
+	end
+	
+	def inputs(*args)
+    return Knj::Web.inputs(args)
 	end
 end

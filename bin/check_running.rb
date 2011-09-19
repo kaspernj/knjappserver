@@ -58,8 +58,8 @@ tmppath = "#{tmpdir}/run_#{options[:title]}"
 count = 0
 
 if File.exists?(tmppath)
-  pid = File.read(tmppath)
-  count = Knj::Unix_proc.list("pids" => [pid]).length
+  pid = File.read(tmppath).to_s.strip
+  count = Knj::Unix_proc.list("pids" => [pid]).length if pid.to_s.length > 0
 end
 
 exit if count > 0
