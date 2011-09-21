@@ -82,7 +82,7 @@ class Knjappserver
 					@error_emails_pending[backtrace_hash] = {
 						:first_time => Time.new,
 						:messages => [],
-						:subject => sprintf("Error @ %s", @config[:title]) + " (#{e.message})"
+						:subject => sprintf("Error @ %s", @config[:title]) + " (#{Knj::Strings.shorten(e.message, 100)})"
 					}
 				end
 				

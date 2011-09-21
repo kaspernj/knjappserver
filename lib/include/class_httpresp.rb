@@ -1,7 +1,7 @@
 require "time"
 
 class Knjappserver::Httpresp
-  attr_accessor :body, :nl, :status
+  attr_accessor :body, :nl, :status, :http_version, :close
   
   STATUS_CODES = {
     100 => "Continue",
@@ -26,14 +26,28 @@ class Knjappserver::Httpresp
   
   def initialize
     @status = 200
+    
     @headers = {
       "Content-Type" => "text/html",
-      "Date" => Time.now.httpdate,
+      "Date" => Time.now.httpdate
+    }
+    
+    @headers_11 = {
       "Connection" => "Keep-Alive",
       "Transfer-Encoding" => "chunked",
       "Keep-Alive" => "timeout=15, max=30"
     }
+    
     @cookies = []
+  end
+  
+  def content_length
+    length = 0
+    @body.each do |part|
+      length += part.size
+    end
+    
+    return length
   end
   
   def header(key, val)
@@ -45,14 +59,26 @@ class Knjappserver::Httpresp
   end
   
   def header_str
-    res = "HTTP/1.1 #{@status}"
+    if @http_version == "1.0"
+      res = "HTTP/1.0 #{@status}"
+    else
+      res = "HTTP/1.1 #{@status}"
+    end
+    
     code = STATUS_CODES[@status]
     res += " #{code}" if code
     res += NL
-    #res += "Content-Length: #{@body.length}#{NL}"
+    
+    #res += "Content-Length: #{self.content_length}#{NL}"
     
     @headers.each do |key, val|
       res += "#{key}: #{val}#{NL}"
+    end
+    
+    if @http_version == "1.1"
+      @headers_11.each do |key, val|
+        res += "#{key}: #{val}#{NL}"
+      end
     end
     
     @cookies.each do |cookie|
@@ -62,6 +88,32 @@ class Knjappserver::Httpresp
     res += NL
     
     return res
+  end
+  
+  def write(socket)
+    case @http_version
+      when "1.0"
+        self.write_clean(socket)
+        socket.close
+      when "1.1"
+        self.write_chunked(socket)
+        socket.close if @close
+      else
+        raise "Could not figure out of HTTP version: '#{@http_version}'."
+    end
+  end
+  
+  def write_clean(socket)
+    socket.write(self.header_str)
+    
+    @body.each do |part|
+      while buf = part.read(512)
+        next if buf.empty?
+        socket.write(buf.to_s)
+      end
+    end
+    
+    socket.write("#{NL}#{NL}")
   end
   
   def write_chunked(socket)
@@ -79,13 +131,5 @@ class Knjappserver::Httpresp
   
   def content
     str = self.header_str + @body.string + "\n\n"
-  end
-  
-  def destroy
-    @status = nil
-    @status_codes = nil
-    @body = nil
-    @cookies = nil
-    @headers = nil
   end
 end

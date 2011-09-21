@@ -2,6 +2,9 @@ class Knjappserver
   attr_reader :mails_waiting
   
 	def initialize_mailing
+    STDOUT.print "Loading mail.\n" if @config[:debug]
+    require "mail"
+    
 		@mails_waiting = []
 		@mails_mutex = Mutex.new
 		@mails_queue_mutex = Mutex.new

@@ -14,18 +14,8 @@ class Knjappserver::Httpsession
     @debug = @kas.config[:debug]
     self.reset
     
-    if @kas.config[:engine_webrick]
-      require "#{File.dirname(__FILE__)}/class_httpsession_webrick"
-      @handler = Knjappserver::Httpsession::Webrick.new(:kas => @kas)
-    elsif @kas.config[:engine_mongrel]
-      require "#{File.dirname(__FILE__)}/class_httpsession_mongrel"
-      @handler = Knjappserver::Httpsession::Mongrel.new(:kas => @kas)
-    elsif @kas.config[:engine_knjengine]
-      require "#{File.dirname(__FILE__)}/class_httpsession_knjengine"
-      @handler = Knjappserver::Httpsession::Knjengine.new(:kas => @kas)
-    else
-      raise "Unknown handler."
-    end
+    require "#{File.dirname(__FILE__)}/class_httpsession_knjengine"
+    @handler = Knjappserver::Httpsession::Knjengine.new(:kas => @kas)
     
     Dir.chdir(@kas.config[:doc_root])
     ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc) if @debug
@@ -62,7 +52,7 @@ class Knjappserver::Httpsession
             self.reset
           end
         end
-      rescue WEBrick::HTTPStatus::RequestTimeout, WEBrick::HTTPStatus::EOFError, Errno::ECONNRESET, Errno::ENOTCONN, Errno::EPIPE, Timeout::Error => e
+      rescue Errno::ECONNRESET, Errno::ENOTCONN, Errno::EPIPE, Timeout::Error => e
         #Ignore - the user probaly left.
         #STDOUT.puts e.inspect
         #STDOUT.puts e.backtrace
@@ -143,15 +133,11 @@ class Knjappserver::Httpsession
     @out = nil
     @socket = nil
     @browser = nil
-    
-    @resp.destroy if @resp
     @resp = nil
+    @handler = nil
     
     @eruby.destroy if @eruby
     @eruby = nil
-    
-    @handler.destroy if @handler
-    @handler = nil
     
     thread = @thread_request
     @thread_request = nil
@@ -160,6 +146,8 @@ class Knjappserver::Httpsession
   
   def serve
     @resp = Knjappserver::Httpresp.new
+    @resp.http_version = @handler.http_version
+    @resp.close = true if @handler.meta["HTTP_CONNECTION"] == "close"
     
     meta = @handler.meta
     cookie = @handler.cookie
@@ -263,8 +251,7 @@ class Knjappserver::Httpsession
     @resp.status = serv_data[:statuscode] if serv_data[:statuscode]
     STDOUT.print "Served '#{meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start} secs.\n" if @debug
     
-    @resp.write_chunked(@socket) if meta["METHOD"] != "HEAD"
-    @resp.destroy
+    @resp.write(@socket) if meta["METHOD"] != "HEAD"
     @resp = nil
     
     #Letting them be nil is simply not enough (read that on a forum) - knj.

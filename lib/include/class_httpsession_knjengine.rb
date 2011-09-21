@@ -5,7 +5,7 @@ if RUBY_PLATFORM == "java" or RUBY_ENGINE == "rbx"
 end
 
 class Knjappserver::Httpsession::Knjengine
-	attr_reader :get, :post, :cookie, :meta, :page_path, :headers
+	attr_reader :get, :post, :cookie, :meta, :page_path, :headers, :http_version
 	
 	def initialize(args)
 		@args = args
@@ -30,9 +30,9 @@ class Knjappserver::Httpsession::Knjengine
 		
 		#Parse URI (page_path and get).
 		match = @cont.match(/^(GET|POST|HEAD) (.+) HTTP\/1\.(\d+)\s*/)
-		if !match
-			raise "Could not parse request: '#{@cont.split("\n").first}'."
-		end
+		raise "Could not parse request: '#{@cont.split("\n").first}'." if !match
+    
+		@http_version = "1.#{match[3]}"
 		
 		method = match[1]
 		@cont = @cont.gsub(match[0], "")
@@ -159,30 +159,5 @@ class Knjappserver::Httpsession::Knjengine
 		  end
 		}
 		return form_data
-	 end
-	
-	def destroy
-		@args.clear if @args
-		@args = nil
-		@kas = nil
-		@socket = nil
-		@cont = nil
-		
-		@meta.clear if @meta
-		@meta = nil
-		
-		@page_path = nil
-		
-		@get.clear if @get
-		@get = nil
-		
-		@post.clear if @post
-		@post = nil
-		
-		@headers.clear if @headers
-		@headers = nil
-		
-		@cookie.clear if @cookie
-		@cookie = nil
-	end
+  end
 end
