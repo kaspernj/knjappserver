@@ -22,10 +22,11 @@ class Knjappserver
     raise "No arguments given." if !config.is_a?(Hash)
     
     @config = {
+      :host => "0.0.0.0",
       :timeout => 30,
       :default_page => "index.rhtml",
       :default_filetype => "text/html",
-      :max_requests_working => 20,
+      :max_requests_working => 20
     }.merge(config)
     
     @config[:smtp_args] = {"smtp_host" => "localhost", "smtp_port" => 25} if !@config[:smtp_args]
@@ -122,6 +123,7 @@ class Knjappserver
       "#{@path_knjappserver}/class_log_access.rb",
       "#{@path_knjappserver}/class_log_data_value.rb"
     ]
+    files << "#{@path_knjrbfw}knj/gettext_threadded.rb" if @config[:locales_root]
     files.each do |file|
       STDOUT.print "Loading: '#{file}'.\n" if @config[:debug]
       self.loadfile(file)
