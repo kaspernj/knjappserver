@@ -51,6 +51,22 @@ class Knjappserver::Log < Knj::Datarow
 		ob.args[:knjappserver].log_data_hash(self[:post_keys_data_id], self[:post_values_data_id])
 	end
 	
+	def cookie
+    ob.args[:knjappserver].log_data_hash(self[:cookie_keys_data_id], self[:cookie_values_data_id])
+  end
+  
+  def meta
+    ob.args[:knjappserver].log_data_hash(self[:meta_keys_data_id], self[:meta_values_data_id])
+  end
+  
+  def ip
+    meta_d = self.meta
+    
+    return meta_d[:HTTP_X_FORWARDED_FOR] if meta_d.has_key?(:HTTP_X_FORWARDED_FOR)
+    return meta_d[:REMOTE_ADDR] if meta_d.has_key?(:REMOTE_ADDR)
+    return "[no ip logged]"
+  end
+	
 	def first_line
 		lines = self.text.to_s.split("\n").first.to_s
 	end

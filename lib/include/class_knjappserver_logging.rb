@@ -155,8 +155,12 @@ class Knjappserver
 	end
 	
 	def log_data_hash(keys_id, values_id)
-		keys_data_obj = @ob.get(:Log_data, keys_id)
-		values_data_obj = @ob.get(:Log_data, values_id)
+    begin
+      keys_data_obj = @ob.get(:Log_data, keys_id)
+      values_data_obj = @ob.get(:Log_data, values_id)
+    rescue Knj::Errors::NotFound
+      return {}
+    end
 		
 		sql = "
 			SELECT
@@ -181,8 +185,7 @@ class Knjappserver
 		"
 		
 		hash = {}
-		q_hash = db.query(sql)
-		while d_hash = q_hash.fetch
+		db.q(sql) do |d_hash|
 			hash[d_hash[:key].to_sym] = d_hash[:value]
 		end
 		
@@ -209,6 +212,18 @@ class Knjappserver
 				ins_data[:post_keys_data_id] = post_hash[:keys_data_id]
 				ins_data[:post_values_data_id] = post_hash[:values_data_id]
 			end
+			
+			cookie_hash = log_hash_ins(_cookie) if _cookie
+			if cookie_hash
+        ins_data[:post_keys_data_id] = cookie_hash[:keys_data_id]
+        ins_data[:post_values_data_id] = cookie_hash[:values_data_id]
+			end
+			
+			meta_hash = log_hash_ins(_meta) if _meta
+      if cookie_hash
+        ins_data[:meta_keys_data_id] = meta_hash[:keys_data_id]
+        ins_data[:meta_values_data_id] = meta_hash[:values_data_id]
+      end
 			
 			log_id = @db.insert(:Log, ins_data, {:return_id => true})
 			
@@ -237,6 +252,7 @@ class Knjappserver
 		html += "<th>Message</th>"
 		html += "<th>Date &amp; time</th>"
 		html += "<th>Objects</th>" if args[:ob_use]
+		html += "<th>IP</th>" if args[:show_ip]
 		html += "</tr>"
 		html += "</thead>"
 		html += "<tbody>"
@@ -255,6 +271,11 @@ class Knjappserver
 			html += "<td>#{first_line.html}</td>"
 			html += "<td>#{log.date_saved_str}</td>"
 			html += "<td>#{log.objects_html(args[:ob_use])}</td>" if args[:ob_use]
+			
+			if args[:show_ip]
+        html += "<td>#{log.ip}</td>"
+			end
+			
 			html += "</tr>"
 		end
 		

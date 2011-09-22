@@ -82,26 +82,13 @@ class Knjappserver::Httpsession::Knjengine
 			@headers[key] << val
 			
 			case key
-				when "host"
-					@meta["HTTP_HOST"] = val
-				when "connection"
-					@meta["HTTP_CONNECTION"] = val
-				when "accept"
-					@meta["HTTP_ACCEPT"] = val
-				when "accept-encoding"
-					@meta["HTTP_ACCEPT_ENCODING"] = val
-				when "accept-language"
-					@meta["HTTP_ACCEPT_LANGUAGE"] = val
-				when "accept-charset"
-					@meta["HTTP_ACCEPT_CHARSET"] = val
-				when "user-agent"
-					@meta["HTTP_USER_AGENT"] = val
-				when "referer"
-					@meta["HTTP_REFERER"] = val
 				when "cookie"
 					Knj::Web.parse_cookies(val).each do |key, val|
 						@cookie[key] = val
 					end
+        else
+          key = key.upcase.gsub("-", "_")
+          @meta["HTTP_#{key}"] = val
 			end
 		end
 		

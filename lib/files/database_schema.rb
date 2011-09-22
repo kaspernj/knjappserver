@@ -39,7 +39,11 @@ $tables = {
 				{"name" => "get_keys_data_id", "type" => "bigint"},
 				{"name" => "get_values_data_id", "type" => "bigint"},
 				{"name" => "post_keys_data_id", "type" => "bigint"},
-				{"name" => "post_values_data_id", "type" => "bigint"}
+				{"name" => "post_values_data_id", "type" => "bigint"},
+        {"name" => "cookie_keys_data_id", "type" => "bigint"},
+        {"name" => "cookie_values_data_id", "type" => "bigint"},
+        {"name" => "meta_keys_data_id", "type" => "bigint"},
+        {"name" => "meta_values_data_id", "type" => "bigint"}
 			],
 			"indexes" => [
 				{"name" => "text_value_id", "columns" => ["text_value_id"]}
