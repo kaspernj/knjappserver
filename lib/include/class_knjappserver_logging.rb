@@ -192,7 +192,7 @@ class Knjappserver
 		return hash
 	end
 	
-	def log(msg, objs)
+	def log(msg, objs, args = {})
 		@logs_mutex.synchronize do
 			objs = [objs] if !objs.is_a?(Array)
 			log_value_id = @ob.static(:Log_data_value, :force_id, msg)
@@ -224,6 +224,16 @@ class Knjappserver
         ins_data[:meta_keys_data_id] = meta_hash[:keys_data_id]
         ins_data[:meta_values_data_id] = meta_hash[:values_data_id]
       end
+      
+      if args[:tag]
+        tag_value_id = @ob.static(:Log_data_value, :force_id, args[:tag])
+        ins_data[:tag_data_id] = tag_value_id
+      end
+      
+      if args[:comment]
+        comment_value_id = @ob.static(:Log_data_value, :force_id, args[:comment])
+        ins_data[:comment_data_id] = comment_value_id
+      end
 			
 			log_id = @db.insert(:Log, ins_data, {:return_id => true})
 			
@@ -250,7 +260,8 @@ class Knjappserver
 		html += "<tr>"
 		html += "<th>ID</th>"
 		html += "<th>Message</th>"
-		html += "<th>Date &amp; time</th>"
+		html += "<th style=\"width: 130px;\">Date &amp; time</th>"
+		html += "<th>Tag</th>"
 		html += "<th>Objects</th>" if args[:ob_use]
 		html += "<th>IP</th>" if args[:show_ip]
 		html += "</tr>"
@@ -270,12 +281,9 @@ class Knjappserver
 			html += "<td>#{log.id}</td>"
 			html += "<td>#{first_line.html}</td>"
 			html += "<td>#{log.date_saved_str}</td>"
+			html += "<td>#{log.tag.html}</td>"
 			html += "<td>#{log.objects_html(args[:ob_use])}</td>" if args[:ob_use]
-			
-			if args[:show_ip]
-        html += "<td>#{log.ip}</td>"
-			end
-			
+			html += "<td>#{log.ip}</td>" if args[:show_ip]
 			html += "</tr>"
 		end
 		

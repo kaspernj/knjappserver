@@ -43,6 +43,20 @@ class Knjappserver::Log < Knj::Datarow
 		return ob.get(:Log_data_value, self[:text_value_id])[:value]
 	end
 	
+	def comment
+    return "" if self[:comment_data_id].to_i == 0
+    log_data = ob.get(:Log_data_value, self[:comment_data_id])
+    return "" if !log_data
+    return log_data[:value]
+	end
+	
+	def tag
+    return "" if self[:tag_data_id].to_i == 0
+    log_data = ob.get(:Log_data_value, self[:tag_data_id])
+    return "" if !log_data
+    return log_data[:value]
+	end
+	
 	def get
 		ob.args[:knjappserver].log_data_hash(self[:get_keys_data_id], self[:get_values_data_id])
 	end

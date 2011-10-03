@@ -43,10 +43,14 @@ $tables = {
         {"name" => "cookie_keys_data_id", "type" => "bigint"},
         {"name" => "cookie_values_data_id", "type" => "bigint"},
         {"name" => "meta_keys_data_id", "type" => "bigint"},
-        {"name" => "meta_values_data_id", "type" => "bigint"}
+        {"name" => "meta_values_data_id", "type" => "bigint"},
+        {"name" => "tag_data_id", "type" => "bigint"},
+        {"name" => "comment_data_id", "type" => "bigint"}
 			],
 			"indexes" => [
-				{"name" => "text_value_id", "columns" => ["text_value_id"]}
+				{"name" => "text_value_id", "columns" => ["text_value_id"]},
+				{"name" => "tag_data_id", "columns" => ["tag_data_id"]},
+				{"name" => "comment_data_id", "columns" => ["comment_data_id"]}
 			]
 		},
 		"Log_access" => {
