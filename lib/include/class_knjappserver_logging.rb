@@ -282,7 +282,15 @@ class Knjappserver
 			html += "<td>#{first_line.html}</td>"
 			html += "<td>#{log.date_saved_str}</td>"
 			html += "<td>#{log.tag.html}</td>"
-			html += "<td>#{log.objects_html(args[:ob_use])}</td>" if args[:ob_use]
+			
+			if args[:ob_use]
+        begin
+          html += "<td>#{log.objects_html(args[:ob_use])}</td>"
+        rescue => e
+          html += "<td>#{e.message.html}</td>"
+        end
+      end
+      
 			html += "<td>#{log.ip}</td>" if args[:show_ip]
 			html += "</tr>"
 		end

@@ -27,8 +27,10 @@ class Knjappserver::Log_data_value < Knj::Datarow
 	end
 	
 	def self.force_id(d, value)
-    value_obj = d.db.query("SELECT * FROM Log_data_value WHERE value = '#{d.db.esc(value)}' LIMIT 1").fetch
-    return value_obj[:id].to_i if value_obj
+    d.db.q("SELECT * FROM Log_data_value WHERE value = '#{d.db.esc(value)}'") do |data|
+      return data[:id].to_i if data[:value].to_s == value.to_s #MySQL doesnt take upper/lower-case into consideration because value is a text-column... lame! - knj
+    end
+    
     return d.db.insert(:Log_data_value, {:value => value}, {:return_id => true}).to_i
 	end
 end
