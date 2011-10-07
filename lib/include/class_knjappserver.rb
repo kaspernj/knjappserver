@@ -135,6 +135,8 @@ class Knjappserver
       @db = @config[:db]
     elsif @config[:db].is_a?(Hash)
       @db = Knj::Db.new(@config[:db])
+    elsif !@config[:db] and @config[:db_args]
+      @db = Knj::Db.new(@config[:db_args])
     else
       raise "Unknown object given as db: '#{@config[:db].class.name}'."
     end
