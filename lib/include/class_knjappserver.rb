@@ -165,6 +165,8 @@ class Knjappserver
     #Start the Knj::Gettext_threadded- and Knj::Translations modules for translations.
     print "Loading Gettext and translations.\n" if @config[:debug]
     @translations = Knj::Translations.new(:db => @db)
+    @ob.requireclass(:Translation, {:require => false, :class => Knj::Translations::Translation})
+    
     if @config[:locales_root]
       @gettext = Knj::Gettext_threadded.new("dir" => config[:locales_root])
     end
