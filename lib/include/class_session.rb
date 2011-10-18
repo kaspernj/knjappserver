@@ -34,10 +34,13 @@ class Knjappserver::Session < Knj::Datarow
 	
 	def self.add(d)
 		d.data[:date_added] = Time.now if !d.data[:date_added]
+		d.date[:date_lastused] = Time.now if !d.data[:date_lastused]
 	end
 	
 	def flush
-    m_newdata = Base64.encode64(Marshal.dump(@sess_data))
-    self[:sess_data] = m_newdata if self[:sess_data] != m_newdata
+    self.update(
+      :sess_data => Base64.encode64(Marshal.dump(@sess_data)),
+      :date_lastused => Time.now
+    )
 	end
 end
