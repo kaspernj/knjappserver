@@ -4,9 +4,9 @@ class Knjappserver
     idhash = args[:idhash].to_s
     ip = "bot" if idhash == "bot"
     
-    @sessions[ip] = {} if !@sessions.has_key?(ip)
+    @sessions = {} if !@sessions.has_key?(ip)
     
-    if !@sessions[ip].has_key?(idhash)
+    if !@sessions.has_key?(idhash)
       session = @ob.get_by(:Session, {"idhash" => args[:idhash]})
       if !session
         session = @ob.add(:Session, {
@@ -16,27 +16,24 @@ class Knjappserver
         })
       end
       
-      @sessions[ip][idhash] = {
+      @sessions[idhash] = {
         :dbobj => session,
         :hash => {}
       }
     else
-      session = @sessions[ip][idhash][:dbobj]
+      session = @sessions[idhash][:dbobj]
     end
     
     if ip != "bot"
       if session[:user_agent] != args[:meta]["HTTP_USER_AGENT"]
-        STDOUT.print "Session user-agent: #{session[:user_agent]}\n"
-        STDOUT.print "Meta user-agent: #{args[:meta]["HTTP_USER_AGENT"]}\n"
-        
         raise Knj::Errors::InvalidData, "Invalid user-agent."
       elsif !session.remember? and ip.to_s != session[:ip].to_s
         raise Knj::Errors::InvalidData, "Invalid IP."
       end
     end
     
-    @sessions[ip][idhash][:time_lastused] = Time.now
-    return @sessions[ip][idhash]
+    @sessions[idhash][:time_lastused] = Time.now
+    return @sessions[idhash]
   end
   
   def session_generate_id(args)

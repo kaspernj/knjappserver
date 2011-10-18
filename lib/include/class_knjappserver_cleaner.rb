@@ -90,18 +90,14 @@ class Knjappserver
       
       self.paused_exec do
         time_check = Time.now.to_i - 300
-        @sessions.each do |ip, ip_sessions|
-          ip_sessions.each do |session_hash, session_data|
-            if session_data[:time_lastused].to_i <= time_check
-              session_data[:dbobj].flush
-              @ob.unset(session_data[:dbobj])
-              session_data[:hash].clear
-              ip_sessions.delete(session_hash)
-              session_data.clear
-            end
+        @sessions.each do |session_hash, session_data|
+          if session_data[:time_lastused].to_i <= time_check
+            session_data[:dbobj].flush
+            @ob.unset(session_data[:dbobj])
+            session_data[:hash].clear
+            session_data.clear
+            @sessions.delete(session_hash)
           end
-          
-          @sessions.delete(ip) if ip_sessions.empty?
         end
         
         if @ob.args[:cache] == :hash and (RUBY_ENGINE != "jruby" or JRuby.objectspace == true)

@@ -304,15 +304,14 @@ class Knjappserver
       
       print "Cleaning out loaded sessions.\n" if @config[:debug]
       if @sessions
-        @sessions.each do |ip, ip_sessions|
-          ip_sessions.each do |session_hash, session_data|
-            session_data[:dbobj].flush
-            @ob.unset(session_data[:dbobj])
-            session_data[:hash].clear
-            ip_sessions.delete(session_hash)
-            session_data.clear
-          end
+        @sessions.each do |session_hash, session_data|
+          session_data[:dbobj].flush
+          @ob.unset(session_data[:dbobj])
+          session_data[:hash].clear
+          session_data.clear
+          @sessions.delete(session_hash)
         end
+        
         @sessions.clear
       end
       
