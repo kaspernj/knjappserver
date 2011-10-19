@@ -1,4 +1,8 @@
 class Knjappserver
+  def import(filepath)
+    _httpsession.eruby.import(filepath)
+  end
+  
 	def redirect(url, args = {})
 		return Knj::Web.redirect(url, args)
 	end

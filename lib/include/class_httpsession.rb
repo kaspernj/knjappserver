@@ -159,16 +159,21 @@ class Knjappserver::Httpsession
     @resp.header("Content-Type", ctype)
     
     @browser = Knj::Web.browser(meta)
-    @ip = nil
-    @ip = meta["HTTP_X_FORWARDED_FOR"].split(",")[0].strip if !@ip and meta["HTTP_X_FORWARDED_FOR"]
-    @ip = meta["REMOTE_ADDR"] if !@ip and meta["REMOTE_ADDR"]
+    
+    if meta["HTTP_X_FORWARDED_FOR"]
+      @ip = meta["HTTP_X_FORWARDED_FOR"].split(",")[0].strip
+    elsif meta["REMOTE_ADDR"]
+      @ip = meta["REMOTE_ADDR"]
+    else
+      raise "Could not figure out the IP of the session."
+    end
     
     @session_id = nil
     @session_id = "bot"  if @browser["browser"] == "bot"
     @session_id = cookie["KnjappserverSession"] if cookie["KnjappserverSession"].to_s.length > 0
     
     if !@session_id
-      @session_id = Digest::MD5.hexdigest("#{Time.now.to_f}_#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}")
+      @session_id = @kas.session_generate_id(:meta => meta)
       @resp.cookie(
         "name" => "KnjappserverSession",
         "value" => @session_id,
@@ -177,7 +182,19 @@ class Knjappserver::Httpsession
       )
     end
     
-    session = @kas.session_fromid(:idhash => @session_id, :ip => @ip)
+    begin
+      session = @kas.session_fromid(:idhash => @session_id, :ip => @ip, :meta => meta)
+    rescue Knj::Errors::InvalidData => e
+      #User should not have the session he asked for because of invalid user-agent or invalid IP.
+      @session_id = @kas.session_generate_id(:meta => meta)
+      session = @kas.session_fromid(:idhash => @session_id, :ip => @ip, :meta => meta)
+      @resp.cookie(
+        "name" => "KnjappserverSession",
+        "value" => @session_id,
+        "path" => "/",
+        "expires" => Time.now + 32140800 #add around 12 months
+      )
+    end
     
     @session = session[:dbobj]
     @session_hash = session[:hash]

@@ -28,7 +28,6 @@ class Knjappserver::Httpresp
     @status = 200
     
     @headers = {
-      "Content-Type" => "text/html",
       "Date" => Time.now.httpdate
     }
     

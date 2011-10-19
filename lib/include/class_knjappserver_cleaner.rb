@@ -90,19 +90,24 @@ class Knjappserver
       STDOUT.print "Cleaning sessions on appserver.\n" if @config[:debug]
       
       self.paused_exec do
+        session_not_ids = []
         time_check = Time.now.to_i - 300
-        @sessions.each do |ip, ip_sessions|
-          ip_sessions.each do |session_hash, session_data|
-            if session_data[:time_lastused].to_i <= time_check
-              session_data[:dbobj].flush
-              @ob.unset(session_data[:dbobj])
-              session_data[:hash].clear
-              ip_sessions.delete(session_hash)
-              session_data.clear
-            end
+        @sessions.each do |session_hash, session_data|
+          if session_data[:time_lastused].to_i <= time_check
+            session_data[:dbobj].flush
+            @ob.unset(session_data[:dbobj])
+            session_data[:hash].clear
+            session_data.clear
+            @sessions.delete(session_hash)
+          else
+            session_not_ids << session_data[:dbobj].id
           end
-          
-          @sessions.delete(ip) if ip_sessions.empty?
+        end
+        
+        STDOUT.print "Delete sessions...\n" if @config[:debug]
+        sessions_delete = @ob.list(:Session, {"id_not" => session_not_ids, "date_lastused_below" => (Time.now - 5356800)}) do |session|
+          @ob.delete(session)
+          STDOUT.print "Deleted session: #{session.id}\n" if @config[:debug]
         end
         
         if @ob.args[:cache] == :hash and (RUBY_ENGINE != "jruby" or JRuby.objectspace == true)

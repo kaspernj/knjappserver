@@ -10,6 +10,11 @@ class Knjappserver
 		end
 	end
 	
+	def thread_init(thread)
+    thread[:knjappserver] = {} if !thread[:knjappserver]
+    thread[:knjappserver][:kas] = self
+	end
+	
 	def thread(args = {})
 		raise "No block given." if !block_given?
 		args[:args] = [] if !args[:args]

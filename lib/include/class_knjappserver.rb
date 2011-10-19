@@ -1,9 +1,11 @@
+require "#{File.dirname(__FILE__)}/class_knjappserver_cleaner"
 require "#{File.dirname(__FILE__)}/class_knjappserver_errors"
 require "#{File.dirname(__FILE__)}/class_knjappserver_logging"
 require "#{File.dirname(__FILE__)}/class_knjappserver_mailing"
+require "#{File.dirname(__FILE__)}/class_knjappserver_sessions"
 require "#{File.dirname(__FILE__)}/class_knjappserver_threadding"
+require "#{File.dirname(__FILE__)}/class_knjappserver_translations"
 require "#{File.dirname(__FILE__)}/class_knjappserver_web"
-require "#{File.dirname(__FILE__)}/class_knjappserver_cleaner"
 
 require "timeout"
 require "digest"
@@ -135,6 +137,8 @@ class Knjappserver
       @db = @config[:db]
     elsif @config[:db].is_a?(Hash)
       @db = Knj::Db.new(@config[:db])
+    elsif !@config[:db] and @config[:db_args]
+      @db = Knj::Db.new(@config[:db_args])
     else
       raise "Unknown object given as db: '#{@config[:db].class.name}'."
     end
@@ -163,6 +167,8 @@ class Knjappserver
     #Start the Knj::Gettext_threadded- and Knj::Translations modules for translations.
     print "Loading Gettext and translations.\n" if @config[:debug]
     @translations = Knj::Translations.new(:db => @db)
+    @ob.requireclass(:Translation, {:require => false, :class => Knj::Translations::Translation})
+    
     if @config[:locales_root]
       @gettext = Knj::Gettext_threadded.new("dir" => config[:locales_root])
     end
@@ -298,15 +304,14 @@ class Knjappserver
       
       print "Cleaning out loaded sessions.\n" if @config[:debug]
       if @sessions
-        @sessions.each do |ip, ip_sessions|
-          ip_sessions.each do |session_hash, session_data|
-            session_data[:dbobj].flush
-            @ob.unset(session_data[:dbobj])
-            session_data[:hash].clear
-            ip_sessions.delete(session_hash)
-            session_data.clear
-          end
+        @sessions.each do |session_hash, session_data|
+          session_data[:dbobj].flush
+          @ob.unset(session_data[:dbobj])
+          session_data[:hash].clear
+          session_data.clear
+          @sessions.delete(session_hash)
         end
+        
         @sessions.clear
       end
       
@@ -365,54 +370,6 @@ class Knjappserver
   def self.data
     raise "Could not register current thread." if !Thread.current[:knjappserver]
     return Thread.current[:knjappserver]
-  end
-  
-  def session_fromid(args)
-    ip = args[:ip].to_s
-    idhash = args[:idhash].to_s
-    ip = "bot" if idhash == "bot"
-    
-    @sessions[ip] = {} if !@sessions.has_key?(ip)
-    
-    if !@sessions[ip].has_key?(idhash)
-      session = @ob.get_by(:Session, {"idhash" => args[:idhash]})
-      if !session
-        session = @ob.add(:Session, {
-          :idhash => idhash,
-          :ip => ip
-        })
-      end
-      
-      @sessions[ip][idhash] = {
-        :dbobj => session,
-        :hash => {}
-      }
-    end
-    
-    @sessions[ip][idhash][:time_lastused] = Time.now
-    return @sessions[ip][idhash]
-  end
-  
-  def trans(obj, key)
-    args = {}
-    args[:locale] = _session[:locale] if _session[:locale] and !args[:locale]
-    args[:locale] = _httpsession.data[:locale] if _httpsession.data[:locale] and !args[:locale]
-    @translations.get(obj, key, args)
-  end
-  
-  def trans_set(obj, values)
-    args = {}
-    args[:locale] = _session[:locale] if _session[:locale] and !args[:locale]
-    args[:locale] = _httpsession.data[:locale] if _httpsession.data[:locale] and !args[:locale]
-    @translations.set(obj, values, args)
-  end
-  
-  def trans_del(obj)
-    @translations.delete(obj)
-  end
-  
-  def import(filepath)
-    _httpsession.eruby.import(filepath)
   end
   
   def update_db
