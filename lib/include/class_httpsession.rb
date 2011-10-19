@@ -185,12 +185,15 @@ class Knjappserver::Httpsession
     begin
       session = @kas.session_fromid(:idhash => @session_id, :ip => @ip, :meta => meta)
     rescue Knj::Errors::InvalidData => e
-      STDOUT.puts e.inspect
-      STDOUT.puts e.backtrace
-      
       #User should not have the session he asked for because of invalid user-agent or invalid IP.
       @session_id = @kas.session_generate_id(:meta => meta)
       session = @kas.session_fromid(:idhash => @session_id, :ip => @ip, :meta => meta)
+      @resp.cookie(
+        "name" => "KnjappserverSession",
+        "value" => @session_id,
+        "path" => "/",
+        "expires" => Time.now + 32140800 #add around 12 months
+      )
     end
     
     @session = session[:dbobj]
