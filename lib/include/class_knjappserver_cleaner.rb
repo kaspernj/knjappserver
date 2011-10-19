@@ -13,7 +13,8 @@ class Knjappserver
         
         if @config.has_key?(:restart_when_used_memory) and !@should_restart
           mbs_used = (Knj::Php.memory_get_usage / 1024) / 1024
-          #STDOUT.print "Used: #{mbs_used}\n"
+          STDOUT.print "Restart when over #{@config[:restart_when_used_memory]}mb\n" if @config[:debug]
+          STDOUT.print "Used: #{mbs_used}mb\n" if @config[:debug]
           
           if mbs_used.to_i >= @config[:restart_when_used_memory].to_i
             STDOUT.print "Memory is over #{@config[:restart_when_used_memory]} - restarting.\n"
