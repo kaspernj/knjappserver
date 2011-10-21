@@ -15,7 +15,7 @@ require "stringio"
 require "socket"
 
 class Knjappserver
-  attr_reader :config, :httpserv, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars, :types, :eruby_cache
+  attr_reader :config, :httpserv, :debug, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars, :types, :eruby_cache
   attr_accessor :served, :should_restart, :should_restart_done
   
   autoload :ERBHandler, "#{File.dirname(__FILE__)}/class_erbhandler"
@@ -49,6 +49,7 @@ class Knjappserver
       ]
     end
     
+    @debug = @config[:debug]
     @paused = 0
     @paused_mutex = Mutex.new
     @should_restart = false
@@ -76,7 +77,7 @@ class Knjappserver
         "#{@path_knjappserver}/class_customio.rb"
       ]
       
-      print "Auto restarting.\n" if @config[:debug]
+      print "Auto restarting.\n" if @debug
       @mod_event = Knj::Event_filemod.new(:wait => 2, :paths => paths) do |event, path|
         print "File changed - restart server: #{path}\n"
         @should_restart = true
@@ -127,12 +128,12 @@ class Knjappserver
     ]
     files << "#{@path_knjrbfw}knj/gettext_threadded.rb" if @config[:locales_root]
     files.each do |file|
-      STDOUT.print "Loading: '#{file}'.\n" if @config[:debug]
+      STDOUT.print "Loading: '#{file}'.\n" if @debug
       self.loadfile(file)
     end
     
     
-    print "Setting up database.\n" if @config[:debug]
+    print "Setting up database.\n" if @debug
     if @config[:db].is_a?(Knj::Db)
       @db = @config[:db]
     elsif @config[:db].is_a?(Hash)
@@ -144,7 +145,7 @@ class Knjappserver
     end
     
     
-    print "Starting objects.\n" if @config[:debug]
+    print "Starting objects.\n" if @debug
     @ob = Knj::Objects.new(
       :db => db,
       :class_path => @path_knjappserver,
@@ -165,7 +166,7 @@ class Knjappserver
     
     
     #Start the Knj::Gettext_threadded- and Knj::Translations modules for translations.
-    print "Loading Gettext and translations.\n" if @config[:debug]
+    print "Loading Gettext and translations.\n" if @debug
     @translations = Knj::Translations.new(:db => @db)
     @ob.requireclass(:Translation, {:require => false, :class => Knj::Translations::Translation})
     
@@ -178,12 +179,12 @@ class Knjappserver
     end
     
     if @config[:magic_methods] or !@config.has_key?(:magic_methods)
-      print "Loading magic-methods.\n" if @config[:debug]
+      print "Loading magic-methods.\n" if @debug
       require "#{@path_knjappserver}/magic_methods"
     end
     
     if @config[:customio] or !@config.has_key?(:customio)
-      print "Loading custom-io.\n" if @config[:debug]
+      print "Loading custom-io.\n" if @debug
       require "#{@path_knjappserver}/class_customio.rb"
       cio = Knjappserver::CustomIO.new
       $stdout = cio
@@ -191,7 +192,7 @@ class Knjappserver
     
     
     #Save the PID to the run-file.
-    print "Setting run-file.\n" if @config[:debug]
+    print "Setting run-file.\n" if @debug
     require "tmpdir"
     tmpdir = "#{Dir.tmpdir}/knjappserver"
     tmppath = "#{tmpdir}/run_#{@config[:title]}"
@@ -208,7 +209,7 @@ class Knjappserver
     
     
     #Set up various events for the appserver.
-    print "Loading events.\n" if @config[:debug]
+    print "Loading events.\n" if @debug
     @events = Knj::Event_handler.new
     @events.add_event(
       :name => :check_page_access,
@@ -226,24 +227,24 @@ class Knjappserver
     
     
     #Initialize the various feature-modules.
-    print "Init threadding.\n" if @config[:debug]
+    print "Init threadding.\n" if @debug
     initialize_threadding
     
-    print "Init mailing.\n" if @config[:debug]
+    print "Init mailing.\n" if @debug
     initialize_mailing
     
-    print "Init errors.\n" if @config[:debug]
+    print "Init errors.\n" if @debug
     initialize_errors
     
-    print "Init logging.\n" if @config[:debug]
+    print "Init logging.\n" if @debug
     initialize_logging
     
-    print "Init cleaner.\n" if @config[:debug]
+    print "Init cleaner.\n" if @debug
     initialize_cleaner
     
     
     #Start the appserver.
-    print "Spawning appserver.\n" if @config[:debug]
+    print "Spawning appserver.\n" if @debug
     @httpserv = Knjappserver::Httpserver.new(self)
     
     
@@ -253,7 +254,7 @@ class Knjappserver
     end
     
     
-    print "Appserver spawned.\n" if @config[:debug]
+    print "Appserver spawned.\n" if @debug
   end
   
   def loadfile(fpath)
@@ -275,34 +276,34 @@ class Knjappserver
   end
   
   def start
-    print "Starting appserver.\n" if @config[:debug]
+    STDOUT.print "Starting appserver.\n" if @debug
     Thread.current[:knjappserver] = {:kas => self} if !Thread.current[:knjappserver]
     
     if @config[:autoload]
-      print "Autoloading #{@config[:autoload]}\n" if @config[:debug]
+      STDOUT.print "Autoloading #{@config[:autoload]}\n" if @debug
       require @config[:autoload]
     end
     
     begin
       @threadpool.start if @threadpool
-      print "Threadpool startet.\n" if @config[:debug]
+      STDOUT.print "Threadpool startet.\n" if @debug
       @httpserv.start
-      print "Appserver startet.\n" if @config[:debug]
+      STDOUT.print "Appserver startet.\n" if @debug
     rescue Interrupt
-      print "Got interrupt - stopping appserver.\n" if @config[:debug]
+      STDOUT.print "Got interrupt - stopping appserver.\n" if @debug
       stop
     end
   end
   
   def stop
     proc_stop = proc{
-      print "Stopping appserver for real.\n" if @config[:debug]
+      STDOUT.print "Stopping appserver for real.\n" if @debug
       @httpserv.stop if @httpserv and @httpserv.respond_to?(:stop)
       
-      print "Stopping threadpool.\n" if @config[:debug]
+      STDOUT.print "Stopping threadpool.\n" if @debug
       @threadpool.stop if @threadpool
       
-      print "Cleaning out loaded sessions.\n" if @config[:debug]
+      STDOUT.print "Cleaning out loaded sessions.\n" if @debug
       if @sessions
         @sessions.each do |session_hash, session_data|
           session_data[:dbobj].flush
@@ -315,7 +316,7 @@ class Knjappserver
         @sessions.clear
       end
       
-      print "Stopping databases.\n" if @config[:debug]
+      STDOUT.print "Stopping databases.\n" if @debug
       @db.destroy if @db.is_a?(Knj::Threadhandler)
       @db.close if @db.is_a?(Knj::Db)
       
@@ -331,6 +332,7 @@ class Knjappserver
         end
       end
     rescue Timeout::Error
+      STDOUT.print "Forcing stop-appserver - couldnt get timing window.\n" if @debug
       proc_stop.call
     end
   end
@@ -406,10 +408,6 @@ class Knjappserver
         sleep 1
       end
     end
-  end
-  
-  def debug
-    return @config[:debug]
   end
   
   def define_magic_var(method_name, var)
