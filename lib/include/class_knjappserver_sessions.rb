@@ -24,6 +24,7 @@ class Knjappserver
       session = @sessions[idhash][:dbobj]
     end
     
+=begin
     if ip != "bot"
       if session[:user_agent] != args[:meta]["HTTP_USER_AGENT"]
         STDOUT.print "Invalid user-agent!\n"
@@ -37,6 +38,7 @@ class Knjappserver
         raise Knj::Errors::InvalidData, "Invalid IP."
       end
     end
+=end
     
     @sessions[idhash][:time_lastused] = Time.now
     return @sessions[idhash]
