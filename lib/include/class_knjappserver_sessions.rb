@@ -26,8 +26,14 @@ class Knjappserver
     
     if ip != "bot"
       if session[:user_agent] != args[:meta]["HTTP_USER_AGENT"]
+        STDOUT.print "Invalid user-agent!\n"
+        STDOUT.print Knj::Php.print_r(session, true)
+        
         raise Knj::Errors::InvalidData, "Invalid user-agent."
       elsif !session.remember? and ip.to_s != session[:ip].to_s
+        STDOUT.print "Invalid IP!\n"
+        STDOUT.print Knj::Php.print_r(session, true)
+        
         raise Knj::Errors::InvalidData, "Invalid IP."
       end
     end
