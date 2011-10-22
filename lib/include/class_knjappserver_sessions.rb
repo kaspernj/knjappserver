@@ -60,4 +60,13 @@ class Knjappserver
       "expires" => Time.now + 32140800 #add around 12 months
     )
   end
+  
+  def sessions_flush
+    if @sessions
+      @sessions.each do |session_hash, session_data|
+        STDOUT.print "Flushing session: #{session_data[:dbobj].id}\n" if @debug
+        session_data[:dbobj].flush
+      end
+    end
+  end
 end

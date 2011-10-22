@@ -95,9 +95,6 @@ class Knjappserver
         @sessions.each do |session_hash, session_data|
           if session_data[:time_lastused].to_i <= time_check
             session_data[:dbobj].flush
-            @ob.unset(session_data[:dbobj])
-            session_data[:hash].clear
-            session_data.clear
             @sessions.delete(session_hash)
           else
             session_not_ids << session_data[:dbobj].id

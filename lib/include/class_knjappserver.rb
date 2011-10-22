@@ -304,11 +304,7 @@ class Knjappserver
       @threadpool.stop if @threadpool
       
       STDOUT.print "Flush out loaded sessions.\n" if @debug
-      if @sessions
-        @sessions.each do |session_hash, session_data|
-          session_data[:dbobj].flush
-        end
-      end
+      self.sessions_flush
     }
     
     #If we cant get a paused-execution in 10 secs - we just force the stop.
