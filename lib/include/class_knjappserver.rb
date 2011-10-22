@@ -303,25 +303,12 @@ class Knjappserver
       STDOUT.print "Stopping threadpool.\n" if @debug
       @threadpool.stop if @threadpool
       
-      STDOUT.print "Cleaning out loaded sessions.\n" if @debug
+      STDOUT.print "Flush out loaded sessions.\n" if @debug
       if @sessions
         @sessions.each do |session_hash, session_data|
           session_data[:dbobj].flush
-          @ob.unset(session_data[:dbobj])
-          session_data[:hash].clear
-          session_data.clear
-          @sessions.delete(session_hash)
         end
-        
-        @sessions.clear
       end
-      
-      STDOUT.print "Stopping databases.\n" if @debug
-      @db.destroy if @db.is_a?(Knj::Threadhandler)
-      @db.close if @db.is_a?(Knj::Db)
-      
-      @db_handler.destroy if @db.is_a?(Knj::Threadhandler)
-      @db_handler.close if @db_handler.is_a?(Knj::Db)
     }
     
     #If we cant get a paused-execution in 10 secs - we just force the stop.
@@ -375,7 +362,7 @@ class Knjappserver
   end
   
   def update_db
-    require "rubygems"
+    require "rubygems" if !@config.key?(:knjdbrevision_path)
     require "#{@config[:knjdbrevision_path]}knjdbrevision"
     
     dbschemapath = "#{File.dirname(__FILE__)}/../files/database_schema.rb"

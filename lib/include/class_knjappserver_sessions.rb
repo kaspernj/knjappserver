@@ -4,10 +4,10 @@ class Knjappserver
     idhash = args[:idhash].to_s
     ip = "bot" if idhash == "bot"
     
-    @sessions = {} if !@sessions.has_key?(ip)
+    @sessions = {} if !@sessions.key?(ip)
     
-    if !@sessions.has_key?(idhash)
-      session = @ob.get_by(:Session, {"idhash" => args[:idhash]})
+    if !@sessions.key?(idhash)
+      session = @ob.get_by(:Session, {"idhash" => idhash})
       if !session
         session = @ob.add(:Session, {
           :idhash => idhash,

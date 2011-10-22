@@ -26,7 +26,7 @@ class Knjappserver
           begin
             @should_restart_runnning = true
             
-            #When we begin to restart it should go as fast as possible - so start by flushing out any emails waiting...
+            #When we begin to restart it should go as fast as possible - so start by flushing out any emails waiting so it goes faster the last time...
             STDOUT.print "Flushing mails.\n"
             self.mail_flush
             
