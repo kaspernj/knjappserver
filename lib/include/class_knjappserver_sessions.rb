@@ -1,10 +1,12 @@
 class Knjappserver
+  def initialize_sessions
+    @sessions = {}
+  end
+  
   def session_fromid(args)
     ip = args[:ip].to_s
     idhash = args[:idhash].to_s
     ip = "bot" if idhash == "bot"
-    
-    @sessions = {} if !@sessions.key?(ip)
     
     if !@sessions.key?(idhash)
       session = @ob.get_by(:Session, {"idhash" => idhash})

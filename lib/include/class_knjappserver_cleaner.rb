@@ -92,25 +92,23 @@ class Knjappserver
       self.paused_exec do
         session_not_ids = []
         time_check = Time.now.to_i - 300
+        newsessions = {}
         @sessions.each do |session_hash, session_data|
-          if session_data[:time_lastused].to_i <= time_check
-            session_data[:dbobj].flush
-            @sessions.delete(session_hash)
-          else
+          session_data[:dbobj].flush
+          
+          if session_data[:time_lastused].to_i > time_check
+            newsessions[session_hash] = session_data
             session_not_ids << session_data[:dbobj].id
           end
         end
         
-        STDOUT.print "Delete sessions...\n" if @config[:debug]
-        sessions_delete = @ob.list(:Session, {"id_not" => session_not_ids, "date_lastused_below" => (Time.now - 5356800)}) do |session|
-          @ob.delete(session)
-          STDOUT.print "Deleted session: #{session.id}\n" if @config[:debug]
-        end
+        @sessions = newsessions
         
-        if @ob.args[:cache] == :hash and (RUBY_ENGINE != "jruby" or JRuby.objectspace == true)
-          STDOUT.print "Cleaning objects in internal object-handler.\n" if @config[:debug]
-          @ob.clean_all
-          @ob.clean_recover
+        STDOUT.print "Delete sessions...\n" if @config[:debug]
+        @ob.list(:Session, {"id_not" => session_not_ids, "date_lastused_below" => (Time.now - 5356800)}) do |session|
+          @ob.delete(session)
+          @sessions.delete(session[:idhash])
+          STDOUT.print "Deleted session: #{session.id}\n" if @config[:debug]
         end
       end
     end
