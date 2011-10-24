@@ -12,6 +12,7 @@ class Knjappserver
 		end
 	end
 	
+	#Writes all queued access-logs to the database.
 	def flush_access_log
 		@logs_mutex.synchronize do
 			ins_arr = @logs_access_pending
@@ -192,6 +193,7 @@ class Knjappserver
 		return hash
 	end
 	
+	#Writes a custom log to the database.
 	def log(msg, objs, args = {})
 		@logs_mutex.synchronize do
 			objs = [objs] if !objs.is_a?(Array)
@@ -252,6 +254,7 @@ class Knjappserver
 		end
 	end
 	
+	#Returns the HTML for a table with logs from a given object.
 	def logs_table(obj, args = {})
 		links = @ob.list(:Log_link, {"object_class" => obj.class.name, "object_id" => obj.id, "limit" => 500, "orderby" => [["id", "desc"]]})
 		

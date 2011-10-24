@@ -3,6 +3,7 @@ class Knjappserver
     @sessions = {}
   end
   
+  #Returns or adds session based on idhash and meta-data.
   def session_fromid(args)
     ip = args[:ip].to_s
     idhash = args[:idhash].to_s
@@ -46,11 +47,13 @@ class Knjappserver
     return @sessions[idhash]
   end
   
+  #Generates a new session-ID by the meta data.
   def session_generate_id(args)
     meta = args[:meta]
     return Digest::MD5.hexdigest("#{Time.now.to_f}_#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}")
   end
   
+  #Will make the session rememberable for a year. IP wont be checked any more.
   def session_remember
     session = _httpsession.session
     session[:remember] = 1
@@ -63,6 +66,7 @@ class Knjappserver
     )
   end
   
+  #Writes all session-data to the database (normally it is cached in memory and not updated on change).
   def sessions_flush
     if @sessions
       @sessions.each do |session_hash, session_data|

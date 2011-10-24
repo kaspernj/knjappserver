@@ -11,7 +11,7 @@ class Knjappserver::Httpsession
     @kas = httpserver.kas
     @active = true
     @eruby = Knj::Eruby.new(:cache_hash => @kas.eruby_cache)
-    @debug = @kas.config[:debug]
+    @debug = @kas.debug
     self.reset
     
     require "#{File.dirname(__FILE__)}/class_httpsession_knjengine"
@@ -121,7 +121,7 @@ class Knjappserver::Httpsession
       #ignore if it fails...
     end
     
-    @httpserver.http_sessions.delete(self) if @httpserver
+    @httpserver.http_sessions.delete(self) if @httpserver and @httpserver.http_sessions
     @httpserver = nil
     
     @data = nil
