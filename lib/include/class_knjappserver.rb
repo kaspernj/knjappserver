@@ -37,6 +37,8 @@ class Knjappserver
     @config[:engine_knjengine] = true if !@config[:engine_knjengine] and !@config[:engine_webrick] and !@config[:engine_mongrel]
     raise "No ':doc_root' was given in arguments." if !@config.has_key?(:doc_root)
     
+    
+    #Setup default handlers if none are given.
     if !@config.has_key?(:handlers)
       @erbhandler = Knjappserver::ERBHandler.new
       @config[:handlers] = [
@@ -86,6 +88,8 @@ class Knjappserver
       end
     end
     
+    
+    #Set up default file-types and merge given filetypes into it.
     @types = {
       :ico => "image/x-icon",
       :jpeg => "image/jpeg",
@@ -102,6 +106,8 @@ class Knjappserver
     @types = @types.merge(@config[:filetypes]) if @config.has_key?(:filetypes)
     
     
+    
+    #Load various required files from knjrbfw and stuff in the knjappserver-framework.
     files = [
       "#{@path_knjrbfw}knjrbfw.rb",
       "#{@path_knjrbfw}knj/arrayext.rb",
