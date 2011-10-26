@@ -128,6 +128,7 @@ class Knjappserver
       "#{@path_knjappserver}/class_httpresp.rb",
       "#{@path_knjappserver}/class_httpserver.rb",
       "#{@path_knjappserver}/class_httpsession.rb",
+      "#{@path_knjappserver}/class_httpsession_contentgroup.rb",
       "#{@path_knjappserver}/class_session.rb",
       "#{@path_knjappserver}/class_log.rb",
       "#{@path_knjappserver}/class_log_access.rb",

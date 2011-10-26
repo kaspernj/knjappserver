@@ -94,11 +94,11 @@ class Knjappserver::Httpserver
 	end
 	
 	def handle_request(&block)
-    @working_count += 1
+    @working_count += 1 if @working_count
     begin
       block.call
     ensure
-      @working_count -= 1
+      @working_count -= 1 if @working_count
     end
 	end
 end

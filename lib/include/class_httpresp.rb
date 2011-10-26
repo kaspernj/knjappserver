@@ -1,7 +1,7 @@
 require "time"
 
 class Knjappserver::Httpresp
-  attr_accessor :body, :nl, :status, :http_version, :close
+  attr_accessor :nl, :status, :http_version
   
   STATUS_CODES = {
     100 => "Continue",
@@ -24,11 +24,17 @@ class Knjappserver::Httpresp
   }
   NL = "\r\n"
   
-  def initialize
+  def initialize(args)
+    @cgroup = args[:cgroup]
+  end
+  
+  def reset(args)
     @status = 200
+    @http_version = args[:http_version]
+    @close = args[:close]
     
     @headers = {
-      "Date" => Time.now.httpdate
+      "date" => ["Date", Time.now.httpdate]
     }
     
     @headers_11 = {
@@ -40,17 +46,8 @@ class Knjappserver::Httpresp
     @cookies = []
   end
   
-  def content_length
-    length = 0
-    @body.each do |part|
-      length += part.size
-    end
-    
-    return length
-  end
-  
   def header(key, val)
-    @headers[key] = val
+    @headers[key.to_s.downcase] = [key, val]
   end
   
   def cookie(cookie)
@@ -68,10 +65,8 @@ class Knjappserver::Httpresp
     res += " #{code}" if code
     res += NL
     
-    #res += "Content-Length: #{self.content_length}#{NL}"
-    
     @headers.each do |key, val|
-      res += "#{key}: #{val}#{NL}"
+      res += "#{val[0]}: #{val[1]}#{NL}"
     end
     
     if @http_version == "1.1"
@@ -90,45 +85,19 @@ class Knjappserver::Httpresp
   end
   
   def write(socket)
+    socket.write(self.header_str)
+    
     case @http_version
       when "1.0"
-        self.write_clean(socket)
+        @cgroup.write_to_socket
+        socket.write("#{NL}#{NL}")
         socket.close
       when "1.1"
-        self.write_chunked(socket)
+        @cgroup.write_to_socket
+        socket.write("0#{NL}#{NL}")
         socket.close if @close
       else
         raise "Could not figure out of HTTP version: '#{@http_version}'."
     end
-  end
-  
-  def write_clean(socket)
-    socket.write(self.header_str)
-    
-    @body.each do |part|
-      while buf = part.read(512)
-        next if buf.empty?
-        socket.write(buf.to_s)
-      end
-    end
-    
-    socket.write("#{NL}#{NL}")
-  end
-  
-  def write_chunked(socket)
-    socket.write(self.header_str)
-    
-    @body.each do |part|
-      while buf = part.read(512)
-        next if buf.empty?
-        socket.write("#{format("%x", buf.bytesize)}#{NL}#{buf}#{NL}")
-      end
-    end
-    
-    socket.write("0#{NL}#{NL}")
-  end
-  
-  def content
-    str = self.header_str + @body.string + "\n\n"
   end
 end
