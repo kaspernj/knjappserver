@@ -10,11 +10,13 @@ class Knjappserver
 		end
 	end
 	
+	#Inits the thread so it has access to the appserver and various magic methods can be used.
 	def thread_init(thread)
     thread[:knjappserver] = {} if !thread[:knjappserver]
     thread[:knjappserver][:kas] = self
 	end
 	
+	#Spawns a new thread with access to magic methods, _db-method and various other stuff in the appserver.
 	def thread(args = {})
 		raise "No block given." if !block_given?
 		args[:args] = [] if !args[:args]
@@ -39,6 +41,7 @@ class Knjappserver
 		end
 	end
 	
+	#Runs a proc every number of seconds.
 	def timeout(args = {})
 		raise "No time given." if !args.has_key?(:time)
 		raise "No block given." if !block_given?
@@ -86,6 +89,7 @@ class Knjappserver
 		return thread
 	end
 	
+	#Spawns a thread to run the given proc and add the output of that block in the correct order to the HTML.
 	def threadded_content(&block)
     _httpsession.threadded_content(block)
 	end

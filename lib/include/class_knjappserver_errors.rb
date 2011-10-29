@@ -18,6 +18,7 @@ class Knjappserver
 		end
 	end
 	
+	#Send error-emails based on error-emails-cache (cached so the same error isnt send out every time it occurrs to prevent spamming).
 	def flush_error_emails
 		@error_emails_pending_mutex.synchronize do
 			send_time_older_than = Time.new.to_i - @error_emails_time
@@ -65,6 +66,7 @@ class Knjappserver
 		end
 	end
 	
+	#Handels a given error. Sends to the admin-emails.
 	def handle_error(e, args = {})
 		@error_emails_pending_mutex.synchronize do
 			if !Thread.current[:knjappserver] or !Thread.current[:knjappserver][:httpsession]
@@ -107,6 +109,7 @@ class Knjappserver
 		end
 	end
 	
+	#Takes a proc and executes it. On error it alerts the error-message with javascript to the server, sends a javascript back and exits.
 	def on_error_go_back(&block)
     begin
       block.call

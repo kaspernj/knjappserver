@@ -2,7 +2,7 @@ require "digest"
 
 class Knjappserver::Httpsession
   attr_accessor :data
-  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp
+  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path
   
   def initialize(httpserver, socket)
     @data = {}
@@ -11,8 +11,20 @@ class Knjappserver::Httpsession
     @kas = httpserver.kas
     @active = true
     @eruby = Knj::Eruby.new(:cache_hash => @kas.eruby_cache)
-    @debug = @kas.config[:debug]
-    self.reset
+    @debug = @kas.debug
+    
+    @cgroup = Knjappserver::Httpsession::Contentgroup.new(
+      :socket => @socket,
+      :restart_proc => proc{
+        begin
+          @resp.write(@socket) if @meta["METHOD"] != "HEAD"
+        rescue Errno::ECONNRESET, Errno::ENOTCONN, Errno::EPIPE, Timeout::Error
+          #Ignore - the user probaly left.
+        end
+      }
+    )
+    
+    @resp = Knjappserver::Httpresp.new(:cgroup => @cgroup)
     
     require "#{File.dirname(__FILE__)}/class_httpsession_knjengine"
     @handler = Knjappserver::Httpsession::Knjengine.new(:kas => @kas)
@@ -22,12 +34,17 @@ class Knjappserver::Httpsession
     STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if @debug
     
     @thread_request = Knj::Thread.new do
+      Thread.current[:knjappserver] = {} if !Thread.current[:knjappserver]
+      Thread.current[:knjappserver][:contentgroup] = @cgroup
+      
       @kas.db_handler.get_and_register_thread if @kas.db_handler.opts[:threadsafe]
       @kas.ob.db.get_and_register_thread if @kas.ob.db.opts[:threadsafe]
       
       begin
         while @active
           begin
+            @cgroup.reset
+            
             Timeout.timeout(30) do
               @handler.socket_parse(@socket)
             end
@@ -49,7 +66,6 @@ class Knjappserver::Httpsession
             end
           ensure
             @kas.served += 1 if @kas
-            self.reset
           end
         end
       rescue Errno::ECONNRESET, Errno::ENOTCONN, Errno::EPIPE, Timeout::Error => e
@@ -71,39 +87,42 @@ class Knjappserver::Httpsession
   
   def threadded_content(block)
     raise "No block was given." if !block
-    @out = StringIO.new
+    cgroup_data = @cgroup.new_thread
     
-    thread_out = StringIO.new
-    thread = Thread.new(Thread.current[:knjappserver].clone) do |data|
-      Thread.current[:knjappserver] = data
-      Thread.current[:knjappserver][:stringio] = thread_out
-      Thread.current[:knjappserver][:db] = @kas.db_handler
-      
-      @kas.db_handler.get_and_register_thread  if @kas.db_handler.opts[:threadsafe]
-      @kas.ob.db.get_and_register_thread if @kas.ob.db.opts[:threadsafe]
-      
+    cgroup_data[:thread] = Thread.new(Thread.current[:knjappserver].clone) do |data|
       begin
+        self.init_thread
+        
+        Thread.current[:knjappserver][:db] = @kas.db_handler if @kas
+        Thread.current[:knjappserver][:contentgroup] = cgroup_data[:cgroup]
+        
+        @kas.db_handler.get_and_register_thread if @kas and @kas.db_handler.opts[:threadsafe]
+        @kas.ob.db.get_and_register_thread if @kas and @kas.ob.db.opts[:threadsafe]
+        
         block.call
       rescue => e
-        thread_out.print Knj::Errors.error_str(e, {:html => true})
+        STDOUT.puts e.inspect
+        STDOUT.puts e.backtrace
+        
+        Thread.current[:knjappserver][:contentgroup].write Knj::Errors.error_str(e, {:html => true})
         _kas.handle_error(e)
       ensure
-        @kas.ob.db.free_thread if @kas.ob.db.opts[:threadsafe]
-        @kas.db_handler.free_thread if @kas.db_handler.opts[:threadsafe]
+        Thread.current[:knjappserver][:contentgroup].mark_done
+        @kas.ob.db.free_thread if @kas and @kas.ob.db.opts[:threadsafe]
+        @kas.db_handler.free_thread if @kas and @kas.db_handler.opts[:threadsafe]
       end
     end
-    
-    @parts << {
-      :thread => thread,
-      :stringio => thread_out
-    }
-    @parts << @out
   end
   
-  def reset
-    @out.close if @out
-    @out = StringIO.new
-    @parts = [@out]
+  def init_thread
+    Thread.current[:knjappserver] = {} if !Thread.current[:knjappserver]
+    Thread.current[:knjappserver][:kas] = @kas
+    Thread.current[:knjappserver][:httpsession] = self
+    Thread.current[:knjappserver][:session] = @session
+    Thread.current[:knjappserver][:get] = @get
+    Thread.current[:knjappserver][:post] = @post
+    Thread.current[:knjappserver][:meta] = @meta
+    Thread.current[:knjappserver][:cookie] = @cookie
   end
   
   def self.finalize(id)
@@ -111,7 +130,7 @@ class Knjappserver::Httpsession
   end
   
   def destruct
-    STDOUT.print "Httpsession destruct (#{@httpserver.http_sessions.length})\n" if @debug and @httpserver
+    STDOUT.print "Httpsession destruct (#{@httpserver.http_sessions.length})\n" if @debug and @httpserver and @httpserver.http_sessions
     
     begin
       @socket.close if @socket and !@socket.closed?
@@ -121,7 +140,7 @@ class Knjappserver::Httpsession
       #ignore if it fails...
     end
     
-    @httpserver.http_sessions.delete(self) if @httpserver
+    @httpserver.http_sessions.delete(self) if @httpserver and @httpserver.http_sessions
     @httpserver = nil
     
     @data = nil
@@ -134,6 +153,7 @@ class Knjappserver::Httpsession
     @socket = nil
     @browser = nil
     @resp = nil
+    @cgroup = nil
     @handler = nil
     
     @eruby.destroy if @eruby
@@ -145,25 +165,36 @@ class Knjappserver::Httpsession
   end
   
   def serve
-    @resp = Knjappserver::Httpresp.new
-    @resp.http_version = @handler.http_version
-    @resp.close = true if @handler.meta["HTTP_CONNECTION"] == "close"
+    @meta = @handler.meta
+    @cookie = @handler.cookie
+    @get = @handler.get
+    @post = @handler.post
+    @headers = @handler.headers
     
-    meta = @handler.meta
-    cookie = @handler.cookie
-    page_path = @handler.page_path
-    ext = File.extname(page_path).downcase[1..-1].to_s
+    close = true if @meta["HTTP_CONNECTION"] == "close"
+    @resp.reset(
+      :http_version => @handler.http_version,
+      :close => close 
+    )
+    if @handler.http_version == "1.1"
+      @cgroup.chunked = true
+    else
+      @cgroup.chunked = false
+    end
     
-    ctype = @kas.types[ext.to_sym] if ext.length > 0 and @kas.types.has_key?(ext.to_sym)
-    ctype = @kas.config[:default_filetype] if !ctype and @kas.config.has_key?(:default_filetype)
-    @resp.header("Content-Type", ctype)
+    @page_path = @handler.page_path
+    @ext = File.extname(@page_path).downcase[1..-1].to_s
     
-    @browser = Knj::Web.browser(meta)
+    @ctype = @kas.types[@ext.to_sym] if @ext.length > 0 and @kas.types.has_key?(@ext.to_sym)
+    @ctype = @kas.config[:default_filetype] if !@ctype and @kas.config.has_key?(:default_filetype)
+    @resp.header("Content-Type", @ctype)
     
-    if meta["HTTP_X_FORWARDED_FOR"]
-      @ip = meta["HTTP_X_FORWARDED_FOR"].split(",")[0].strip
-    elsif meta["REMOTE_ADDR"]
-      @ip = meta["REMOTE_ADDR"]
+    @browser = Knj::Web.browser(@meta)
+    
+    if @meta["HTTP_X_FORWARDED_FOR"]
+      @ip = @meta["HTTP_X_FORWARDED_FOR"].split(",")[0].strip
+    elsif @meta["REMOTE_ADDR"]
+      @ip = @meta["REMOTE_ADDR"]
     else
       raise "Could not figure out the IP of the session."
     end
@@ -180,7 +211,7 @@ class Knjappserver::Httpsession
     end
     
     begin
-      session = @kas.session_fromid(:idhash => @session_id, :ip => @ip, :meta => meta)
+      session = @kas.session_fromid(:idhash => @session_id, :ip => @ip, :meta => @meta)
     rescue Knj::Errors::InvalidData => e
       #User should not have the session he asked for because of invalid user-agent or invalid IP.
       @session_id = @kas.session_generate_id(:meta => meta)
@@ -201,148 +232,73 @@ class Knjappserver::Httpsession
     @session_hash = session[:hash]
     
     if @kas.config[:logging] and @kas.config[:logging][:access_db]
-      @ips = [meta["REMOTE_ADDR"]]
-      @ips << meta["HTTP_X_FORWARDED_FOR"].split(",")[0].strip if meta["HTTP_X_FORWARDED_FOR"]
+      @ips = [@meta["REMOTE_ADDR"]]
+      @ips << @meta["HTTP_X_FORWARDED_FOR"].split(",")[0].strip if @meta["HTTP_X_FORWARDED_FOR"]
       @kas.logs_access_pending << {
         :session_id => @session.id,
         :date_request => Time.now,
         :ips => @ips,
-        :get => @handler.get,
-        :post => @handler.post,
-        :meta => meta,
-        :cookie => cookie
+        :get => @get,
+        :post => @post,
+        :meta => @meta,
+        :cookie => @cookie
       }
     end
     
+    self.init_thread
+    Thread.current[:knjappserver][:contentgroup] = @cgroup
     time_start = Time.now.to_f if @debug
-    serv_data = self.serve_real(
-      :filepath => page_path,
-      :get => @handler.get,
-      :post => @handler.post,
-      :cookie => cookie,
-      :meta => meta,
-      :headers => {},
-      :ctype => ctype,
-      :ext => ext,
-      :session => @session,
-      :session_id => @session_id,
-      :session_hash => @session_hash,
-      :httpsession => self,
-      :db => @kas.db_handler,
-      :kas => @kas
-    )
+    self.serve_real
     
-    serv_data[:headers].each do |header|
-      @resp.header(header[0], header[1])
-    end
+    STDOUT.print "Served '#{@meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start} secs.\n" if @debug
     
-    serv_data[:cookies].each do |cookie|
-      @resp.cookie(cookie)
-    end
-    
-    body_parts = []
-    @parts.each do |part|
-      if part.is_a?(Hash) and part[:thread]
-        part[:thread].join
-        part[:stringio].rewind
-        body_parts << part[:stringio]
-      elsif part.is_a?(StringIO) or part.is_a?(File)
-        part.rewind
-        body_parts << part
-      else
-        raise "Unknown object: '#{part.class.name}'."
-      end
-    end
-    @resp.body = body_parts
-    
-    if serv_data[:lastmod]
-      @resp.header("Last-Modified", serv_data[:lastmod].time)
-      @resp.header("Expires", Time.now + (3600 * 24))
-    end
-    
-    if serv_data[:cache]
-      @resp.status = 304
-      @resp.header("Last-Modified", serv_data[:lastmod].time)
-      @resp.header("Expires", Time.now + (3600 * 24))
-    end
-    
-    @resp.status = serv_data[:statuscode] if serv_data[:statuscode]
-    STDOUT.print "Served '#{meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start} secs.\n" if @debug
-    
-    @resp.write(@socket) if meta["METHOD"] != "HEAD"
-    @resp = nil
-    
-    #Letting them be nil is simply not enough (read that on a forum) - knj.
-    serv_data.clear
+    @cgroup.mark_done
+    @cgroup.write_output
+    @cgroup.join
   end
   
-  def serve_real(details)
-    request = details[:request]
-    headers = {}
-    cookies = []
-    cont = ""
-    statuscode = nil
-    lastmod = false
-    max_age = 365 * 24
+  def serve_real
+    #check if we should use a handler for this request.
+    @kas.config[:handlers].each do |handler_info|
+      if handler_info.key?(:file_ext) and handler_info[:file_ext] == @ext
+        return handler_info[:callback].call(self, @eruby)
+      elsif handler_info.key?(:path) and handler_info[:mount] and @meta["SCRIPT_NAME"].slice(0, handler_info[:path].length) == handler_info[:path]
+        @page_path = "#{handler_info[:mount]}#{@meta["SCRIPT_NAME"].slice(handler_info[:path].length, @meta["SCRIPT_NAME"].length)}"
+        break
+      end
+    end
     
-    cache = false
     cache_control = {}
     cache_use = true
     
-    if @handler.headers["cache-control"] and @handler.headers["cache-control"][0]
-      @handler.headers["cache-control"][0].scan(/(.+)=(.+)/) do |match|
+    if @headers["cache-control"] and @headers["cache-control"][0]
+      @headers["cache-control"][0].scan(/(.+)=(.+)/) do |match|
         cache_control[match[1]] = match[2]
       end
     end
     
-    cache_use = false if cache_control["max-age"].to_i <= 0
+    cache_use = false if cache_control.key?("max-age") and cache_control["max-age"].to_i <= 0
     
-    #check if we should use a handler for this request.
-    handler_use = false
-    @kas.config[:handlers].each do |handler_info|
-      if handler_info[:file_ext] and handler_info[:file_ext] == details[:ext]
-        handler_use = true
-        ret = handler_info[:callback].call(details)
-        cont = ret[:content] if ret.has_key?(:content)
-        headers = ret[:headers] if ret.has_key?(:headers)
-        cookies = ret[:cookies] if ret.has_key?(:cookies)
-        break
-      elsif handler_info[:path] and handler_info[:mount] and details[:meta]["SCRIPT_NAME"].slice(0, handler_info[:path].length) == handler_info[:path]
-        details[:filepath] = "#{handler_info[:mount]}#{details[:meta]["SCRIPT_NAME"].slice(handler_info[:path].length, details[:meta]["SCRIPT_NAME"].length)}"
-        break
-      end
-    end
-    
-    if !handler_use
-      if !File.exists?(details[:filepath])
-        statuscode = 404
-        headers["Content-Type"] = "text/html"
-        @parts << StringIO.new("File you are looking for was not found: '#{details[:meta]["REQUEST_URI"]}'.")
-      else
-        lastmod = Knj::Datet.new(File.new(details[:filepath]).mtime)
+    if !File.exists?(@page_path)
+      @resp.status = 404
+      @ret.header("Content-Type", "text/html")
+      print "File you are looking for was not found: '#{@meta["REQUEST_URI"]}'."
+    else
+      lastmod = File.new(@page_path).mtime
+      
+      @resp.header("Last-Modified", lastmod.httpdate)
+      @resp.header("Expires", (Time.now + 86400).httpdate) #next day.
+      
+      if cache_use and @headers["if-modified-since"] and @headers["if-modified-since"][0]
+        request_mod = Knj::Datet.parse(@headers["if-modified-since"][0]).time
         
-        if cache_use and @handler.headers["if-modified-since"] and @handler.headers["if-modified-since"][0]
-          request_mod = Knj::Datet.parse(@handler.headers["if-modified-since"][0])
-          if request_mod == lastmod
-            cache = true
-          end
-        end
-        
-        if !cache
-          @parts << File.new(details[:filepath]) #get plain content from file.
+        if request_mod == lastmod
+          @resp.status = 304
+          return nil
         end
       end
+      
+      @cgroup.new_io(File.new(@page_path))
     end
-    
-    details.clear
-    
-    return {
-      :statuscode => statuscode,
-      :content => cont,
-      :headers => headers,
-      :cookies => cookies,
-      :lastmod => lastmod,
-      :cache => cache
-    }
   end
 end

@@ -1,17 +1,21 @@
 class Knjappserver
+  #Imports a .rhtml-file and executes it.
   def import(filepath)
     _httpsession.eruby.import(filepath)
   end
   
+  #Redirects to another URL.
 	def redirect(url, args = {})
 		return Knj::Web.redirect(url, args)
 	end
 	
+	#Sends a javascript-alert to the HTML.
 	def alert(msg)
 		Knj::Web.alert(msg)
 		return self
 	end
 	
+	#Define a cookies in the clients browser.
 	def cookie(cookie)
     raise "No HTTP-session attached to this thread." if !_httpsession
     raise "HTTP-session not active." if !_httpsession.resp
@@ -19,22 +23,26 @@ class Knjappserver
     _httpsession.resp.cookie(cookie)
 	end
 	
+	#Sends a header to the clients browser.
 	def header(key, val)
     raise "No HTTP-session attached to this thread." if !_httpsession
     raise "HTTP-session not active." if !_httpsession.resp
     _httpsession.resp.header(key, val)
 	end
 	
+	#Sends a raw header-line to the clients browser.
 	def header_raw(str)
     raise "No HTTP-session attached to this thread." if !_httpsession
     raise "HTTP-session not active." if !_httpsession.resp
     Knj::Php.header(str)
 	end
 	
+	#Sends a javascript back to the browser and exits.
 	def back
 		Knj::Web.back
 	end
 	
+	#Draw a input in a table.
 	def inputs(*args)
     return Knj::Web.inputs(args)
 	end

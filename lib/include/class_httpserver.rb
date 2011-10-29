@@ -4,11 +4,13 @@ class Knjappserver::Httpserver
 	
 	def initialize(kas)
 		@kas = kas
-		@http_sessions = []
-		@working_count = 0
+		@debug = @kas.config[:debug]
 	end
 	
 	def start
+    @http_sessions = []
+    @working_count = 0
+    
     raise "No host was given." if !@kas.config.has_key?(:host)
     raise "No port was given." if !@kas.config.has_key?(:port)
 		@server = TCPServer.new(@kas.config[:host], @kas.config[:port])
@@ -22,13 +24,13 @@ class Knjappserver::Httpserver
 				
 				begin
 					self.spawn_httpsession(@server.accept)
-					STDOUT.print "Starting new HTTP-request.\n" if @kas.config[:debug]
+					STDOUT.print "Starting new HTTP-request.\n" if @debug
 				rescue => e
 					STDOUT.puts e.inspect
 					STDOUT.puts e.backtrace
 					STDOUT.print "\n"
-					STDOUT.print "Could not accept HTTP-request - waiting 0.5 sec and then trying again.\n"
-					sleep 0.5
+					STDOUT.print "Could not accept HTTP-request - waiting 1 sec and then trying again.\n"
+					sleep 1
 				end
 			end
 		end
@@ -49,24 +51,26 @@ class Knjappserver::Httpserver
 	
 	def stop
     begin
-      STDOUT.print "Stopping accept-thread.\n" if @kas.config[:debug]
+      STDOUT.print "Stopping accept-thread.\n" if @debug
       @thread_accept.kill if @thread_accept and @thread_accept.alive?
       @thread_restart.kill if @thread_restart and @thread_restart.alive?
     rescue => e
-      STDOUT.print "Could not stop accept-thread.\n" if @kas.config[:debug]
+      STDOUT.print "Could not stop threads.\n" if @debug
       STDOUT.puts e.inspect
       STDOUT.puts e.backtrace
     end
     
-    STDOUT.print "Stopping all HTTP sessions.\n" if @kas.config[:debug]
-    @http_sessions.each do |httpsession|
-      httpsession.destruct
+    STDOUT.print "Stopping all HTTP sessions.\n" if @debug
+    if @http_sessions
+      @http_sessions.each do |httpsession|
+        httpsession.destruct
+      end
     end
     
     begin
-      STDOUT.print "Stopping TCPServer.\n" if @kas.config[:debug]
+      STDOUT.print "Stopping TCPServer.\n" if @debug
       @server.close if @server and !@server.closed?
-      STDOUT.print "TCPServer was closed.\n" if @kas.config[:debug]
+      STDOUT.print "TCPServer was closed.\n" if @debug
     rescue Timeout::Error
       raise "Could not close TCPserver.\n"
     rescue IOError => e
@@ -76,6 +80,13 @@ class Knjappserver::Httpserver
         raise e
       end
     end
+    
+    @http_sessions = nil
+    @thread_accept = nil
+    @thread_restart = nil
+    @server = nil
+    @working_count = nil
+    @kas = nil
 	end
 	
 	def spawn_httpsession(socket)
@@ -83,11 +94,11 @@ class Knjappserver::Httpserver
 	end
 	
 	def handle_request(&block)
-    @working_count += 1
+    @working_count += 1 if @working_count
     begin
       block.call
     ensure
-      @working_count -= 1
+      @working_count -= 1 if @working_count
     end
 	end
 end

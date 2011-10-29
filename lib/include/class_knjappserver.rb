@@ -1,4 +1,5 @@
 require "#{File.dirname(__FILE__)}/class_knjappserver_cleaner"
+require "#{File.dirname(__FILE__)}/class_knjappserver_cmdline"
 require "#{File.dirname(__FILE__)}/class_knjappserver_errors"
 require "#{File.dirname(__FILE__)}/class_knjappserver_logging"
 require "#{File.dirname(__FILE__)}/class_knjappserver_mailing"
@@ -36,6 +37,8 @@ class Knjappserver
     @config[:engine_knjengine] = true if !@config[:engine_knjengine] and !@config[:engine_webrick] and !@config[:engine_mongrel]
     raise "No ':doc_root' was given in arguments." if !@config.has_key?(:doc_root)
     
+    
+    #Setup default handlers if none are given.
     if !@config.has_key?(:handlers)
       @erbhandler = Knjappserver::ERBHandler.new
       @config[:handlers] = [
@@ -85,6 +88,8 @@ class Knjappserver
       end
     end
     
+    
+    #Set up default file-types and merge given filetypes into it.
     @types = {
       :ico => "image/x-icon",
       :jpeg => "image/jpeg",
@@ -101,6 +106,8 @@ class Knjappserver
     @types = @types.merge(@config[:filetypes]) if @config.has_key?(:filetypes)
     
     
+    
+    #Load various required files from knjrbfw and stuff in the knjappserver-framework.
     files = [
       "#{@path_knjrbfw}knjrbfw.rb",
       "#{@path_knjrbfw}knj/arrayext.rb",
@@ -121,6 +128,7 @@ class Knjappserver
       "#{@path_knjappserver}/class_httpresp.rb",
       "#{@path_knjappserver}/class_httpserver.rb",
       "#{@path_knjappserver}/class_httpsession.rb",
+      "#{@path_knjappserver}/class_httpsession_contentgroup.rb",
       "#{@path_knjappserver}/class_session.rb",
       "#{@path_knjappserver}/class_log.rb",
       "#{@path_knjappserver}/class_log_access.rb",
@@ -145,7 +153,21 @@ class Knjappserver
     end
     
     
-    print "Starting objects.\n" if @debug
+    print "Updating database.\n" if @debug
+    require "rubygems" if !@config.key?(:knjdbrevision_path)
+    require "#{@config[:knjdbrevision_path]}knjdbrevision"
+    
+    dbschemapath = "#{File.dirname(__FILE__)}/../files/database_schema.rb"
+    raise "'#{dbschemapath}' did not exist." if !File.exists?(dbschemapath)
+    require dbschemapath
+    raise "No schema-variable was spawned." if !$tables
+    
+    dbpath = "#{File.dirname(__FILE__)}/../files/database.sqlite3"
+    dbrev = Knjdbrevision.new
+    dbrev.init_db($tables, @db)
+    
+    
+    print "Spawning objects.\n" if @debug
     @ob = Knj::Objects.new(
       :db => db,
       :class_path => @path_knjappserver,
@@ -185,9 +207,12 @@ class Knjappserver
     
     if @config[:customio] or !@config.has_key?(:customio)
       print "Loading custom-io.\n" if @debug
-      require "#{@path_knjappserver}/class_customio.rb"
-      cio = Knjappserver::CustomIO.new
-      $stdout = cio
+      
+      if $stdout.class.name != "Knjappserver::CustomIO"
+        require "#{@path_knjappserver}/class_customio.rb"
+        cio = Knjappserver::CustomIO.new
+        $stdout = cio
+      end
     end
     
     
@@ -245,6 +270,9 @@ class Knjappserver
     print "Init cleaner.\n" if @debug
     initialize_cleaner
     
+    print "Init cmdline.\n" if @debug
+    initialize_cmdline
+    
     
     #Start the appserver.
     print "Spawning appserver.\n" if @debug
@@ -260,6 +288,7 @@ class Knjappserver
     print "Appserver spawned.\n" if @debug
   end
   
+  #If you want to use auto-restart, every file reloaded through loadfile will be watched for changes. When changed the server will do a restart to reflect that.
   def loadfile(fpath)
     if !@config[:autorestart]
       require fpath
@@ -278,6 +307,7 @@ class Knjappserver
     return false
   end
   
+  #Starts the HTTP-server and threadpool.
   def start
     STDOUT.print "Starting appserver.\n" if @debug
     Thread.current[:knjappserver] = {:kas => self} if !Thread.current[:knjappserver]
@@ -294,10 +324,11 @@ class Knjappserver
       STDOUT.print "Appserver startet.\n" if @debug
     rescue Interrupt
       STDOUT.print "Got interrupt - stopping appserver.\n" if @debug
-      stop
+      self.stop
     end
   end
   
+  #Stops the entire app and releases join.
   def stop
     proc_stop = proc{
       #This should be done first to be sure it finishes (else we have a serious bug).
@@ -318,31 +349,34 @@ class Knjappserver
           proc_stop.call
         end
       end
-    rescue Timeout::Error
+    rescue Timeout::Error, SystemExit, Interrupt
       STDOUT.print "Forcing stop-appserver - couldnt get timing window.\n" if @debug
       proc_stop.call
     end
   end
   
-  # Stop running any more http requests - make them wait.
+  #Stop running any more HTTP-requests - make them wait.
   def pause
     @paused += 1
   end
   
+  #Unpause - start handeling HTTP-requests again.
   def unpause
     @paused -= 1
   end
   
+  #Returns true if paued - otherwise false.
   def paused?
     return true if @paused > 0
     return false
   end
   
+  #Will stop handeling any more HTTP-requests, run the proc given and return handeling HTTP-requests.
   def paused_exec
     self.pause
     
     begin
-      sleep 0.2 while @httpserv.working_count > 0
+      sleep 0.2 while @httpserv and @httpserv.working_count and @httpserv.working_count > 0
       @paused_mutex.synchronize do
         yield
       end
@@ -351,6 +385,7 @@ class Knjappserver
     end
   end
   
+  #Returns true if a HTTP-request is working. Otherwise false.
   def working?
     return true if @httpserv and @httpserv.working_count > 0
     return false
@@ -361,26 +396,13 @@ class Knjappserver
     return Thread.current[:knjappserver]
   end
   
-  def update_db
-    require "rubygems" if !@config.key?(:knjdbrevision_path)
-    require "#{@config[:knjdbrevision_path]}knjdbrevision"
-    
-    dbschemapath = "#{File.dirname(__FILE__)}/../files/database_schema.rb"
-    raise "'#{dbschemapath}' did not exist." if !File.exists?(dbschemapath)
-    require dbschemapath
-    raise "No schema-variable was spawned." if !$tables
-    
-    dbpath = "#{File.dirname(__FILE__)}/../files/database.sqlite3"
-    dbrev = Knjdbrevision.new
-    dbrev.init_db($tables, @db)
-  end
-  
+  #Sleeps until the server is stopped.
   def join
     raise "No http-server or http-server not running." if !@httpserv or !@httpserv.thread_accept
     
     begin
       @httpserv.thread_accept.join
-      @httpserv.thread_restart.join
+      @httpserv.thread_restart.join if @httpserv and @httpserv.thread_restart
     rescue Interrupt
       self.stop
     end
@@ -397,6 +419,7 @@ class Knjappserver
     end
   end
   
+  #Defines a variable as a method bound to the threads spawned by this instance of Knjappserver.
   def define_magic_var(method_name, var)
     @magic_vars[method_name] = var
     

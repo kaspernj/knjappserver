@@ -13,6 +13,7 @@ class Knjappserver
 		end
 	end
 	
+	#Queue a mail for sending. Possible keys are: :subject, :from, :to, :text and :html.
 	def mail(mail_args)
 		@mails_queue_mutex.synchronize do
 			count_wait = 0
@@ -32,6 +33,7 @@ class Knjappserver
 		end
 	end
 	
+	#Sends all queued mails to the respective servers, if we are online.
 	def mail_flush
 		@mails_mutex.synchronize do
 			return false if @mails_waiting.length <= 0
@@ -59,6 +61,7 @@ class Knjappserver
 		end
 	end
 	
+	#This class represents the queued mails.
 	class Mail
 		def initialize(args)
 			@args = args
@@ -68,10 +71,12 @@ class Knjappserver
       raise "No content was given (:html or :text)." if !@args[:html] and !@args[:text]
 		end
 		
+		#Returns a key from the arguments.
 		def [](key)
 			return @args[key]
 		end
 		
+		#Sends the email to the receiver.
 		def send
       STDOUT.print "Sending mail '#{__id__}'.\n" if @args[:kas].debug
       
