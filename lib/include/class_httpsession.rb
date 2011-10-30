@@ -203,8 +203,8 @@ class Knjappserver::Httpsession
     
     if @browser["browser"] == "bot"
       @session_id = "bot"
-    elsif cookie["KnjappserverSession"].to_s.length > 0
-      @session_id = cookie["KnjappserverSession"] 
+    elsif @cookie["KnjappserverSession"].to_s.length > 0
+      @session_id = @cookie["KnjappserverSession"] 
     else
       @session_id = @kas.session_generate_id(:meta => meta)
       send_cookie = true
