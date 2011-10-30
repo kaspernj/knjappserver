@@ -206,7 +206,7 @@ class Knjappserver::Httpsession
     elsif @cookie["KnjappserverSession"].to_s.length > 0
       @session_id = @cookie["KnjappserverSession"] 
     else
-      @session_id = @kas.session_generate_id(:meta => meta)
+      @session_id = @kas.session_generate_id(:meta => @meta)
       send_cookie = true
     end
     
@@ -281,7 +281,7 @@ class Knjappserver::Httpsession
     
     if !File.exists?(@page_path)
       @resp.status = 404
-      @ret.header("Content-Type", "text/html")
+      @resp.header("Content-Type", "text/html")
       print "File you are looking for was not found: '#{@meta["REQUEST_URI"]}'."
     else
       lastmod = File.new(@page_path).mtime
