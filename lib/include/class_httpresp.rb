@@ -32,6 +32,8 @@ class Knjappserver::Httpresp
     @status = 200
     @http_version = args[:http_version]
     @close = args[:close]
+    @fileobj = nil
+    @close = true if @http_version == "1.0"
     
     @headers = {
       "date" => ["Date", Time.now.httpdate]
@@ -87,17 +89,21 @@ class Knjappserver::Httpresp
   def write(socket)
     socket.write(self.header_str)
     
-    case @http_version
-      when "1.0"
-        @cgroup.write_to_socket
-        socket.write("#{NL}#{NL}")
-        socket.close
-      when "1.1"
-        @cgroup.write_to_socket
-        socket.write("0#{NL}#{NL}")
-        socket.close if @close
-      else
-        raise "Could not figure out of HTTP version: '#{@http_version}'."
+    if @status == 304
+    
+    else
+      case @http_version
+        when "1.0"
+          @cgroup.write_to_socket
+          socket.write("#{NL}#{NL}")
+        when "1.1"
+          @cgroup.write_to_socket
+          socket.write("0#{NL}#{NL}")
+        else
+          raise "Could not figure out of HTTP version: '#{@http_version}'."
+      end
     end
+    
+    socket.close if @close
   end
 end

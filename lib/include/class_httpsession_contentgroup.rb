@@ -97,23 +97,46 @@ class Knjappserver::Httpsession::Contentgroup
       if data.key?(:cgroup)
         data[:cgroup].write_to_socket
       elsif data.key?(:str)
-        loop do
-          break if data[:str].size <= 0 and data[:done]
-          sleep 0.1 while data[:str].size <= 512 and !data[:done]
+        if data[:str].is_a?(File)
+          file = data[:str]
           
-          str = nil
-          @mutex.synchronize do
-            str = data[:str].bytes
-            data[:str] = ""
-          end
-          
-          str.each_slice(512) do |slice|
-            buf = slice.pack("C*")
+          loop do
+            begin
+              buf = file.sysread(4096)
+            rescue EOFError
+              break
+            end
             
             if @chunked
+              #STDOUT.print("#{buf.length.to_s(16)}#{NL}#{buf}#{NL}")
               @socket.write("#{buf.length.to_s(16)}#{NL}#{buf}#{NL}")
             else
+              #STDOUT.print buf
               @socket.write(buf)
+            end
+          end
+          
+          file.close
+        else
+          loop do
+            break if data[:str].size <= 0 and data[:done]
+            sleep 0.1 while data[:str].size <= 512 and !data[:done]
+            
+            str = nil
+            @mutex.synchronize do
+              str = data[:str].bytes
+              data[:str] = ""
+            end
+            
+            str.each_slice(512) do |slice|
+              buf = slice.pack("C*")
+              next if buf.length <= 0
+              
+              if @chunked
+                @socket.write("#{buf.length.to_s(16)}#{NL}#{buf}#{NL}")
+              else
+                @socket.write(buf)
+              end
             end
           end
         end
