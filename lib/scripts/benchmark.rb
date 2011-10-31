@@ -3,7 +3,7 @@
 Dir.chdir(File.dirname(__FILE__))
 require "rubygems"
 require "../knjappserver.rb"
-require "/home/kaspernj/Dev/Ruby/knjrbfw/lib/knjrbfw.rb"
+require "knjrbfw"
 require "erubis"
 require "sqlite3" if RUBY_ENGINE != "jruby"
 require "knj/autoload"
