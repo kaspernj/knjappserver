@@ -34,9 +34,7 @@ class Knjappserver::Log < Knj::Datarow
 	end
 	
 	def self.add(d)
-		if !d.data.has_key?(:date_saved)
-			d.data[:date_saved] = d.db.date_out(Knj::Datet.new)
-		end
+		d.data[:date_saved] = Time.now if !d.data.key?(:date_saved)
 	end
 	
 	def text
