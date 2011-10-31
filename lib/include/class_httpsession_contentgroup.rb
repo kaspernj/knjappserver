@@ -30,12 +30,20 @@ class Knjappserver::Httpsession::Contentgroup
     @mutex.synchronize do
       self.new_io
     end
+    
+    self.register_thread
   end
   
   def new_io(obj = "")
     @cur_data[:done] = true if @cur_data
     @cur_data = {:str => obj, :done => false}
     @ios << @cur_data
+  end
+  
+  def register_thread
+    Thread.current[:knjappserver] = {} if !Thread.current[:knjappserver]
+    Thread.current[:knjappserver][:contentgroup] = self
+    Thread.current[:knjappserver][:contentgroup_str] = @cur_data[:str]
   end
   
   def new_thread
@@ -46,9 +54,7 @@ class Knjappserver::Httpsession::Contentgroup
       data = {:cgroup => cgroup}
       @ios << data
       self.new_io
-      
-      Thread.current[:knjappserver] = {} if !Thread.current[:knjappserver]
-      Thread.current[:knjappserver][:contentgroup] = self
+      self.register_thread
       
       return data
     end

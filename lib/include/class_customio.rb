@@ -2,16 +2,10 @@ class Knjappserver::CustomIO < StringIO
 	def print(str)
 		thread = Thread.current
 		
-    if thread and thread[:knjappserver] and thread[:knjappserver][:contentgroup] and !thread[:knjappserver][:contentgroup].done
-      return thread[:knjappserver][:contentgroup].write(str)
+    if thread and thread[:knjappserver] and thread[:knjappserver][:contentgroup_str]
+      thread[:knjappserver][:contentgroup_str] += str
 		else
-      if thread[:knjappserver] and thread[:knjappserver][:contentgroup]
-        STDOUT.print "Str: '#{str}'\n"
-        STDOUT.print "Done: #{thread[:knjappserver][:contentgroup].done}\n"
-      end
-      
-      #STDOUT.print Knj::Php.print_r(Thread.current[:knjappserver], true)
-			return STDOUT.print(str) if !STDOUT.closed?
+			STDOUT.print(str) if !STDOUT.closed?
 		end
 	end
 	
@@ -21,5 +15,9 @@ class Knjappserver::CustomIO < StringIO
 	
 	def write(str)
 		self.print(str)
+	end
+	
+	def p(str)
+    self.print(str)
 	end
 end

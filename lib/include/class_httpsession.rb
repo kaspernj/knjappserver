@@ -37,7 +37,6 @@ class Knjappserver::Httpsession
     
     @thread_request = Knj::Thread.new do
       Thread.current[:knjappserver] = {} if !Thread.current[:knjappserver]
-      Thread.current[:knjappserver][:contentgroup] = @cgroup
       
       @kas.db_handler.get_and_register_thread if @kas.db_handler.opts[:threadsafe]
       @kas.ob.db.get_and_register_thread if @kas.ob.db.opts[:threadsafe]
@@ -94,7 +93,7 @@ class Knjappserver::Httpsession
     cgroup_data[:thread] = Thread.new(Thread.current[:knjappserver].clone) do |data|
       begin
         self.init_thread
-        Thread.current[:knjappserver][:contentgroup] = cgroup_data[:cgroup]
+        cgroup_data[:cgroup].register_thread
         
         @kas.db_handler.get_and_register_thread if @kas and @kas.db_handler.opts[:threadsafe]
         @kas.ob.db.get_and_register_thread if @kas and @kas.ob.db.opts[:threadsafe]
@@ -104,7 +103,7 @@ class Knjappserver::Httpsession
         STDOUT.puts e.inspect
         STDOUT.puts e.backtrace
         
-        Thread.current[:knjappserver][:contentgroup].write Knj::Errors.error_str(e, {:html => true})
+        Thread.current[:knjappserver][:contentgroup_str] += Knj::Errors.error_str(e, {:html => true})
         _kas.handle_error(e)
       ensure
         Thread.current[:knjappserver][:contentgroup].mark_done
@@ -260,7 +259,7 @@ class Knjappserver::Httpsession
     #check if we should use a handler for this request.
     @config[:handlers].each do |handler_info|
       if handler_info.key?(:file_ext) and handler_info[:file_ext] == @ext
-        return handler_info[:callback].call(self, @eruby)
+        return handler_info[:callback].call(self)
       elsif handler_info.key?(:path) and handler_info[:mount] and @meta["SCRIPT_NAME"].slice(0, handler_info[:path].length) == handler_info[:path]
         @page_path = "#{handler_info[:mount]}#{@meta["SCRIPT_NAME"].slice(handler_info[:path].length, @meta["SCRIPT_NAME"].length)}"
         break
