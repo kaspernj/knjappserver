@@ -9,6 +9,8 @@ class Knjappserver::Httpsession
     @socket = socket
     @httpserver = httpserver
     @kas = httpserver.kas
+    @types = @kas.types
+    @config = @kas.config
     @active = true
     @eruby = Knj::Eruby.new(:cache_hash => @kas.eruby_cache)
     @debug = @kas.debug
@@ -29,7 +31,7 @@ class Knjappserver::Httpsession
     require "#{File.dirname(__FILE__)}/class_httpsession_knjengine"
     @handler = Knjappserver::Httpsession::Knjengine.new(:kas => @kas)
     
-    Dir.chdir(@kas.config[:doc_root])
+    Dir.chdir(@config[:doc_root])
     ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc) if @debug
     STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if @debug
     
@@ -54,9 +56,9 @@ class Knjappserver::Httpsession
               sleep 0.1
             end
             
-            if @kas.config[:max_requests_working]
-              while @httpserver.working_count >= @kas.config[:max_requests_working]
-                STDOUT.print "Maximum amounts of requests are working (#{@httpserver.working_count}, #{@kas.config[:max_requests_working]}) - sleeping.\n" if @debug
+            if @config.key?(:max_requests_working)
+              while @httpserver.working_count >= @config[:max_requests_working]
+                STDOUT.print "Maximum amounts of requests are working (#{@httpserver.working_count}, #{@config[:max_requests_working]}) - sleeping.\n" if @debug
                 sleep 0.1
               end
             end
@@ -183,8 +185,8 @@ class Knjappserver::Httpsession
     @page_path = @handler.page_path
     @ext = File.extname(@page_path).downcase[1..-1].to_s
     
-    @ctype = @kas.types[@ext.to_sym] if @ext.length > 0 and @kas.types.has_key?(@ext.to_sym)
-    @ctype = @kas.config[:default_filetype] if !@ctype and @kas.config.has_key?(:default_filetype)
+    @ctype = @types[@ext.to_sym] if @ext.length > 0 and @types.key?(@ext.to_sym)
+    @ctype = @config[:default_filetype] if !@ctype and @config.key?(:default_filetype)
     @resp.header("Content-Type", @ctype)
     
     @browser = Knj::Web.browser(@meta)
@@ -198,25 +200,26 @@ class Knjappserver::Httpsession
     end
     
     @session_id = nil
-    @session_id = "bot" if @browser["browser"] == "bot"
-    @session_id = @cookie["KnjappserverSession"] if @cookie["KnjappserverSession"].to_s.length > 0
     
-    if !@session_id
+    if @browser["browser"] == "bot"
+      @session_id = "bot"
+    elsif @cookie["KnjappserverSession"].to_s.length > 0
+      @session_id = @cookie["KnjappserverSession"] 
+    else
       @session_id = @kas.session_generate_id(:meta => @meta)
-      @resp.cookie(
-        "name" => "KnjappserverSession",
-        "value" => @session_id,
-        "path" => "/",
-        "expires" => Time.now + 32140800 #add around 12 months
-      )
+      send_cookie = true
     end
     
     begin
       session = @kas.session_fromid(:idhash => @session_id, :ip => @ip, :meta => @meta)
     rescue Knj::Errors::InvalidData => e
       #User should not have the session he asked for because of invalid user-agent or invalid IP.
-      @session_id = @kas.session_generate_id(:meta => @meta)
-      session = @kas.session_fromid(:idhash => @session_id, :ip => @ip, :meta => @meta)
+      @session_id = @kas.session_generate_id(:meta => meta)
+      session = @kas.session_fromid(:idhash => @session_id, :ip => @ip, :meta => meta)
+      send_cookie = true
+    end
+    
+    if send_cookie
       @resp.cookie(
         "name" => "KnjappserverSession",
         "value" => @session_id,
@@ -228,7 +231,7 @@ class Knjappserver::Httpsession
     @session = session[:dbobj]
     @session_hash = session[:hash]
     
-    if @kas.config[:logging] and @kas.config[:logging][:access_db]
+    if @config.key?(:logging) and @config[:logging][:access_db]
       @ips = [@meta["REMOTE_ADDR"]]
       @ips << @meta["HTTP_X_FORWARDED_FOR"].split(",")[0].strip if @meta["HTTP_X_FORWARDED_FOR"]
       @kas.logs_access_pending << {
@@ -246,8 +249,7 @@ class Knjappserver::Httpsession
     Thread.current[:knjappserver][:contentgroup] = @cgroup
     time_start = Time.now.to_f if @debug
     self.serve_real
-    
-    STDOUT.print "Served '#{@meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start} secs.\n" if @debug
+    STDOUT.print "#{__id__} - Served '#{@meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start} secs (#{@resp.status}).\n" if @debug
     
     @cgroup.mark_done
     @cgroup.write_output
@@ -256,7 +258,7 @@ class Knjappserver::Httpsession
   
   def serve_real
     #check if we should use a handler for this request.
-    @kas.config[:handlers].each do |handler_info|
+    @config[:handlers].each do |handler_info|
       if handler_info.key?(:file_ext) and handler_info[:file_ext] == @ext
         return handler_info[:callback].call(self, @eruby)
       elsif handler_info.key?(:path) and handler_info[:mount] and @meta["SCRIPT_NAME"].slice(0, handler_info[:path].length) == handler_info[:path]
@@ -278,10 +280,10 @@ class Knjappserver::Httpsession
     
     if !File.exists?(@page_path)
       @resp.status = 404
-      @ret.header("Content-Type", "text/html")
-      print "File you are looking for was not found: '#{@meta["REQUEST_URI"]}'."
+      @resp.header("Content-Type", "text/html")
+      @cgroup.write("File you are looking for was not found: '#{@meta["REQUEST_URI"]}'.")
     else
-      lastmod = File.new(@page_path).mtime
+      lastmod = File.mtime(@page_path)
       
       @resp.header("Last-Modified", lastmod.httpdate)
       @resp.header("Expires", (Time.now + 86400).httpdate) #next day.

@@ -17,7 +17,7 @@ class Knjappserver::Httpsession::Knjengine
 		loop do
 			raise Errno::ECONNRESET, "Socket closed." if @socket.closed?
 			read = @socket.gets
-			raise Errno::ECONNRESET, "Socket returned non-string." if !read.is_a?(String)
+			raise Errno::ECONNRESET, "Socket returned non-string: '#{read.class.name}'." if !read.is_a?(String)
 			@cont += read
 			break if @cont[-4..-1] == "\r\n\r\n" or @cont[-2..-1] == "\n\n"
 		end
@@ -106,11 +106,11 @@ class Knjappserver::Httpsession::Knjengine
 			else
 				post_data.split("&").each do |splitted|
 					splitted = splitted.split("=")
-					post_treated[Knj::Php.urldecode(splitted[0])] = splitted[1]
+					post_treated[Knj::Web.urldec(splitted[0])] = splitted[1]
 				end
 			end
 			
-			self.convert_webrick_post(@post, post_treated, {:urldecode => true, :force_utf8 => true})
+			self.convert_webrick_post(@post, post_treated, {:urldecode => true})
 		end
 	end
 	
@@ -123,28 +123,32 @@ class Knjappserver::Httpsession::Knjengine
 	#Thanks to WEBrick
 	def parse_form_data(io, boundary)
 		boundary_regexp = /\A--#{boundary}(--)?#{@crlf}\z/
-		form_data = Hash.new
+		form_data = {}
 		return form_data unless io
 		data = nil
-		io.each{|line|
+		
+		io.each do |line|
 		  if boundary_regexp =~ line
-			 if data
-				data.chop!
-				key = data.name
-				if form_data.has_key?(key)
-				  form_data[key].append_data(data)
-				else
-				  form_data[key] = data 
-				end
-			 end
-			 data = WEBrick::HTTPUtils::FormData.new
-			 next
+			  if data
+          data.chop!
+          key = data.name
+          
+          if form_data.has_key?(key)
+            form_data[key].append_data(data)
+          else
+            form_data[key] = data
+          end
+			  end
+			  
+			  data = WEBrick::HTTPUtils::FormData.new
+			  next
 		  else
-			 if data
-				data << line
-			 end
+			  if data
+				  data << line
+			  end
 		  end
-		}
+		end
+		
 		return form_data
   end
 end
