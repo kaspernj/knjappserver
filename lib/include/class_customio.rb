@@ -3,7 +3,7 @@ class Knjappserver::CustomIO < StringIO
 		thread = Thread.current
 		
     if thread and thread[:knjappserver] and thread[:knjappserver][:contentgroup_str]
-      thread[:knjappserver][:contentgroup_str] += str
+      thread[:knjappserver][:contentgroup_str] << str
 		else
 			STDOUT.print(str) if !STDOUT.closed?
 		end
