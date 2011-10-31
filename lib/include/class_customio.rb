@@ -6,6 +6,7 @@ class Knjappserver::CustomIO < StringIO
       return thread[:knjappserver][:contentgroup].write(str)
 		else
       if thread[:knjappserver] and thread[:knjappserver][:contentgroup]
+        STDOUT.print "Str: '#{str}'\n"
         STDOUT.print "Done: #{thread[:knjappserver][:contentgroup].done}\n"
       end
       

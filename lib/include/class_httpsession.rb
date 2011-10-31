@@ -87,13 +87,11 @@ class Knjappserver::Httpsession
   
   def threadded_content(block)
     raise "No block was given." if !block
-    cgroup_data = @cgroup.new_thread
+    cgroup_data = Thread.current[:knjappserver][:contentgroup].new_thread
     
     cgroup_data[:thread] = Thread.new(Thread.current[:knjappserver].clone) do |data|
       begin
         self.init_thread
-        
-        Thread.current[:knjappserver][:db] = @kas.db_handler if @kas
         Thread.current[:knjappserver][:contentgroup] = cgroup_data[:cgroup]
         
         @kas.db_handler.get_and_register_thread if @kas and @kas.db_handler.opts[:threadsafe]

@@ -160,11 +160,11 @@ class Knjappserver
     dbschemapath = "#{File.dirname(__FILE__)}/../files/database_schema.rb"
     raise "'#{dbschemapath}' did not exist." if !File.exists?(dbschemapath)
     require dbschemapath
-    raise "No schema-variable was spawned." if !$tables
+    raise "No schema-variable was spawned." if !DATABASE_SCHEMA
     
     dbpath = "#{File.dirname(__FILE__)}/../files/database.sqlite3"
     dbrev = Knjdbrevision.new
-    dbrev.init_db($tables, @db)
+    dbrev.init_db(DATABASE_SCHEMA, @db)
     
     
     print "Spawning objects.\n" if @debug

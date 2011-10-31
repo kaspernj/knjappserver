@@ -11,63 +11,45 @@ describe "Knjappserver" do
     File.unlink(db_path) if File.exists?(db_path)
     
     require "knj/knjdb/libknjdb.rb"
-    require "sqlite3"
-    db = Knj::Db.new(
-      :type => "sqlite3",
-      :path => db_path,
-      :return_keys => "symbols"
-    )
+    require "sqlite3" if RUBY_ENGINE != "jruby"
+    
+    begin
+      db = Knj::Db.new(
+        :type => "sqlite3",
+        :path => db_path,
+        :return_keys => "symbols"
+      )
+    rescue => e
+      STDOUT.puts e.inspect
+      STDOUT.puts e.backtrace
+      
+      raise e
+    end
     
     erbhandler = Knjappserver::ERBHandler.new
+    
+    if RUBY_ENGINE == "jruby"
+      mail_require = false
+    else
+      mail_require = true
+    end
     
     $appserver = Knjappserver.new(
       :debug => false,
       :autorestart => false,
-      :autoload => false,
-      :verbose => false,
-      :title => "knjTasks",
+      :title => "SpecTest",
       :port => 1515,
-      :host => "0.0.0.0",
-      :default_page => "index.rhtml",
       :doc_root => "#{File.dirname(__FILE__)}/../lib/pages",
-      :hostname => false,
-      :default_filetype => "text/html",
-      :engine_knjengine => true,
       :locales_gettext_funcs => true,
       :locale_default => "da_DK",
-      :max_requests_working => 5,
-      :filetypes => {
-        :jpg => "image/jpeg",
-        :gif => "image/gif",
-        :png => "image/png",
-        :html => "text/html",
-        :htm => "text/html",
-        :rhtml => "text/html",
-        :css => "text/css",
-        :xml => "text/xml",
-        :js => "text/javascript"
-      },
-      :handlers => [
-        {
-          :file_ext => "rhtml",
-          :callback => erbhandler.method(:erb_handler)
-        },{
-          :path => "/fckeditor",
-          :mount => "/usr/share/fckeditor"
-        }
-      ],
-      :db => db
+      :db => db,
+      :mail_require => mail_require
     )
     
     $appserver.vars[:test] = "kasper"
     $appserver.define_magic_var(:_testvar1, "Kasper")
     $appserver.define_magic_var(:_testvar2, "Johansen")
-    $appserver.update_db
     $appserver.start
-  end
-  
-  it "should be able to mount FCKeditor dir to /usr/share/fckeditor" do
-    
   end
   
   it "should be able to handle a GET-request." do
@@ -123,6 +105,14 @@ describe "Knjappserver" do
     raise "Unexpected value for 'TestCookie': '#{parsed["TestCookie"]}'." if parsed["TestCookie"] != "TestValue"
     raise "Unexpected value for 'TestCookie2': '#{parsed["TestCookie2"]}'." if parsed["TestCookie2"] != "TestValue2"
     raise "Unexpected value for 'TestCookie3': '#{parsed["TestCookie3"]}'." if parsed["TestCookie3"] != "TestValue 3 "
+  end
+  
+  it "should be able to run the rspec_threadded_content test correctly." do
+    data = $http.get("/spec_threadded_content.rhtml")
+    
+    if data["data"] != "12345678910"
+      raise data["data"].to_s
+    end
   end
   
   it "should be able to stop." do
