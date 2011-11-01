@@ -63,10 +63,6 @@ class Knjappserver::Httpsession::Contentgroup
     @mutex.synchronize do
       @cur_data[:str] << cont.to_s
     end
-    
-    if @block and !@thread and @cur_data[:str].length > 512
-      self.write_output
-    end
   end
   
   def write_output

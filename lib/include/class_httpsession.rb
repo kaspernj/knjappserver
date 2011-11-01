@@ -244,11 +244,10 @@ class Knjappserver::Httpsession
     self.init_thread
     Thread.current[:knjappserver][:contentgroup] = @cgroup
     time_start = Time.now.to_f if @debug
+    @cgroup.write_output
     self.serve_real
     STDOUT.print "#{__id__} - Served '#{@meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start} secs (#{@resp.status}).\n" if @debug
-    
     @cgroup.mark_done
-    @cgroup.write_output
     @cgroup.join
   end
   
