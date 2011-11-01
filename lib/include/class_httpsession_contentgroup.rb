@@ -43,7 +43,6 @@ class Knjappserver::Httpsession::Contentgroup
   def register_thread
     Thread.current[:knjappserver] = {} if !Thread.current[:knjappserver]
     Thread.current[:knjappserver][:contentgroup] = self
-    Thread.current[:knjappserver][:contentgroup_str] = @cur_data[:str]
   end
   
   def new_thread
@@ -62,7 +61,7 @@ class Knjappserver::Httpsession::Contentgroup
   
   def write(cont)
     @mutex.synchronize do
-      @cur_data[:str] += cont.to_s
+      @cur_data[:str] << cont.to_s
     end
     
     if @block and !@thread and @cur_data[:str].length > 512
@@ -121,7 +120,7 @@ class Knjappserver::Httpsession::Contentgroup
           file.close
         else
           loop do
-            break if data[:str].size <= 0 and data[:done]
+            break if data[:done] and data[:str].size <= 0 
             sleep 0.1 while data[:str].size <= 512 and !data[:done]
             
             str = nil
@@ -132,7 +131,6 @@ class Knjappserver::Httpsession::Contentgroup
             
             str.each_slice(512) do |slice|
               buf = slice.pack("C*")
-              next if buf.length <= 0
               
               if @chunked
                 @socket.write("#{buf.length.to_s(16)}#{NL}#{buf}#{NL}")

@@ -99,11 +99,8 @@ class Knjappserver::Httpsession
         @kas.ob.db.get_and_register_thread if @kas and @kas.ob.db.opts[:threadsafe]
         
         block.call
-      rescue => e
-        STDOUT.puts e.inspect
-        STDOUT.puts e.backtrace
-        
-        Thread.current[:knjappserver][:contentgroup_str] += Knj::Errors.error_str(e, {:html => true})
+      rescue Exception => e
+        Thread.current[:knjappserver][:contentgroup].write Knj::Errors.error_str(e, {:html => true})
         _kas.handle_error(e)
       ensure
         Thread.current[:knjappserver][:contentgroup].mark_done
