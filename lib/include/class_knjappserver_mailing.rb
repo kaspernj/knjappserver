@@ -3,7 +3,7 @@ class Knjappserver
   
 	def initialize_mailing
     STDOUT.print "Loading mail.\n" if @config[:debug]
-    require "mail"
+    require "mail" if !@config.has_key?(:mail_require) or @config[:mail_require]
     
 		@mails_waiting = []
 		@mails_mutex = Mutex.new

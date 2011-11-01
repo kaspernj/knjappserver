@@ -3,8 +3,10 @@ class Knjappserver::ERBHandler
 		@connected = {}
 	end
 	
-	def erb_handler(httpsess, eruby)
-		if !@connected[eruby.__id__]
+	def erb_handler(httpsess)
+    eruby = httpsess.eruby
+    
+		if !@connected.key?(eruby.__id__)
 			eruby.connect("error") do |e|
 				_kas.handle_error(e)
 			end
@@ -12,9 +14,6 @@ class Knjappserver::ERBHandler
 			@connected[eruby.__id__] = true
 		end
 		
-		eruby.load_return(httpsess.page_path, {
-			:with_headers => false,
-			:custom_io => true
-		})
+		eruby.import(httpsess.page_path)
 	end
 end

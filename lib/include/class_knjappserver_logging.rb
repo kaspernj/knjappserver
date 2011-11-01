@@ -199,7 +199,7 @@ class Knjappserver
 			objs = [objs] if !objs.is_a?(Array)
 			log_value_id = @ob.static(:Log_data_value, :force_id, msg)
 			ins_data = {
-				:date_saved => Time.new,
+				:date_saved => Time.now,
 				:text_value_id => log_value_id
 			}
 			

@@ -30,12 +30,19 @@ class Knjappserver::Httpsession::Contentgroup
     @mutex.synchronize do
       self.new_io
     end
+    
+    self.register_thread
   end
   
   def new_io(obj = "")
-    @cur_data[:done] = true if @cur_data and @cur_data.key?(:done)
+    @cur_data[:done] = true if @cur_data
     @cur_data = {:str => obj, :done => false}
     @ios << @cur_data
+  end
+  
+  def register_thread
+    Thread.current[:knjappserver] = {} if !Thread.current[:knjappserver]
+    Thread.current[:knjappserver][:contentgroup] = self
   end
   
   def new_thread
@@ -43,11 +50,10 @@ class Knjappserver::Httpsession::Contentgroup
       cgroup = Knjappserver::Httpsession::Contentgroup.new(:socket => @socket, :chunked => @chunked)
       cgroup.init
       
-      data = {:cgroup => cgroup, :done => false}
+      data = {:cgroup => cgroup}
       @ios << data
       self.new_io
-      Thread.current[:knjappserver] = {} if !Thread.current[:knjappserver]
-      Thread.current[:knjappserver][:contentgroup] = self
+      self.register_thread
       
       return data
     end
@@ -55,11 +61,7 @@ class Knjappserver::Httpsession::Contentgroup
   
   def write(cont)
     @mutex.synchronize do
-      @cur_data[:str] += cont.to_s
-    end
-    
-    if @block and !@thread and @cur_data[:str].length > 512
-      self.write_output
+      @cur_data[:str] << cont.to_s
     end
   end
   
@@ -74,18 +76,11 @@ class Knjappserver::Httpsession::Contentgroup
   end
   
   def mark_done
-    @mutex.synchronize do
-      @cur_data[:done] = true
-      @done = true
-    end
+    @cur_data[:done] = true
+    @done = true
   end
   
   def join
-    @ios.each do |data|
-      data[:cgroup].join if data.key?(:cgroup)
-      data[:thread].join if data.key?(:thread)
-    end
-    
     if @block
       sleep 0.1 while !@thread
       @thread.join
@@ -93,6 +88,8 @@ class Knjappserver::Httpsession::Contentgroup
   end
   
   def write_to_socket
+    count = 0
+    
     @ios.each do |data|
       if data.key?(:cgroup)
         data[:cgroup].write_to_socket
@@ -119,7 +116,7 @@ class Knjappserver::Httpsession::Contentgroup
           file.close
         else
           loop do
-            break if data[:str].size <= 0 and data[:done]
+            break if data[:done] and data[:str].size <= 0 
             sleep 0.1 while data[:str].size <= 512 and !data[:done]
             
             str = nil
@@ -130,7 +127,6 @@ class Knjappserver::Httpsession::Contentgroup
             
             str.each_slice(512) do |slice|
               buf = slice.pack("C*")
-              next if buf.length <= 0
               
               if @chunked
                 @socket.write("#{buf.length.to_s(16)}#{NL}#{buf}#{NL}")
@@ -144,5 +140,7 @@ class Knjappserver::Httpsession::Contentgroup
         raise "Unknown object: '#{data.class.name}'."
       end
     end
+    
+    count += 1
   end
 end
