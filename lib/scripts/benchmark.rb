@@ -12,6 +12,8 @@ page = "benchmark.rhtml"
 ARGV.each do |arg|
   if arg == "print"
     page = "benchmark_print.rhtml"
+  elsif arg == "threadded_content"
+    page = "benchmark_threadded_content.rhtml"
   else
     print "Unknown argument: #{arg}\n"
     exit
@@ -45,7 +47,13 @@ count_requests = 0
     )
     
     loop do
-      http.get(page)
+      resp = http.get(page)
+      if page == "benchmark_threadded_content.rhtml"
+        if resp.body != "123456"
+          raise "Invalid content: '#{resp.body}'."
+        end
+      end
+      
       count_requests += 1
     end
   end
