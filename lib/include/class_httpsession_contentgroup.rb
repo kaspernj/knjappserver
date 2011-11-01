@@ -105,10 +105,8 @@ class Knjappserver::Httpsession::Contentgroup
             end
             
             if @chunked
-              #STDOUT.print("#{buf.length.to_s(16)}#{NL}#{buf}#{NL}")
               @socket.write("#{buf.length.to_s(16)}#{NL}#{buf}#{NL}")
             else
-              #STDOUT.print buf
               @socket.write(buf)
             end
           end

@@ -2,7 +2,7 @@ require "digest"
 
 class Knjappserver::Httpsession
   attr_accessor :data
-  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path
+  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :cgroup, :written_size
   
   def initialize(httpserver, socket)
     @data = {}
@@ -45,6 +45,7 @@ class Knjappserver::Httpsession
         while @active
           begin
             @cgroup.reset
+            @written_size = 0
             
             Timeout.timeout(30) do
               @handler.socket_parse(@socket)
@@ -244,10 +245,10 @@ class Knjappserver::Httpsession
     self.init_thread
     Thread.current[:knjappserver][:contentgroup] = @cgroup
     time_start = Time.now.to_f if @debug
-    @cgroup.write_output
     self.serve_real
-    STDOUT.print "#{__id__} - Served '#{@meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start} secs (#{@resp.status}).\n" if @debug
     @cgroup.mark_done
+    @cgroup.write_output
+    STDOUT.print "#{__id__} - Served '#{@meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start} secs (#{@resp.status}).\n" if @debug
     @cgroup.join
   end
   

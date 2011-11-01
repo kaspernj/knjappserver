@@ -1,7 +1,7 @@
 require "time"
 
 class Knjappserver::Httpresp
-  attr_accessor :nl, :status, :http_version
+  attr_accessor :nl, :status, :http_version, :headers, :headers_trailing
   
   STATUS_CODES = {
     100 => "Continue",
@@ -34,6 +34,10 @@ class Knjappserver::Httpresp
     @close = args[:close]
     @fileobj = nil
     @close = true if @http_version == "1.0"
+    @trailers = []
+    
+    @headers_sent = false
+    @headers_trailing = {}
     
     @headers = {
       "date" => ["Date", Time.now.httpdate]
@@ -49,7 +53,12 @@ class Knjappserver::Httpresp
   end
   
   def header(key, val)
-    @headers[key.to_s.downcase] = [key, val]
+    if !@headers_sent
+      @headers[key.to_s.downcase] = [key, val]
+    else
+      raise "Headers already sent and given header was not in trailing headers: '#{key}'." if @trailers.index(key) == nil
+      @headers_trailing[key.to_s.downcase] = [key, val]
+    end
   end
   
   def cookie(cookie)
@@ -75,6 +84,10 @@ class Knjappserver::Httpresp
       @headers_11.each do |key, val|
         res += "#{key}: #{val}#{NL}"
       end
+      
+      @trailers.each do |trailer|
+        res += "Trailer: #{trailer}#{NL}"
+      end
     end
     
     @cookies.each do |cookie|
@@ -87,10 +100,11 @@ class Knjappserver::Httpresp
   end
   
   def write(socket)
+    @headers_sent = true
     socket.write(self.header_str)
     
     if @status == 304
-    
+      #do nothing.
     else
       case @http_version
         when "1.0"
@@ -98,7 +112,13 @@ class Knjappserver::Httpresp
           socket.write("#{NL}#{NL}")
         when "1.1"
           @cgroup.write_to_socket
-          socket.write("0#{NL}#{NL}")
+          socket.write("0#{NL}")
+          
+          @headers_trailing.each do |header_id_str, header|
+            socket.write("#{header[0]}: #{header[1]}#{NL}")
+          end
+          
+          socket.write(NL)
         else
           raise "Could not figure out of HTTP version: '#{@http_version}'."
       end
