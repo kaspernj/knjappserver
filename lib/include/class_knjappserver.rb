@@ -29,7 +29,8 @@ class Knjappserver
       :timeout => 30,
       :default_page => "index.rhtml",
       :default_filetype => "text/html",
-      :max_requests_working => 20
+      :max_requests_working => 20,
+      :size_send => 1024
     }.merge(config)
     
     @config[:smtp_args] = {"smtp_host" => "localhost", "smtp_port" => 25} if !@config[:smtp_args]

@@ -1,7 +1,7 @@
 require "digest"
 
 class Knjappserver::Httpsession
-  attr_accessor :data
+  attr_accessor :data, :size_send
   attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :cgroup, :written_size
   
   def initialize(httpserver, socket)
@@ -46,6 +46,7 @@ class Knjappserver::Httpsession
           begin
             @cgroup.reset
             @written_size = 0
+            @size_send = @config[:size_send]
             
             Timeout.timeout(30) do
               @handler.socket_parse(@socket)

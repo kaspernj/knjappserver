@@ -37,6 +37,19 @@ class Knjappserver
     Knj::Php.header(str)
 	end
 	
+	def headers_sent?
+    return true if _httpsession.resp.headers_sent
+    return false
+	end
+	
+	def headers_send_size=(newsize)
+    if self.headers_sent?
+      raise "The headers are already sent and you cannot modify the send-size any more."
+    end
+    
+    _httpsession.size_send = newsize.to_i
+	end
+	
 	#Sends a javascript back to the browser and exits.
 	def back
 		Knj::Web.back

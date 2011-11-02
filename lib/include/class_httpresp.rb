@@ -1,7 +1,7 @@
 require "time"
 
 class Knjappserver::Httpresp
-  attr_accessor :nl, :status, :http_version, :headers, :headers_trailing
+  attr_accessor :nl, :status, :http_version, :headers, :headers_trailing, :headers_sent
   
   STATUS_CODES = {
     100 => "Continue",

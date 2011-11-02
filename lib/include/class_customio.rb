@@ -4,12 +4,14 @@ class Knjappserver::CustomIO < StringIO
 		str = str.to_s
 		
     if thread and thread[:knjappserver] and thread[:knjappserver][:contentgroup]
-      if thread[:knjappserver][:httpsession]
-        wsize = thread[:knjappserver][:httpsession].written_size
+      httpsession = thread[:knjappserver][:httpsession]
+      
+      if httpsession
+        wsize = httpsession.written_size
         wsize += str.size
         
-        if wsize > 1024
-          thread[:knjappserver][:httpsession].cgroup.write_output
+        if wsize >= httpsession.size_send
+          httpsession.cgroup.write_output
         end
       end
       

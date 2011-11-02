@@ -67,6 +67,30 @@ Then go to your browser and type "localhost:10080".
     _kas.header("SomeHeader", "SomeValue")
   %>
 
+If you have trouble, because the server already began to send the content while the page was not fully generated, then you can increase the size for when it should begin sending content like this:
+
+  appsrv = Knjappserver.new(
+    ...
+    :send_size => 4096
+    ...
+  )
+
+Or you can do it for just one page dynamically (this should be done VERY early - like before the first lines gets printed out):
+
+  <%
+    _kas.headers_send_size = 4096
+  %>
+
+You can also test if the headers are sent for your HTTP-session or not like this:
+
+  <%
+    if _kas.headers_sent?
+      print "The headers are sent!"
+    else
+      print "The headers are not sent yet - we can still add headers!"
+    end
+  %>
+
 === How to send set a cookie
 
   <%
