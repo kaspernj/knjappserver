@@ -42,51 +42,15 @@ class Knjappserver
 	end
 	
 	#Runs a proc every number of seconds.
-	def timeout(args = {})
-		raise "No time given." if !args.has_key?(:time)
-		raise "No block given." if !block_given?
-		args[:args] = [] if !args[:args]
-		
-		thread = Thread.new do
-			loop do
-				begin
-					if args[:counting]
-						Thread.current[:knjappserver_timeout] = args[:time].to_s.to_i
-						
-						while Thread.current[:knjappserver_timeout] > 0
-							Thread.current[:knjappserver_timeout] += -1
-							break if @should_restart
-							sleep 1
-						end
-					else
-						sleep args[:time]
-					end
-					
-					break if @should_restart
-					
-					@threadpool.run do
-            @ob.db.get_and_register_thread if @ob.db.opts[:threadsafe]
-            @db_handler.get_and_register_thread if @db_handler.opts[:threadsafe]
-            
-            Thread.current[:knjappserver] = {
-              :kas => self,
-              :db => @db_handler
-            }
-						
-						begin
-							yield(*args[:args])
-						ensure
-							@ob.db.free_thread if @ob.db.opts[:threadsafe]
-							@db_handler.free_thread if @db_handler.opts[:threadsafe]
-						end
-					end
-				rescue Exception => e
-					handle_error(e)
-				end
-			end
-		end
-		
-		return thread
+	def timeout(args = {}, &block)
+    to = Knjappserver::Threadding_timeout.new(
+      :kas => self,
+      :block => block,
+      :args => args
+    )
+    to.start
+    
+    return to
 	end
 	
 	#Spawns a thread to run the given proc and add the output of that block in the correct order to the HTML.

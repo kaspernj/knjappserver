@@ -8,16 +8,18 @@ require "erubis"
 require "sqlite3" if RUBY_ENGINE != "jruby"
 require "knj/autoload"
 
-page = "benchmark.rhtml"
-ARGV.each do |arg|
-  if arg == "print"
-    page = "benchmark_print.rhtml"
-  elsif arg == "threadded_content"
-    page = "benchmark_threadded_content.rhtml"
-  else
-    print "Unknown argument: #{arg}\n"
-    exit
-  end
+begin
+  args = {
+    :filename => "benchmark.rhtml"
+  }
+  
+  OptionParser.new do |opts|
+    opts.banner = "Usage: benchmark.rb [options]"
+    
+    opts.on("-f FILENAME", "--file FILENAME", "The filename that should be requested from the server.") do |t|
+      args[:filename] = t
+    end
+  end.parse!
 end
 
 db_path = "#{File.dirname(__FILE__)}/benchmark_db.sqlite3"
@@ -47,13 +49,7 @@ count_requests = 0
     )
     
     loop do
-      resp = http.get(page)
-      if page == "benchmark_threadded_content.rhtml"
-        if resp.body != "123456"
-          raise "Invalid content: '#{resp.body}'."
-        end
-      end
-      
+      resp = http.get(args[:filename])
       count_requests += 1
     end
   end

@@ -91,7 +91,7 @@ class Knjappserver
           {"name" => "idhash", "type" => "varchar"},
           {"name" => "sess_data", "type" => "text"},
           {"name" => "date_added", "type" => "datetime"},
-          {"name" => "date_lastused", "type" => "datetime", "on_created" => proc{|d| d["db"].query("UPDATE Session SET date_lastused = NOW()")}},
+          {"name" => "date_lastused", "type" => "datetime", "on_created" => proc{|d| d["db"].query("UPDATE Session SET date_lastused = '#{Knj::Datet.new.dbstr}")}},
           {"name" => "ip", "type" => "varchar", "maxlength" => 15},
           {"name" => "user_agent", "type" => "text"},
           {"name" => "remember", "type" => "enum", "maxlength" => "'0','1'", "default" => 0, "comment" => "If the session should be remembered or not."}
