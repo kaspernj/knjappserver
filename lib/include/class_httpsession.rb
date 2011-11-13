@@ -198,12 +198,10 @@ class Knjappserver::Httpsession
       raise "Could not figure out the IP of the session."
     end
     
-    @session_id = nil
-    
-    if @browser["browser"] == "bot"
+    if @cookie["KnjappserverSession"].to_s.length > 0
+      @session_id = @cookie["KnjappserverSession"]
+    elsif @browser["browser"] == "bot"
       @session_id = "bot"
-    elsif @cookie["KnjappserverSession"].to_s.length > 0
-      @session_id = @cookie["KnjappserverSession"] 
     else
       @session_id = @kas.session_generate_id(:meta => @meta)
       send_cookie = true
