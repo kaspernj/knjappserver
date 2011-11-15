@@ -6,11 +6,24 @@ class Knjappserver
   
   #Redirects to another URL.
 	def redirect(url, args = {})
-		return Knj::Web.redirect(url, args)
+    #Header way
+    if !_httpsession.alert_sent and !self.headers_sent?
+      if args[:perm]
+        _httpsession.resp.status = 301 if !self.headers_sent?
+      else
+        _httpsession.resp.status = 303 if !self.headers_sent?
+      end
+      
+      self.header("Location", url) if !self.headers_sent?
+    end
+    
+    print "<script type=\"text/javascript\">location.href=\"#{url}\";</script>"
+    exit
 	end
 	
 	#Sends a javascript-alert to the HTML.
 	def alert(msg)
+    _httpsession.alert_sent = true
 		Knj::Web.alert(msg)
 		return self
 	end
