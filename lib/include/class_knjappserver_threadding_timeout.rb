@@ -23,10 +23,10 @@ class Knjappserver::Threadding_timeout
       loop do
         begin
           if @args[:counting]
-            Thread.current[:knjappserver_timeout] = @args[:time]
+            @timeout = @args[:time]
             
-            while Thread.current[:knjappserver_timeout] > 0
-              Thread.current[:knjappserver_timeout] += -1
+            while @timeout > 0
+              @timeout += -1
               break if @kas.should_restart or !@run
               sleep 1
             end
@@ -68,5 +68,11 @@ class Knjappserver::Threadding_timeout
       @thread.kill if @thread.alive?
       @thread = nil
     end
+  end
+  
+  #Returns various data.
+  def [](key)
+    return @timeout if key == :knjappserver_timeout
+    raise "No such key: '#{key}'."
   end
 end
