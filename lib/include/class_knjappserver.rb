@@ -17,7 +17,7 @@ require "stringio"
 require "socket"
 
 class Knjappserver
-  attr_reader :config, :httpserv, :debug, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_vars, :types, :eruby_cache
+  attr_reader :config, :httpserv, :debug, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_procs, :magic_vars, :types, :eruby_cache
   attr_accessor :served, :should_restart, :should_restart_done
   
   autoload :ERBHandler, "#{File.dirname(__FILE__)}/class_erbhandler"
@@ -254,6 +254,7 @@ class Knjappserver
     #Set up the 'vars'-variable that can be used to set custom global variables for web-requests.
     @vars = Knj::Hash_methods.new
     @magic_vars = {}
+    @magic_procs = {}
     
     
     #Initialize the various feature-modules.
@@ -431,7 +432,18 @@ class Knjappserver
     if !Object.respond_to?(method_name)
       Object.send(:define_method, method_name) do
         return Thread.current[:knjappserver][:kas].magic_vars[method_name] if Thread.current[:knjappserver] and Thread.current[:knjappserver][:kas]
-        return $knjappserver[:knjappserver].magic_vars[method_name] if $knjappserver and $knjappserver[:knjappserver]
+        raise "Could not figure out the object: '#{method_name}'."
+      end
+    end
+  end
+  
+  def define_magic_proc(method_name, &block)
+    raise "No block given." if !block_given?
+    @magic_procs[method_name] = block
+    
+    if !Object.respond_to?(method_name)
+      Object.send(:define_method, method_name) do
+        return Thread.current[:knjappserver][:kas].magic_procs[method_name].call(:kas => self) if Thread.current[:knjappserver] and Thread.current[:knjappserver][:kas]
         raise "Could not figure out the object: '#{method_name}'."
       end
     end

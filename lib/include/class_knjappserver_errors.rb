@@ -117,4 +117,9 @@ class Knjappserver
       self.alert(e.message).back
     end
 	end
+	
+	#Prints a detailed overview of the object in the terminal from where the appserver was started. This can be used for debugging.
+	def dprint(obj)
+    STDOUT.print Knj::Php.print_r(obj, true)
+	end
 end
