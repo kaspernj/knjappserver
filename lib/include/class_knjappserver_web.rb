@@ -59,4 +59,14 @@ class Knjappserver
 	def inputs(*args)
     return Knj::Web.inputs(args)
 	end
+	
+	#Urlencodes a string.
+	def urlenc(str)
+    return Knj::Web.urlenc(str)
+	end
+	
+	#Urldecodes a string.
+	def urldec(str)
+    return Knj::Web.urldec(str)
+	end
 end
