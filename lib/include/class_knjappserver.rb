@@ -5,6 +5,7 @@ require "#{File.dirname(__FILE__)}/class_knjappserver_logging"
 require "#{File.dirname(__FILE__)}/class_knjappserver_mailing"
 require "#{File.dirname(__FILE__)}/class_knjappserver_sessions"
 require "#{File.dirname(__FILE__)}/class_knjappserver_threadding"
+require "#{File.dirname(__FILE__)}/class_knjappserver_threadding_timeout"
 require "#{File.dirname(__FILE__)}/class_knjappserver_translations"
 require "#{File.dirname(__FILE__)}/class_knjappserver_web"
 

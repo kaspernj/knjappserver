@@ -115,6 +115,41 @@ describe "Knjappserver" do
     end
   end
   
+  it "should be able to add a timeout." do
+    $break_timeout = false
+    timeout = $appserver.timeout(:time => 1) do
+      $break_timeout = true
+    end
+    
+    Timeout.timeout(2) do
+      loop do
+        break if $break_timeout
+        sleep 0.1
+      end
+    end
+  end
+  
+  it "should be able to stop a timeout." do
+    $timeout_runned = false
+    timeout = $appserver.timeout(:time => 1) do
+      $timeout_runned = true
+    end
+    
+    sleep 0.5
+    timeout.stop
+    
+    begin
+      Timeout.timeout(1.5) do
+        loop do
+          raise "The timeout ran even though stop was called?" if $timeout_runned
+          sleep 0.1
+        end
+      end
+    rescue Timeout::Error
+      #the timeout didnt run - and it shouldnt so dont do anything.
+    end
+  end
+  
   it "should be able to stop." do
     $appserver.stop
   end
