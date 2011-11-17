@@ -11,7 +11,8 @@ class Knjappserver
 	end
 	
 	#Inits the thread so it has access to the appserver and various magic methods can be used.
-	def thread_init(thread)
+	def thread_init(thread = nil)
+    thread = Thread.current if thread == nil
     thread[:knjappserver] = {} if !thread[:knjappserver]
     thread[:knjappserver][:kas] = self
 	end
