@@ -4,6 +4,7 @@ class Knjappserver
     
     Knj::Thread.new do
       line = $stdin.gets
+      next if line == "\n"
       
       called = 0
       @cmds.each do |key, connects|
