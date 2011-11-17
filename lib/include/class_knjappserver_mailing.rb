@@ -2,6 +2,9 @@ class Knjappserver
   attr_reader :mails_waiting
   
 	def initialize_mailing
+    require "knj/autoload/ping"
+    require "knj/mailobj"
+    
     STDOUT.print "Loading mail.\n" if @config[:debug]
     require "mail" if !@config.has_key?(:mail_require) or @config[:mail_require]
     
@@ -15,6 +18,8 @@ class Knjappserver
 	
 	#Queue a mail for sending. Possible keys are: :subject, :from, :to, :text and :html.
 	def mail(mail_args)
+    raise "'smtp_args' has not been given for the Knjappserver." if !@config[:smtp_args]
+    
 		@mails_queue_mutex.synchronize do
 			count_wait = 0
 			while @mails_waiting.length > 100
@@ -44,9 +49,12 @@ class Knjappserver
 				return false  #Dont run if we dont have a connection to the internet and then properly dont have a connection to the SMTP as well.
 			end
 			
+			STDOUT.print "Flushing emails." if @debug
 			@mails_waiting.each do |mail|
 				begin
+          STDOUT.print "Sending email: #{mail.__id__}\n" if @debug
 					if mail.send
+            STDOUT.print "Email sent: #{mail.__id__}\n" if @debug
 						@mails_waiting.delete(mail)
 					end
 				rescue Timeout::Error
