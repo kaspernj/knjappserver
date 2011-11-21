@@ -44,14 +44,11 @@ class Knjappserver
 	
 	#Runs a proc every number of seconds.
 	def timeout(args = {}, &block)
-    to = Knjappserver::Threadding_timeout.new(
+    return Knjappserver::Threadding_timeout.new({
       :kas => self,
       :block => block,
-      :args => args
-    )
-    to.start
-    
-    return to
+      :args => []
+    }.merge(args)).start
 	end
 	
 	#Spawns a thread to run the given proc and add the output of that block in the correct order to the HTML.

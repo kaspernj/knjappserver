@@ -1,11 +1,12 @@
 class Knjappserver::Threadding_timeout
+  attr_reader :timeout
+  
   def initialize(args)
     @args = args
     @kas = @args[:kas]
-    raise "No time given." if !@args[:args].key?(:time)
-    @args[:time] = @args[:args][:time].to_s.to_i
-    @args[:args] = [] if !@args[:args]
+    raise "No time given." if !@args.key?(:time)
     @mutex = Mutex.new
+    @running = false
   end
   
   def time=(newtime)
@@ -42,13 +43,15 @@ class Knjappserver::Threadding_timeout
               @kas.db_handler.get_and_register_thread if @kas.db_handler.opts[:threadsafe]
               
               Thread.current[:knjappserver] = {
-                :kas => self,
+                :kas => @kas,
                 :db => @kas.db_handler
               }
               
               begin
+                @running = true
                 @args[:block].call(*@args[:args])
               ensure
+                @running = false
                 @kas.ob.db.free_thread if @kas.ob.db.opts[:threadsafe]
                 @kas.db_handler.free_thread if @kas.db_handler.opts[:threadsafe]
               end
@@ -59,6 +62,8 @@ class Knjappserver::Threadding_timeout
         end
       end
     end
+    
+    return self
   end
   
   #Stops the timeout.
@@ -74,5 +79,16 @@ class Knjappserver::Threadding_timeout
   def [](key)
     return @timeout if key == :knjappserver_timeout
     raise "No such key: '#{key}'."
+  end
+  
+  #Returns true if the thread is alive or not.
+  def alive?
+    return @thread.alive? if @thread
+    return false
+  end
+  
+  #Returns true if the timeout is running or not.
+  def running?
+    return @running
   end
 end
