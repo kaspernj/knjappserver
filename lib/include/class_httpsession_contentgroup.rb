@@ -123,7 +123,8 @@ class Knjappserver::Httpsession::Contentgroup
               data[:str] = ""
             end
             
-            str.each_slice(512) do |slice|
+            #512 could take a long time for small pages. 16384 seems to be a good number.
+            str.each_slice(16384) do |slice|
               buf = slice.pack("C*")
               
               if @chunked
