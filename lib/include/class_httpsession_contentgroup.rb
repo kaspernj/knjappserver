@@ -8,10 +8,6 @@ class Knjappserver::Httpsession::Contentgroup
     @block = args[:restart_proc]
     @socket = args[:socket]
     @chunked = args[:chunked]
-    @tpool = args[:kas].threadpool
-    
-    raise "Threadpool not spawned." if !@tpool
-    
     @mutex = Mutex.new
     @debug = false
   end
