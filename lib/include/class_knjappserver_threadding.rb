@@ -3,9 +3,9 @@ class Knjappserver
     @config[:threadding] = {} if !@config.has_key?(:threadding)
     @config[:threadding][:max_running] = 25 if !@config[:threadding].has_key?(:max_running)
     
-		@threadpool = Knj::Threadpool.new(:threads => @config[:threadding][:max_running])
+		@threadpool = Knj::Threadpool.new(:threads => @config[:threadding][:max_running], :sleep => 0.001)
 		@threadpool.events.connect(:on_error) do |event, error|
-      STDOUT.print "Error!\n"
+      STDOUT.print "Threadpool error!\n"
 			self.handle_error(error)
 		end
 	end

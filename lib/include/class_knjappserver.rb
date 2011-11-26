@@ -1,14 +1,3 @@
-require "#{File.dirname(__FILE__)}/class_knjappserver_cleaner"
-require "#{File.dirname(__FILE__)}/class_knjappserver_cmdline"
-require "#{File.dirname(__FILE__)}/class_knjappserver_errors"
-require "#{File.dirname(__FILE__)}/class_knjappserver_logging"
-require "#{File.dirname(__FILE__)}/class_knjappserver_mailing"
-require "#{File.dirname(__FILE__)}/class_knjappserver_sessions"
-require "#{File.dirname(__FILE__)}/class_knjappserver_threadding"
-require "#{File.dirname(__FILE__)}/class_knjappserver_threadding_timeout"
-require "#{File.dirname(__FILE__)}/class_knjappserver_translations"
-require "#{File.dirname(__FILE__)}/class_knjappserver_web"
-
 require "timeout"
 require "digest"
 require "erubis"
@@ -53,6 +42,15 @@ class Knjappserver
         }
       ]
     end
+    
+    
+    #Setup cache to make .rhtml-calls faster.
+    @config[:handlers_cache] = {}
+    @config[:handlers].each do |handler_info|
+      next if !handler_info[:file_ext] or !handler_info[:callback]
+      @config[:handlers_cache][handler_info[:file_ext]] = handler_info[:callback]
+    end
+    
     
     @debug = @config[:debug]
     @paused = 0
@@ -130,11 +128,22 @@ class Knjappserver
       "#{@path_knjappserver}/class_httpresp.rb",
       "#{@path_knjappserver}/class_httpserver.rb",
       "#{@path_knjappserver}/class_httpsession.rb",
+      "#{@path_knjappserver}/class_httpsession_knjengine.rb",
       "#{@path_knjappserver}/class_httpsession_contentgroup.rb",
       "#{@path_knjappserver}/class_session.rb",
       "#{@path_knjappserver}/class_log.rb",
       "#{@path_knjappserver}/class_log_access.rb",
-      "#{@path_knjappserver}/class_log_data_value.rb"
+      "#{@path_knjappserver}/class_log_data_value.rb",
+      "#{@path_knjappserver}/class_knjappserver_cleaner",
+      "#{@path_knjappserver}/class_knjappserver_cmdline",
+      "#{@path_knjappserver}/class_knjappserver_errors",
+      "#{@path_knjappserver}/class_knjappserver_logging",
+      "#{@path_knjappserver}/class_knjappserver_mailing",
+      "#{@path_knjappserver}/class_knjappserver_sessions",
+      "#{@path_knjappserver}/class_knjappserver_threadding",
+      "#{@path_knjappserver}/class_knjappserver_threadding_timeout",
+      "#{@path_knjappserver}/class_knjappserver_translations",
+      "#{@path_knjappserver}/class_knjappserver_web"
     ]
     files << "#{@path_knjrbfw}knj/gettext_threadded.rb" if @config[:locales_root]
     files.each do |file|

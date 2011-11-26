@@ -14,23 +14,43 @@ class Knjappserver::Httpsession
     @active = true
     @eruby = Knj::Eruby.new(:cache_hash => @kas.eruby_cache)
     @debug = @kas.debug
+    @handlers_cache = @config[:handlers_cache]
+    
+    #Set socket stuff.
+    if RUBY_PLATFORM == "java" or RUBY_ENGINE == "rbx"
+      if @kas.config[:peeraddr_static]
+        addr_peer = [0, 0, @kas.config[:peeraddr_static]]
+      else
+        addr_peer = @socket.peeraddr
+      end
+      
+      addr = @socket.addr
+    else
+      addr = @socket.addr(false)
+      addr_peer = @socket.peeraddr(false)
+    end
+    
+    @socket_meta = {
+      "REMOTE_ADDR" => addr[2],
+      "REMOTE_PORT" => addr[1],
+      "SERVER_ADDR" => addr_peer[2],
+      "SERVER_PORT" => addr_peer[1]
+    }
     
     @cgroup = Knjappserver::Httpsession::Contentgroup.new(
       :socket => @socket,
-      :restart_proc => proc{
+      :kas => @kas,
+      :restart_proc => proc do
         begin
-          @resp.write(@socket) if @meta["METHOD"] != "HEAD"
+          @resp.write(@socket) if @meta["METHOD"] != "HEAD" if @resp
         rescue Errno::ECONNRESET, Errno::ENOTCONN, Errno::EPIPE, Timeout::Error
           #Ignore - the user probaly left.
         end
-      }
+      end
     )
     
     @resp = Knjappserver::Httpresp.new(:cgroup => @cgroup)
-    
-    require "#{File.dirname(__FILE__)}/class_httpsession_knjengine"
     @handler = Knjappserver::Httpsession::Knjengine.new(:kas => @kas)
-    
     Dir.chdir(@config[:doc_root])
     ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc) if @debug
     STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if @debug
@@ -65,10 +85,10 @@ class Knjappserver::Httpsession
               end
             end
             
-            @httpserver.handle_request do
-              self.serve
-            end
+            @httpserver.count_add
+            self.serve
           ensure
+            @httpserver.count_remove
             @kas.served += 1 if @kas
           end
         end
@@ -129,42 +149,24 @@ class Knjappserver::Httpsession
   end
   
   def destruct
-    STDOUT.print "Httpsession destruct (#{@httpserver.http_sessions.length})\n" if @debug and @httpserver and @httpserver.http_sessions
+    STDOUT.print "Httpsession destruct (#{@httpserver.http_sessions.length})\n" if @debug
     
     begin
-      @socket.close if @socket and !@socket.closed?
+      @socket.close if !@socket.closed?
     rescue => e
       STDOUT.puts e.inspect
       STDOUT.puts e.backtrace
       #ignore if it fails...
     end
     
-    @httpserver.http_sessions.delete(self) if @httpserver and @httpserver.http_sessions
-    @httpserver = nil
-    
-    @data = nil
-    @kas = nil
-    @active = nil
-    @session = nil
-    @session_id = nil
-    @session_hash = nil
-    @out = nil
-    @socket = nil
-    @browser = nil
-    @resp = nil
-    @cgroup = nil
-    @handler = nil
+    @httpserver.http_sessions.delete(self)
     
     @eruby.destroy if @eruby
-    @eruby = nil
-    
-    thread = @thread_request
-    @thread_request = nil
-    thread.kill if thread and thread.alive?
+    @thread_request.kill if @thread_request.alive?
   end
   
   def serve
-    @meta = @handler.meta
+    @meta = @handler.meta.merge!(@socket_meta)
     @cookie = @handler.cookie
     @get = @handler.get
     @post = @handler.post
@@ -203,16 +205,16 @@ class Knjappserver::Httpsession
     elsif @browser["browser"] == "bot"
       @session_id = "bot"
     else
-      @session_id = @kas.session_generate_id(:meta => @meta)
+      @session_id = @kas.session_generate_id(@meta)
       send_cookie = true
     end
     
     begin
-      session = @kas.session_fromid(:idhash => @session_id, :ip => @ip, :meta => @meta)
+      @session, @session_hash = @kas.session_fromid(@ip, @session_id, @meta)
     rescue Knj::Errors::InvalidData => e
       #User should not have the session he asked for because of invalid user-agent or invalid IP.
-      @session_id = @kas.session_generate_id(:meta => meta)
-      session = @kas.session_fromid(:idhash => @session_id, :ip => @ip, :meta => meta)
+      @session_id = @kas.session_generate_id(meta)
+      @session, @session_hash = @kas.session_fromid(@ip, @session_id, @meta)
       send_cookie = true
     end
     
@@ -224,9 +226,6 @@ class Knjappserver::Httpsession
         "expires" => Time.now + 32140800 #add around 12 months
       )
     end
-    
-    @session = session[:dbobj]
-    @session_hash = session[:hash]
     
     if @config.key?(:logging) and @config[:logging][:access_db]
       @ips = [@meta["REMOTE_ADDR"]]
@@ -247,12 +246,14 @@ class Knjappserver::Httpsession
     time_start = Time.now.to_f if @debug
     self.serve_real
     @cgroup.mark_done
-    @cgroup.write_output
+    @cgroup.write_force
     STDOUT.print "#{__id__} - Served '#{@meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start} secs (#{@resp.status}).\n" if @debug
     @cgroup.join
   end
   
   def serve_real
+    return @handlers_cache[@ext].call(self) if @handlers_cache.key?(@ext)
+    
     #check if we should use a handler for this request.
     @config[:handlers].each do |handler_info|
       if handler_info.key?(:file_ext) and handler_info[:file_ext] == @ext
@@ -263,28 +264,25 @@ class Knjappserver::Httpsession
       end
     end
     
-    cache_control = {}
-    cache_use = true
-    
-    if @headers["cache-control"] and @headers["cache-control"][0]
-      @headers["cache-control"][0].scan(/(.+)=(.+)/) do |match|
-        cache_control[match[1]] = match[2]
-      end
-    end
-    
-    cache_use = false if cache_control.key?("max-age") and cache_control["max-age"].to_i <= 0
-    
     if !File.exists?(@page_path)
       @resp.status = 404
       @resp.header("Content-Type", "text/html")
       @cgroup.write("File you are looking for was not found: '#{@meta["REQUEST_URI"]}'.")
     else
+      if @headers["cache-control"] and @headers["cache-control"][0]
+        cache_control = {}
+        @headers["cache-control"][0].scan(/(.+)=(.+)/) do |match|
+          cache_control[match[1]] = match[2]
+        end
+      end
+      
+      cache_dont = true if cache_control and cache_control.key?("max-age") and cache_control["max-age"].to_i <= 0
       lastmod = File.mtime(@page_path)
       
       @resp.header("Last-Modified", lastmod.httpdate)
       @resp.header("Expires", (Time.now + 86400).httpdate) #next day.
       
-      if cache_use and @headers["if-modified-since"] and @headers["if-modified-since"][0]
+      if !cache_dont and @headers["if-modified-since"] and @headers["if-modified-since"][0]
         request_mod = Knj::Datet.parse(@headers["if-modified-since"][0]).time
         
         if request_mod == lastmod

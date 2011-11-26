@@ -8,6 +8,10 @@ class Knjappserver::Httpsession::Contentgroup
     @block = args[:restart_proc]
     @socket = args[:socket]
     @chunked = args[:chunked]
+    @tpool = args[:kas].threadpool
+    
+    raise "Threadpool not spawned." if !@tpool
+    
     @mutex = Mutex.new
     @debug = false
   end
@@ -26,6 +30,7 @@ class Knjappserver::Httpsession::Contentgroup
     @ios = []
     @done = false
     @thread = nil
+    @forced = false
     
     @mutex.synchronize do
       self.new_io
@@ -68,11 +73,17 @@ class Knjappserver::Httpsession::Contentgroup
   def write_output
     if @block and !@thread
       @mutex.synchronize do
-        @thread = Knj::Thread.new do
+        @thread = Thread.new do
           @block.call
         end
       end
     end
+  end
+  
+  def write_force
+    return nil if @thread
+    @forced = true
+    @block.call
   end
   
   def mark_done
@@ -81,10 +92,9 @@ class Knjappserver::Httpsession::Contentgroup
   end
   
   def join
-    if @block
-      sleep 0.1 while !@thread
-      @thread.join
-    end
+    return nil if !@block or @forced
+    sleep 0.1 while !@thread
+    @thread.join
   end
   
   def write_to_socket

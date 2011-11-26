@@ -5,6 +5,7 @@ class Knjappserver::Httpserver
 	def initialize(kas)
 		@kas = kas
 		@debug = @kas.config[:debug]
+		@mutex_count = Mutex.new
 	end
 	
 	def start
@@ -93,11 +94,14 @@ class Knjappserver::Httpserver
     @http_sessions << Knjappserver::Httpsession.new(self, socket)
 	end
 	
-	def handle_request(&block)
-    @working_count += 1 if @working_count
-    begin
-      block.call
-    ensure
+	def count_add
+    @mutex_count.synchronize do
+      @working_count += 1 if @working_count
+    end
+	end
+	
+	def count_remove
+    @mutex_count.synchronize do
       @working_count -= 1 if @working_count
     end
 	end

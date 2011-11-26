@@ -2,9 +2,10 @@ class Knjappserver::CustomIO < StringIO
 	def print(str)
 		thread = Thread.current
 		str = str.to_s
+		appsrv = thread[:knjappserver]
 		
-    if thread and thread[:knjappserver] and thread[:knjappserver][:contentgroup]
-      httpsession = thread[:knjappserver][:httpsession]
+    if thread and appsrv and appsrv[:contentgroup] and appsrv[:httpsession]
+      httpsession = appsrv[:httpsession]
       
       if httpsession
         wsize = httpsession.written_size
@@ -15,7 +16,7 @@ class Knjappserver::CustomIO < StringIO
         end
       end
       
-      thread[:knjappserver][:contentgroup].write(str)
+      appsrv[:contentgroup].write(str)
 		else
 			STDOUT.print(str) if !STDOUT.closed?
 		end

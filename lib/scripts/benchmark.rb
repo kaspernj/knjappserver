@@ -1,12 +1,9 @@
 #!/usr/bin/env ruby1.9.1
 
 Dir.chdir(File.dirname(__FILE__))
-require "rubygems"
-require "../knjappserver.rb"
-require "knjrbfw"
-require "erubis"
+
+require "optparse"
 require "sqlite3" if RUBY_ENGINE != "jruby"
-require "knj/autoload"
 
 begin
   args = {
@@ -19,12 +16,16 @@ begin
     opts.on("-f FILENAME", "--file FILENAME", "The filename that should be requested from the server.") do |t|
       args[:filename] = t
     end
+    
+    opts.on("-k PATH", "--knjrbfw PATH", "The path of knjrbfw if it should not be loaded from gems.") do |path|
+      args[:knjrbfw_path] = path
+    end
   end.parse!
 end
 
 db_path = "#{File.dirname(__FILE__)}/benchmark_db.sqlite3"
 
-appsrv = Knjappserver.new(
+appserver_args = {
   :debug => false,
   :port => 15081,
   :doc_root => "#{File.dirname(__FILE__)}/../pages",
@@ -33,11 +34,26 @@ appsrv = Knjappserver.new(
     :path => db_path,
     :return_keys => "symbols"
   }
-)
+}
+
+require "rubygems"
+require "erubis"
+require "#{args[:knjrbfw_path]}/knjrbfw.rb"
+require "../knjappserver.rb"
+
+if args[:knjrbfw_path]
+  appserver_args[:knjrbfw_path] = args[:knjrbfw_path]
+else
+  require "knjrbfw"
+end
+
+require "knj/autoload"
+
+appsrv = Knjappserver.new(appserver_args)
 appsrv.start
 
 count_requests = 0
-1.upto(100) do |count_thread|
+1.upto(250) do |count_thread|
   Knj::Thread.new(count_thread) do |count_thread|
     print "Thread #{count_thread} started.\n"
     
@@ -51,6 +67,7 @@ count_requests = 0
     loop do
       resp = http.get(args[:filename])
       count_requests += 1
+      raise "Invalid code: #{resp.code}\n" if resp.code.to_i != 200
     end
   end
 end

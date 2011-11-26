@@ -48,33 +48,16 @@ class Knjappserver::Httpsession::Knjengine
 		
 		
 		#Parse headers, cookies and meta.
-		if RUBY_PLATFORM == "java" or RUBY_ENGINE == "rbx"
-			if @kas.config[:peeraddr_static]
-				addr_peer = [0, 0, @kas.config[:peeraddr_static]]
-			else
-				addr_peer = @socket.peeraddr
-			end
-			
-			addr = @socket.addr
-		else
-			addr = @socket.addr(false)
-			addr_peer = @socket.peeraddr(false)
-		end
-		
 		@headers = {}
 		@cookie = {}
 		@meta = {
 			"REQUEST_METHOD" => method,
 			"QUERY_STRING" => uri.query,
 			"REQUEST_URI" => match[2],
-			"REMOTE_ADDR" => addr[2],
-			"REMOTE_PORT" => addr[1],
-			"SERVER_ADDR" => addr_peer[2],
-			"SERVER_PORT" => addr_peer[1],
 			"SCRIPT_NAME" => uri.path
 		}
 		
-		@cont.scan(/(\S+):\s*(.+)\r\n/) do |header_match|
+		@cont.scan(/^(\S+):\s*(.+)\r\n/) do |header_match|
 			key = header_match[0].downcase
 			val = header_match[1]
 			
@@ -98,9 +81,9 @@ class Knjappserver::Httpsession::Knjengine
 		
 		if method == "POST"
 			post_treated = {}
-			post_data = @socket.read(@headers["content-length"][0].to_i)
+			post_data = @socket.read(@headers["content-length"].first.to_i)
 			
-			if @headers["content-type"] and match = @headers["content-type"][0].match(/^multipart\/form-data; boundary=(.+)\Z/)
+			if @headers["content-type"] and match = @headers["content-type"].first.match(/^multipart\/form-data; boundary=(.+)\Z/)
 				io = StringIO.new(post_data)
 				post_treated = parse_form_data(io, match[1])
 			else
