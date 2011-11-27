@@ -2,7 +2,7 @@ require "digest"
 
 class Knjappserver::Httpsession
   attr_accessor :data, :size_send, :alert_sent
-  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :cgroup, :written_size
+  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :cgroup, :written_size, :meta
   
   def initialize(httpserver, socket)
     @data = {}
@@ -37,20 +37,16 @@ class Knjappserver::Httpsession
       "SERVER_PORT" => addr_peer[1]
     }
     
+    @resp = Knjappserver::Httpresp.new
+    @handler = Knjappserver::Httpsession::Knjengine.new(:kas => @kas)
     @cgroup = Knjappserver::Httpsession::Contentgroup.new(
       :socket => @socket,
       :kas => @kas,
-      :restart_proc => proc do
-        begin
-          @resp.write(@socket) if @meta["METHOD"] != "HEAD" if @resp
-        rescue Errno::ECONNRESET, Errno::ENOTCONN, Errno::EPIPE, Timeout::Error
-          #Ignore - the user probaly left.
-        end
-      end
+      :resp => @resp,
+      :httpsession => self
     )
+    @resp.cgroup = @cgroup
     
-    @resp = Knjappserver::Httpresp.new(:cgroup => @cgroup)
-    @handler = Knjappserver::Httpsession::Knjengine.new(:kas => @kas)
     Dir.chdir(@config[:doc_root])
     ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc) if @debug
     STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if @debug
@@ -111,12 +107,12 @@ class Knjappserver::Httpsession
   
   def threadded_content(block)
     raise "No block was given." if !block
-    cgroup_data = Thread.current[:knjappserver][:contentgroup].new_thread
+    cgroup = Thread.current[:knjappserver][:contentgroup].new_thread
     
-    cgroup_data[:thread] = Thread.new(Thread.current[:knjappserver].clone) do |data|
+    Thread.new do
       begin
         self.init_thread
-        cgroup_data[:cgroup].register_thread
+        cgroup.register_thread
         
         @kas.db_handler.get_and_register_thread if @kas and @kas.db_handler.opts[:threadsafe]
         @kas.ob.db.get_and_register_thread if @kas and @kas.ob.db.opts[:threadsafe]
@@ -179,8 +175,10 @@ class Knjappserver::Httpsession
     )
     if @handler.http_version == "1.1"
       @cgroup.chunked = true
+      @resp.chunked = true
     else
       @cgroup.chunked = false
+      @resp.chunked = false
     end
     
     @page_path = @handler.page_path
@@ -244,54 +242,54 @@ class Knjappserver::Httpsession
     self.init_thread
     Thread.current[:knjappserver][:contentgroup] = @cgroup
     time_start = Time.now.to_f if @debug
-    self.serve_real
+    
+    if @handlers_cache.key?(@ext)
+      @handlers_cache[@ext].call(self)
+    else
+      #check if we should use a handler for this request.
+      @config[:handlers].each do |handler_info|
+        if handler_info.key?(:file_ext) and handler_info[:file_ext] == @ext
+          return handler_info[:callback].call(self)
+        elsif handler_info.key?(:path) and handler_info[:mount] and @meta["SCRIPT_NAME"].slice(0, handler_info[:path].length) == handler_info[:path]
+          @page_path = "#{handler_info[:mount]}#{@meta["SCRIPT_NAME"].slice(handler_info[:path].length, @meta["SCRIPT_NAME"].length)}"
+          break
+        end
+      end
+      
+      if !File.exists?(@page_path)
+        @resp.status = 404
+        @resp.header("Content-Type", "text/html")
+        @cgroup.write("File you are looking for was not found: '#{@meta["REQUEST_URI"]}'.")
+      else
+        if @headers["cache-control"] and @headers["cache-control"][0]
+          cache_control = {}
+          @headers["cache-control"][0].scan(/(.+)=(.+)/) do |match|
+            cache_control[match[1]] = match[2]
+          end
+        end
+        
+        cache_dont = true if cache_control and cache_control.key?("max-age") and cache_control["max-age"].to_i <= 0
+        lastmod = File.mtime(@page_path)
+        
+        @resp.header("Last-Modified", lastmod.httpdate)
+        @resp.header("Expires", (Time.now + 86400).httpdate) #next day.
+        
+        if !cache_dont and @headers["if-modified-since"] and @headers["if-modified-since"][0]
+          request_mod = Knj::Datet.parse(@headers["if-modified-since"][0]).time
+          
+          if request_mod == lastmod
+            @resp.status = 304
+            return nil
+          end
+        end
+        
+        @cgroup.new_io(File.new(@page_path))
+      end
+    end
+    
     @cgroup.mark_done
     @cgroup.write_force
     STDOUT.print "#{__id__} - Served '#{@meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start} secs (#{@resp.status}).\n" if @debug
     @cgroup.join
-  end
-  
-  def serve_real
-    return @handlers_cache[@ext].call(self) if @handlers_cache.key?(@ext)
-    
-    #check if we should use a handler for this request.
-    @config[:handlers].each do |handler_info|
-      if handler_info.key?(:file_ext) and handler_info[:file_ext] == @ext
-        return handler_info[:callback].call(self)
-      elsif handler_info.key?(:path) and handler_info[:mount] and @meta["SCRIPT_NAME"].slice(0, handler_info[:path].length) == handler_info[:path]
-        @page_path = "#{handler_info[:mount]}#{@meta["SCRIPT_NAME"].slice(handler_info[:path].length, @meta["SCRIPT_NAME"].length)}"
-        break
-      end
-    end
-    
-    if !File.exists?(@page_path)
-      @resp.status = 404
-      @resp.header("Content-Type", "text/html")
-      @cgroup.write("File you are looking for was not found: '#{@meta["REQUEST_URI"]}'.")
-    else
-      if @headers["cache-control"] and @headers["cache-control"][0]
-        cache_control = {}
-        @headers["cache-control"][0].scan(/(.+)=(.+)/) do |match|
-          cache_control[match[1]] = match[2]
-        end
-      end
-      
-      cache_dont = true if cache_control and cache_control.key?("max-age") and cache_control["max-age"].to_i <= 0
-      lastmod = File.mtime(@page_path)
-      
-      @resp.header("Last-Modified", lastmod.httpdate)
-      @resp.header("Expires", (Time.now + 86400).httpdate) #next day.
-      
-      if !cache_dont and @headers["if-modified-since"] and @headers["if-modified-since"][0]
-        request_mod = Knj::Datet.parse(@headers["if-modified-since"][0]).time
-        
-        if request_mod == lastmod
-          @resp.status = 304
-          return nil
-        end
-      end
-      
-      @cgroup.new_io(File.new(@page_path))
-    end
   end
 end

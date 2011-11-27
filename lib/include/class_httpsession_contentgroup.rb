@@ -8,6 +8,8 @@ class Knjappserver::Httpsession::Contentgroup
     @block = args[:restart_proc]
     @socket = args[:socket]
     @chunked = args[:chunked]
+    @resp = args[:resp]
+    @httpsession = args[:httpsession]
     @mutex = Mutex.new
     @debug = false
   end
@@ -47,17 +49,24 @@ class Knjappserver::Httpsession::Contentgroup
   end
   
   def new_thread
+    cgroup = Knjappserver::Httpsession::Contentgroup.new(:socket => @socket, :chunked => @chunked)
+    cgroup.init
+    
     @mutex.synchronize do
-      cgroup = Knjappserver::Httpsession::Contentgroup.new(:socket => @socket, :chunked => @chunked)
-      cgroup.init
-      
-      data = {:cgroup => cgroup}
-      @ios << data
+      @ios << cgroup
       self.new_io
-      self.register_thread
-      
-      return data
     end
+    
+    self.register_thread
+    return cgroup
+  end
+  
+  def write_begin
+    #begin
+      @resp.write(@socket) if @httpsession.meta["METHOD"] != "HEAD"
+    #rescue Errno::ECONNRESET, Errno::ENOTCONN, Errno::EPIPE, Timeout::Error
+      #Ignore - the user probaly left.
+    #end
   end
   
   def write(cont)
@@ -70,16 +79,20 @@ class Knjappserver::Httpsession::Contentgroup
     if @block and !@thread
       @mutex.synchronize do
         @thread = Thread.new do
-          @block.call
+          self.write_begin
         end
       end
     end
   end
   
   def write_force
-    return nil if @thread
-    @forced = true
-    @block.call
+    @mutex.synchronize do
+      return nil if @thread
+      @forced = true
+    end
+    
+    STDOUT.print "Forcing write!\n"
+    self.write_begin
   end
   
   def mark_done
@@ -88,7 +101,7 @@ class Knjappserver::Httpsession::Contentgroup
   end
   
   def join
-    return nil if !@block or @forced
+    return nil if @forced
     sleep 0.1 while !@thread
     @thread.join
   end
@@ -97,15 +110,15 @@ class Knjappserver::Httpsession::Contentgroup
     count = 0
     
     @ios.each do |data|
-      if data.key?(:cgroup)
-        data[:cgroup].write_to_socket
+      if data.is_a?(Knjappserver::Httpsession::Contentgroup)
+        data.write_to_socket
       elsif data.key?(:str)
         if data[:str].is_a?(File)
           file = data[:str]
           
           loop do
             begin
-              buf = file.sysread(4096)
+              buf = file.sysread(16384)
             rescue EOFError
               break
             end
@@ -129,7 +142,7 @@ class Knjappserver::Httpsession::Contentgroup
               data[:str] = ""
             end
             
-            #512 could take a long time for small pages. 16384 seems to be a good number.
+            #512 could take a long time for big pages. 16384 seems to be an optimal number.
             str.each_slice(16384) do |slice|
               buf = slice.pack("C*")
               

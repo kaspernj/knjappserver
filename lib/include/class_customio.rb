@@ -1,10 +1,9 @@
 class Knjappserver::CustomIO < StringIO
 	def print(str)
-		thread = Thread.current
 		str = str.to_s
-		appsrv = thread[:knjappserver]
+		appsrv = Thread.current[:knjappserver]
 		
-    if thread and appsrv and appsrv[:contentgroup] and appsrv[:httpsession]
+    if appsrv and appsrv[:contentgroup] and appsrv[:httpsession]
       httpsession = appsrv[:httpsession]
       
       if httpsession
@@ -31,6 +30,10 @@ class Knjappserver::CustomIO < StringIO
 	end
 	
 	def p(str)
+    self.print(str)
+	end
+	
+	def puts(str)
     self.print(str)
 	end
 end
