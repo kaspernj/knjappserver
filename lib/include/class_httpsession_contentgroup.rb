@@ -91,7 +91,6 @@ class Knjappserver::Httpsession::Contentgroup
       @forced = true
     end
     
-    STDOUT.print "Forcing write!\n"
     self.write_begin
   end
   
