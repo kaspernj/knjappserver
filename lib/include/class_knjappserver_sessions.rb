@@ -4,9 +4,7 @@ class Knjappserver
   end
   
   #Returns or adds session based on idhash and meta-data.
-  def session_fromid(args)
-    ip = args[:ip].to_s
-    idhash = args[:idhash].to_s
+  def session_fromid(ip, idhash, meta)
     ip = "bot" if idhash == "bot"
     
     if !@sessions.key?(idhash)
@@ -14,42 +12,35 @@ class Knjappserver
       if !session
         session = @ob.add(:Session, {
           :idhash => idhash,
-          :user_agent => args[:meta]["HTTP_USER_AGENT"],
+          :user_agent => meta["HTTP_USER_AGENT"],
           :ip => ip
         })
       end
       
+      hash = {}
       @sessions[idhash] = {
         :dbobj => session,
-        :hash => {}
+        :hash => hash
       }
     else
       session = @sessions[idhash][:dbobj]
+      hash = @sessions[idhash][:hash]
     end
     
-=begin
     if ip != "bot"
-      if session[:user_agent] != args[:meta]["HTTP_USER_AGENT"]
-        STDOUT.print "Invalid user-agent!\n"
-        STDOUT.print Knj::Php.print_r(session, true)
-        
+      if session[:user_agent] != meta["HTTP_USER_AGENT"]
         raise Knj::Errors::InvalidData, "Invalid user-agent."
       elsif !session.remember? and ip.to_s != session[:ip].to_s
-        STDOUT.print "Invalid IP!\n"
-        STDOUT.print Knj::Php.print_r(session, true)
-        
         raise Knj::Errors::InvalidData, "Invalid IP."
       end
     end
-=end
     
     @sessions[idhash][:time_lastused] = Time.now
-    return @sessions[idhash]
+    return [session, hash]
   end
   
   #Generates a new session-ID by the meta data.
-  def session_generate_id(args)
-    meta = args[:meta]
+  def session_generate_id(meta)
     return Digest::MD5.hexdigest("#{Time.now.to_f}_#{meta["HTTP_HOST"]}_#{meta["REMOTE_HOST"]}_#{meta["HTTP_X_FORWARDED_SERVER"]}_#{meta["HTTP_X_FORWARDED_FOR"]}_#{meta["HTTP_X_FORWARDED_HOST"]}_#{meta["REMOTE_ADDR"]}_#{meta["HTTP_USER_AGENT"]}")
   end
   

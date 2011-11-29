@@ -1,7 +1,8 @@
 require "time"
 
+#This object writes headers, trailing headers, status headers and more for HTTP-sessions.
 class Knjappserver::Httpresp
-  attr_accessor :nl, :status, :http_version, :headers, :headers_trailing, :headers_sent
+  attr_accessor :chunked, :cgroup, :nl, :status, :http_version, :headers, :headers_trailing, :headers_sent
   
   STATUS_CODES = {
     100 => "Continue",
@@ -24,8 +25,8 @@ class Knjappserver::Httpresp
   }
   NL = "\r\n"
   
-  def initialize(args)
-    @cgroup = args[:cgroup]
+  def initialize
+    @chunked = false
   end
   
   def reset(args)
@@ -106,21 +107,18 @@ class Knjappserver::Httpresp
     if @status == 304
       #do nothing.
     else
-      case @http_version
-        when "1.0"
-          @cgroup.write_to_socket
-          socket.write("#{NL}#{NL}")
-        when "1.1"
-          @cgroup.write_to_socket
-          socket.write("0#{NL}")
-          
-          @headers_trailing.each do |header_id_str, header|
-            socket.write("#{header[0]}: #{header[1]}#{NL}")
-          end
-          
-          socket.write(NL)
-        else
-          raise "Could not figure out of HTTP version: '#{@http_version}'."
+      if @chunked
+        @cgroup.write_to_socket
+        socket.write("0#{NL}")
+        
+        @headers_trailing.each do |header_id_str, header|
+          socket.write("#{header[0]}: #{header[1]}#{NL}")
+        end
+        
+        socket.write(NL)
+      else
+        @cgroup.write_to_socket
+        socket.write("#{NL}#{NL}")
       end
     end
     

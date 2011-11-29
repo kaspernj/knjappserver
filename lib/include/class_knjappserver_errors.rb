@@ -70,14 +70,18 @@ class Knjappserver
   def handle_error(e, args = {})
     @error_emails_pending_mutex.synchronize do
       if !Thread.current[:knjappserver] or !Thread.current[:knjappserver][:httpsession]
-        STDOUT.print "Error: "
-        STDOUT.puts e.inspect
-        STDOUT.print "\n"
-        STDOUT.puts e.backtrace
-        STDOUT.print "\n\n"
+        STDOUT.print "#{Knj::Errors.error_str(e)}\n\n"
       end
       
-      if @config.has_key?(:smtp_args) and @config[:error_report_emails] and (!args.has_key?(:email) or args[:email])
+      browser = _httpsession.browser if _httpsession
+      
+      send_email = true
+      send_email = false if !@config[:smtp_args]
+      send_email = false if !@config[:error_report_emails]
+      send_email = false if args.has_key?(:email) and !args[:email]
+      send_email = false if @config.key?(:error_report_bots) and !@config[:error_report_bots] and browser and browser["browser"] == "bot"
+      
+      if send_email
         backtrace_hash = Knj::ArrayExt.array_hash(e.backtrace)
         
         if !@error_emails_pending.has_key?(backtrace_hash)
