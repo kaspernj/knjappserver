@@ -54,6 +54,12 @@ class Knjappserver
       ]
     end
     
+    
+    #Add extra handlers if given.
+    if @config[:handlers_extra]
+      @config[:handlers] += @config[:handlers_extra]
+    end
+    
     @debug = @config[:debug]
     @paused = 0
     @paused_mutex = Mutex.new
