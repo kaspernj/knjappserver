@@ -44,6 +44,12 @@ class Knjappserver
     end
     
     
+    #Add extra handlers if given.
+    if @config[:handlers_extra]
+      @config[:handlers] += @config[:handlers_extra]
+    end
+    
+    
     #Setup cache to make .rhtml-calls faster.
     @config[:handlers_cache] = {}
     @config[:handlers].each do |handler_info|

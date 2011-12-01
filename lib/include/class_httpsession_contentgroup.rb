@@ -92,7 +92,6 @@ class Knjappserver::Httpsession::Contentgroup
     if @thread
       @thread.join
     else
-      STDOUT.print "Forcing write!\n"
       self.write_begin
     end
   end
