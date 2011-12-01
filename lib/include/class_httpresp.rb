@@ -2,7 +2,7 @@ require "time"
 
 #This object writes headers, trailing headers, status headers and more for HTTP-sessions.
 class Knjappserver::Httpresp
-  attr_accessor :chunked, :cgroup, :nl, :status, :http_version, :headers, :headers_trailing, :headers_sent
+  attr_accessor :chunked, :cgroup, :nl, :status, :http_version, :headers, :headers_trailing, :headers_sent, :socket
   
   STATUS_CODES = {
     100 => "Continue",
@@ -25,8 +25,9 @@ class Knjappserver::Httpresp
   }
   NL = "\r\n"
   
-  def initialize
+  def initialize(args)
     @chunked = false
+    @socket = args[:socket]
   end
   
   def reset(args)
@@ -100,28 +101,28 @@ class Knjappserver::Httpresp
     return res
   end
   
-  def write(socket)
+  def write
     @headers_sent = true
-    socket.write(self.header_str)
+    @socket.write(self.header_str)
     
     if @status == 304
       #do nothing.
     else
       if @chunked
         @cgroup.write_to_socket
-        socket.write("0#{NL}")
+        @socket.write("0#{NL}")
         
         @headers_trailing.each do |header_id_str, header|
-          socket.write("#{header[0]}: #{header[1]}#{NL}")
+          @socket.write("#{header[0]}: #{header[1]}#{NL}")
         end
         
-        socket.write(NL)
+        @socket.write(NL)
       else
         @cgroup.write_to_socket
-        socket.write("#{NL}#{NL}")
+        @socket.write("#{NL}#{NL}")
       end
     end
     
-    socket.close if @close
+    @socket.close if @close
   end
 end

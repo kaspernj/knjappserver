@@ -5,7 +5,6 @@ class Knjappserver::Httpsession::Contentgroup
   NL = "\r\n"
   
   def initialize(args = {})
-    @block = args[:restart_proc]
     @socket = args[:socket]
     @chunked = args[:chunked]
     @resp = args[:resp]
@@ -62,11 +61,11 @@ class Knjappserver::Httpsession::Contentgroup
   end
   
   def write_begin
-    #begin
-      @resp.write(@socket) if @httpsession.meta["METHOD"] != "HEAD"
-    #rescue Errno::ECONNRESET, Errno::ENOTCONN, Errno::EPIPE, Timeout::Error
+    begin
+      @resp.write if @httpsession.meta["METHOD"] != "HEAD"
+    rescue Errno::ECONNRESET, Errno::ENOTCONN, Errno::EPIPE, Timeout::Error
       #Ignore - the user probaly left.
-    #end
+    end
   end
   
   def write(cont)
@@ -76,23 +75,26 @@ class Knjappserver::Httpsession::Contentgroup
   end
   
   def write_output
-    if @block and !@thread
-      @mutex.synchronize do
-        @thread = Thread.new do
-          self.write_begin
-        end
+    return nil if @thread
+    
+    @mutex.synchronize do
+      @thread = Thread.new do
+        self.write_begin
       end
     end
   end
   
   def write_force
     @mutex.synchronize do
-      return nil if @thread
-      @forced = true
+      @forced = true if !@thread
     end
     
-    STDOUT.print "Forcing write!\n"
-    self.write_begin
+    if @thread
+      @thread.join
+    else
+      STDOUT.print "Forcing write!\n"
+      self.write_begin
+    end
   end
   
   def mark_done
@@ -134,7 +136,7 @@ class Knjappserver::Httpsession::Contentgroup
         else
           loop do
             break if data[:done] and data[:str].size <= 0 
-            sleep 0.1 while data[:str].size <= 512 and !data[:done]
+            sleep 0.1 while data[:str].size < 512 and !data[:done]
             
             str = nil
             @mutex.synchronize do

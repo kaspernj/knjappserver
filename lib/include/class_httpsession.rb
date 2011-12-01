@@ -37,7 +37,7 @@ class Knjappserver::Httpsession
       "SERVER_PORT" => addr_peer[1]
     }
     
-    @resp = Knjappserver::Httpresp.new
+    @resp = Knjappserver::Httpresp.new(:socket => @socket)
     @handler = Knjappserver::Httpsession::Knjengine.new(:kas => @kas)
     @cgroup = Knjappserver::Httpsession::Contentgroup.new(
       :socket => @socket,
@@ -288,7 +288,7 @@ class Knjappserver::Httpsession
     end
     
     @cgroup.mark_done
-    @cgroup.write_force
+    @cgroup.write_output
     STDOUT.print "#{__id__} - Served '#{@meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start} secs (#{@resp.status}).\n" if @debug
     @cgroup.join
   end
