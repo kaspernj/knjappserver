@@ -27,12 +27,8 @@ class Knjappserver
       hash = @sessions[idhash][:hash]
     end
     
-    if ip != "bot"
-      if session[:user_agent] != meta["HTTP_USER_AGENT"]
-        raise Knj::Errors::InvalidData, "Invalid user-agent."
-      elsif !session.remember? and ip.to_s != session[:ip].to_s
-        raise Knj::Errors::InvalidData, "Invalid IP."
-      end
+    if ip != "bot" and !session.remember? and ip.to_s != session[:ip].to_s
+      raise Knj::Errors::InvalidData, "Invalid IP."
     end
     
     @sessions[idhash][:time_lastused] = Time.now
