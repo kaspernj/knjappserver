@@ -37,7 +37,7 @@ class Knjappserver
                   working_count = self.httpserv.working_count
                   working = false
                   
-                  if working_count > 0
+                  if working_count and working_count > 0
                     working = true
                     STDOUT.print "Someone is working - wait two sec and try to restart again!\n"
                   end
