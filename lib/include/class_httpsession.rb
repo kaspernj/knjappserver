@@ -155,7 +155,7 @@ class Knjappserver::Httpsession
       #ignore if it fails...
     end
     
-    @httpserver.http_sessions.delete(self)
+    @httpserver.http_sessions.delete(self) if @httpserver and @httpserver.http_sessions
     
     @eruby.destroy if @eruby
     @thread_request.kill if @thread_request.alive?

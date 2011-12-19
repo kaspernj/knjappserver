@@ -87,4 +87,36 @@ class Knjappserver
   def num(*args)
     return Knj::Locales.number_out(*args)
   end
+  
+  def get_parse_arrays(arg = nil, ob = nil)
+    arg = _get.clone if !arg
+    
+    #Parses key-numeric-hashes into arrays and converts special model-strings into actual models.
+    if arg.is_a?(Hash) and Knj::ArrayExt.hash_numeric_keys?(arg)
+      arr = []
+      
+      arg.each do |key, val|
+        arr << val
+      end
+      
+      return self.get_parse_arrays(arr, ob)
+    elsif arg.is_a?(Hash)
+      arg.each do |key, val|
+        arg[key] = self.get_parse_arrays(val, ob)
+      end
+      
+      return arg
+    elsif arg.is_a?(Array)
+      arg.each_index do |key|
+        arg[key] = self.get_parse_arrays(arg[key], ob)
+      end
+      
+      return arg
+    elsif arg.is_a?(String) and match = arg.match(/^#<Model::(.+?)::(\d+)>$/)
+      ob = @ob if !ob
+      return ob.get(match[1], match[2])
+    else
+      return arg
+    end
+  end
 end
