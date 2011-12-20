@@ -116,8 +116,7 @@ class Knjappserver
         ],
         "indexes_remove" => {
           "object_class" => true
-        },
-        "renames" => ["translations"]
+        }
       }
     }
   }
