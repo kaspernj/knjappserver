@@ -107,9 +107,9 @@ class Knjappserver
         STDOUT.print "Delete sessions...\n" if @config[:debug]
         @ob.list(:Session, {"id_not" => session_not_ids, "date_lastused_below" => (Time.now - 5356800)}) do |session|
           idhash = session[:idhash]
+          STDOUT.print "Deleting session: '#{session.id}'.\n" if @config[:debug]
           @ob.delete(session)
           @sessions.delete(idhash)
-          STDOUT.print "Deleted session: #{session.id}\n" if @config[:debug]
         end
       end
     end

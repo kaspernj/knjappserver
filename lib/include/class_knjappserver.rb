@@ -140,16 +140,16 @@ class Knjappserver
       "#{@path_knjappserver}/class_log.rb",
       "#{@path_knjappserver}/class_log_access.rb",
       "#{@path_knjappserver}/class_log_data_value.rb",
-      "#{@path_knjappserver}/class_knjappserver_cleaner",
-      "#{@path_knjappserver}/class_knjappserver_cmdline",
-      "#{@path_knjappserver}/class_knjappserver_errors",
-      "#{@path_knjappserver}/class_knjappserver_logging",
-      "#{@path_knjappserver}/class_knjappserver_mailing",
-      "#{@path_knjappserver}/class_knjappserver_sessions",
-      "#{@path_knjappserver}/class_knjappserver_threadding",
-      "#{@path_knjappserver}/class_knjappserver_threadding_timeout",
-      "#{@path_knjappserver}/class_knjappserver_translations",
-      "#{@path_knjappserver}/class_knjappserver_web"
+      "#{@path_knjappserver}/class_knjappserver_cleaner.rb",
+      "#{@path_knjappserver}/class_knjappserver_cmdline.rb",
+      "#{@path_knjappserver}/class_knjappserver_errors.rb",
+      "#{@path_knjappserver}/class_knjappserver_logging.rb",
+      "#{@path_knjappserver}/class_knjappserver_mailing.rb",
+      "#{@path_knjappserver}/class_knjappserver_sessions.rb",
+      "#{@path_knjappserver}/class_knjappserver_threadding.rb",
+      "#{@path_knjappserver}/class_knjappserver_threadding_timeout.rb",
+      "#{@path_knjappserver}/class_knjappserver_translations.rb",
+      "#{@path_knjappserver}/class_knjappserver_web.rb"
     ]
     files << "#{@path_knjrbfw}knj/gettext_threadded.rb" if @config[:locales_root]
     files.each do |file|
