@@ -2,7 +2,7 @@ require "digest"
 
 class Knjappserver::Httpsession
   attr_accessor :data, :size_send, :alert_sent
-  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :cgroup, :written_size, :meta
+  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :cgroup, :written_size, :meta, :httpsession_var
   
   def initialize(httpserver, socket)
     @data = {}
@@ -15,6 +15,7 @@ class Knjappserver::Httpsession
     @eruby = Knj::Eruby.new(:cache_hash => @kas.eruby_cache)
     @debug = @kas.debug
     @handlers_cache = @config[:handlers_cache]
+    @httpsession_var = {}
     
     #Set socket stuff.
     if RUBY_PLATFORM == "java" or RUBY_ENGINE == "rbx"
@@ -287,6 +288,7 @@ class Knjappserver::Httpsession
       end
     end
     
+    @httpsession_var = {}
     @cgroup.mark_done
     @cgroup.write_output
     STDOUT.print "#{__id__} - Served '#{@meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start} secs (#{@resp.status}).\n" if @debug

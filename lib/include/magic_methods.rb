@@ -34,6 +34,10 @@ def _httpsession
 	return Thread.current[:knjappserver][:httpsession] if Thread.current[:knjappserver]
 end
 
+def _httpsession_var
+  return Thread.current[:knjappserver][:httpsession].httpsession_var if Thread.current[:knjappserver]
+end
+
 def _requestdata
 	return Thread.current[:knjappserver] if Thread.current[:knjappserver]
 end

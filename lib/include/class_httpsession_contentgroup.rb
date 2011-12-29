@@ -17,7 +17,7 @@ class Knjappserver::Httpsession::Contentgroup
     @done = false
     @thread = nil
     @cur_data = {
-      :str => "",
+      :str => "".encode("utf-8"),
       :done => false
     }
     @ios = [@cur_data]
@@ -70,7 +70,7 @@ class Knjappserver::Httpsession::Contentgroup
   
   def write(cont)
     @mutex.synchronize do
-      @cur_data[:str] << cont.to_s
+      @cur_data[:str] << cont.to_s.encode("utf-8")
     end
   end
   
