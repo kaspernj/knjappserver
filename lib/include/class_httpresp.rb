@@ -75,28 +75,28 @@ class Knjappserver::Httpresp
     end
     
     code = STATUS_CODES[@status]
-    res += " #{code}" if code
-    res += NL
+    res << " #{code}" if code
+    res << NL
     
     @headers.each do |key, val|
-      res += "#{val[0]}: #{val[1]}#{NL}"
+      res << "#{val[0]}: #{val[1]}#{NL}"
     end
     
     if @http_version == "1.1"
       @headers_11.each do |key, val|
-        res += "#{key}: #{val}#{NL}"
+        res << "#{key}: #{val}#{NL}"
       end
       
       @trailers.each do |trailer|
-        res += "Trailer: #{trailer}#{NL}"
+        res << "Trailer: #{trailer}#{NL}"
       end
     end
     
     @cookies.each do |cookie|
-      res += "Set-Cookie: #{Knj::Web.cookie_str(cookie)}#{NL}"
+      res << "Set-Cookie: #{Knj::Web.cookie_str(cookie)}#{NL}"
     end
     
-    res += NL
+    res << NL
     
     return res
   end

@@ -18,7 +18,7 @@ class Knjappserver::Httpsession::Knjengine
 			raise Errno::ECONNRESET, "Socket closed." if @socket.closed?
 			read = @socket.gets
 			raise Errno::ECONNRESET, "Socket returned non-string: '#{read.class.name}'." if !read.is_a?(String)
-			@cont += read
+			@cont << read
 			break if @cont[-4..-1] == "\r\n\r\n" or @cont[-2..-1] == "\n\n"
 		end
 	end

@@ -259,17 +259,17 @@ class Knjappserver
 		links = @ob.list(:Log_link, {"object_class" => obj.class.name, "object_id" => obj.id, "limit" => 500, "orderby" => [["id", "desc"]]})
 		
 		html = "<table class=\"list knjappserver_log_table\">"
-		html += "<thead>"
-		html += "<tr>"
-		html += "<th>ID</th>"
-		html += "<th>Message</th>"
-		html += "<th style=\"width: 130px;\">Date &amp; time</th>"
-		html += "<th>Tag</th>"
-		html += "<th>Objects</th>" if args[:ob_use]
-		html += "<th>IP</th>" if args[:show_ip]
-		html += "</tr>"
-		html += "</thead>"
-		html += "<tbody>"
+		html << "<thead>"
+		html << "<tr>"
+		html << "<th>ID</th>"
+		html << "<th>Message</th>"
+		html << "<th style=\"width: 130px;\">Date &amp; time</th>"
+		html << "<th>Tag</th>"
+		html << "<th>Objects</th>" if args[:ob_use]
+		html << "<th>IP</th>" if args[:show_ip]
+		html << "</tr>"
+		html << "</thead>"
+		html << "<tbody>"
 		
 		links.each do |link|
       log = link.log
@@ -280,32 +280,32 @@ class Knjappserver
 			classes = ["knjappserver_log", "knjappserver_log_#{log.id}"]
 			classes << "knjappserver_log_multiple_lines" if msg_lines.length > 1
 			
-			html += "<tr class=\"#{classes.join(" ")}\">"
-			html += "<td>#{log.id}</td>"
-			html += "<td>#{first_line.html}</td>"
-			html += "<td>#{log.date_saved_str}</td>"
-			html += "<td>#{log.tag.html}</td>"
+			html << "<tr class=\"#{classes.join(" ")}\">"
+			html << "<td>#{log.id}</td>"
+			html << "<td>#{first_line.html}</td>"
+			html << "<td>#{log.date_saved_str}</td>"
+			html << "<td>#{log.tag.html}</td>"
 			
 			if args[:ob_use]
         begin
-          html += "<td>#{log.objects_html(args[:ob_use])}</td>"
+          html << "<td>#{log.objects_html(args[:ob_use])}</td>"
         rescue => e
-          html += "<td>#{e.message.html}</td>"
+          html << "<td>#{e.message.html}</td>"
         end
       end
       
-			html += "<td>#{log.ip}</td>" if args[:show_ip]
-			html += "</tr>"
+			html << "<td>#{log.ip}</td>" if args[:show_ip]
+			html << "</tr>"
 		end
 		
 		if links.empty?
-			html += "<tr>"
-			html += "<td colspan=\"2\" class=\"error\">No logs were found for that object.</td>"
-			html += "</tr>"
+			html << "<tr>"
+			html << "<td colspan=\"2\" class=\"error\">No logs were found for that object.</td>"
+			html << "</tr>"
 		end
 		
-		html += "</tbody>"
-		html += "</table>"
+		html << "</tbody>"
+		html << "</table>"
 		
 		return html
 	end

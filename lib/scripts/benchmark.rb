@@ -53,7 +53,7 @@ appsrv = Knjappserver.new(appserver_args)
 appsrv.start
 
 count_requests = 0
-1.upto(250) do |count_thread|
+1.upto(50) do |count_thread|
   Knj::Thread.new(count_thread) do |count_thread|
     print "Thread #{count_thread} started.\n"
     

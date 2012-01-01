@@ -35,21 +35,21 @@ class Knjappserver
             html = error_email[:messages].first
           else
             html = "<b>First time:</b> #{Knj::Datet.in(error_email[:first_time]).out}<br />"
-            html += "<b>Last time:</b> #{Knj::Datet.in(error_email[:last_time]).out}<br />"
-            html += "<b>Number of errors:</b> #{error_email[:messages].length}<br />"
+            html << "<b>Last time:</b> #{Knj::Datet.in(error_email[:last_time]).out}<br />"
+            html << "<b>Number of errors:</b> #{error_email[:messages].length}<br />"
             count = 0
             
             error_email[:messages].each do |error_msg|
               count += 1
               
               if count > 10
-                html += "<br /><br /><b><i>Limiting to showing 10 out of #{error_email[:messages].length} messages.</i></b>"
+                html << "<br /><br /><b><i>Limiting to showing 10 out of #{error_email[:messages].length} messages.</i></b>"
                 break
               end
               
-              html += "<br /><br />"
-              html += "<b>Message #{count}</b><br />"
-              html += error_msg
+              html << "<br /><br />"
+              html << "<b>Message #{count}</b><br />"
+              html << error_msg
             end
           end
           
@@ -93,18 +93,18 @@ class Knjappserver
         end
         
         html = "An error occurred.<br /><br />"
-        html += "<b>#{e.class.name.html}: #{e.message.html}</b><br /><br />"
+        html << "<b>#{e.class.name.html}: #{e.message.html}</b><br /><br />"
         
         e.backtrace.each do |line|
-          html += line.html + "<br />"
+          html << line.html + "<br />"
         end
         
-        html += "<br /><b>Post:</b><br /><pre>#{Knj::Php.print_r(_post, true)}</pre>" if _post
-        html += "<br /><b>Get:</b><br /><pre>#{Knj::Php.print_r(_get, true)}</pre>" if _get
-        html += "<br /><b>Server:</b><br /><pre>#{Knj::Php.print_r(_server, true).html}</pre>" if _server
-        html += "<br /><b>Cookie:</b><br /><pre>#{Knj::Php.print_r(_cookie, true).html}</pre>" if _meta
-        html += "<br /><b>Session:</b><br /><pre>#{Knj::Php.print_r(_session, true).html}</pre>" if _session
-        html += "<br /><b>Session hash:</b><br /><pre>#{Knj::Php.print_r(_session_hash, true).html}</pre>" if _session_hash
+        html << "<br /><b>Post:</b><br /><pre>#{Knj::Php.print_r(_post, true)}</pre>" if _post
+        html << "<br /><b>Get:</b><br /><pre>#{Knj::Php.print_r(_get, true)}</pre>" if _get
+        html << "<br /><b>Server:</b><br /><pre>#{Knj::Php.print_r(_server, true).html}</pre>" if _server
+        html << "<br /><b>Cookie:</b><br /><pre>#{Knj::Php.print_r(_cookie, true).html}</pre>" if _meta
+        html << "<br /><b>Session:</b><br /><pre>#{Knj::Php.print_r(_session, true).html}</pre>" if _session
+        html << "<br /><b>Session hash:</b><br /><pre>#{Knj::Php.print_r(_session_hash, true).html}</pre>" if _session_hash
         
         error_hash = @error_emails_pending[backtrace_hash]
         error_hash[:last_time] = Time.new

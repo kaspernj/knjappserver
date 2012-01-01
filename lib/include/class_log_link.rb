@@ -12,15 +12,15 @@ class Knjappserver::Log_link < Knj::Datarow
         when "object_class"
           data_val = d.db.single(:Log_data_value, {"value" => val})
           return [] if !data_val #if this data-value cannot be found, nothing has been logged for the object. So just return empty array here and skip the rest.
-          sql += " AND object_class_value_id = '#{d.db.esc(data_val[:id])}'"
+          sql << " AND object_class_value_id = '#{d.db.esc(data_val[:id])}'"
         else
           raise "Invalid key: #{key}."
       end
 		end
 		
-		sql += ret[:sql_where]
-		sql += ret[:sql_order]
-		sql += ret[:sql_limit]
+		sql << ret[:sql_where]
+		sql << ret[:sql_order]
+		sql << ret[:sql_limit]
 		
 		return d.ob.list_bysql(:Log_link, sql)
 	end
