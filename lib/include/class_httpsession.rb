@@ -76,7 +76,7 @@ class Knjappserver::Httpsession
             end
             
             if @config.key?(:max_requests_working)
-              while @httpserver.working_count >= @config[:max_requests_working]
+              while @httpserver and @config and @httpserver.working_count >= @config[:max_requests_working]
                 STDOUT.print "Maximum amounts of requests are working (#{@httpserver.working_count}, #{@config[:max_requests_working]}) - sleeping.\n" if @debug
                 sleep 0.1
               end
