@@ -6,12 +6,13 @@ describe "Knjappserver" do
     require "knjappserver"
     require "knjrbfw"
     require "tmpdir"
+    require "knj/autoload"
     
     db_path = "#{Dir.tmpdir}/knjappserver_rspec.sqlite3"
     File.unlink(db_path) if File.exists?(db_path)
     
     require "knj/knjdb/libknjdb.rb"
-    require "sqlite3" if RUBY_ENGINE != "jruby"
+    #require "sqlite3" if RUBY_ENGINE != "jruby"
     
     begin
       db = Knj::Db.new(
@@ -94,13 +95,11 @@ describe "Knjappserver" do
   end
   
   it "should be able to set and get multiple cookies at the same time." do
-    require "json"
-    
     data = $http.get("/spec.rhtml?choice=test_cookie")
     raise data["data"] if data["data"].to_s.length > 0
     
     data = $http.get("/spec.rhtml?choice=get_cookies")
-    parsed = Knj::Php.json_decode(data["data"])
+    parsed = JSON.parse(data["data"])
     
     raise "Unexpected value for 'TestCookie': '#{parsed["TestCookie"]}'." if parsed["TestCookie"] != "TestValue"
     raise "Unexpected value for 'TestCookie2': '#{parsed["TestCookie2"]}'." if parsed["TestCookie2"] != "TestValue2"
@@ -148,6 +147,11 @@ describe "Knjappserver" do
     rescue Timeout::Error
       #the timeout didnt run - and it shouldnt so dont do anything.
     end
+  end
+  
+  it "should be able to join threads tarted from _kas.thread." do
+    data = $http.get("/spec_thread_joins.rhtml")
+    raise data["data"] if data["data"].to_s != "12345"
   end
   
   it "should be able to stop." do
