@@ -70,7 +70,7 @@ class Knjappserver::Httpsession::Contentgroup
   
   def write(cont)
     @mutex.synchronize do
-      @cur_data[:str] << cont.to_s.encode("utf-8")
+      @cur_data[:str] << cont
     end
   end
   
