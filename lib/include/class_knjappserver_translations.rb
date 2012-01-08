@@ -17,10 +17,12 @@ class Knjappserver
     return trans_val
   end
   
-  def trans_set(obj, values)
-    args = {}
-    args[:locale] = _session[:locale] if _session[:locale] and !args[:locale]
-    args[:locale] = _httpsession.data[:locale] if _httpsession.data[:locale] and !args[:locale]
+  def trans_set(obj, values, args = {})
+    if !args[:locale]
+      args[:locale] = _session[:locale] if _session[:locale] and
+      args[:locale] = _httpsession.data[:locale] if _httpsession.data[:locale] and !args[:locale]
+    end
+    
     @translations.set(obj, values, args)
   end
   

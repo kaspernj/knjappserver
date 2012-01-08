@@ -6,7 +6,7 @@ require "stringio"
 require "socket"
 
 class Knjappserver
-  attr_reader :config, :httpserv, :debug, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_procs, :magic_vars, :types, :eruby_cache
+  attr_reader :config, :httpserv, :debug, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_procs, :magic_vars, :types, :eruby_cache, :httpsessions_ids
   attr_accessor :served, :should_restart, :should_restart_done
   
   autoload :ERBHandler, "#{File.dirname(__FILE__)}/class_erbhandler"
@@ -67,6 +67,7 @@ class Knjappserver
     @mod_files = {}
     @sessions = {}
     @eruby_cache = {}
+    @httpsessions_ids = {}
     
     @path_knjappserver = File.dirname(__FILE__)
     if @config[:knjrbfw_path]

@@ -2,7 +2,7 @@ require "digest"
 
 class Knjappserver::Httpsession
   attr_accessor :data, :size_send, :alert_sent
-  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :cgroup, :written_size, :meta, :httpsession_var
+  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :cgroup, :written_size, :meta, :httpsession_var, :handler
   
   def initialize(httpserver, socket)
     @data = {}
@@ -39,7 +39,7 @@ class Knjappserver::Httpsession
     }
     
     @resp = Knjappserver::Httpresp.new(:socket => @socket)
-    @handler = Knjappserver::Httpsession::Knjengine.new(:kas => @kas)
+    @handler = Knjappserver::Httpsession::Knjengine.new(:kas => @kas, :httpsession => self)
     @cgroup = Knjappserver::Httpsession::Contentgroup.new(
       :socket => @socket,
       :kas => @kas,
@@ -66,7 +66,7 @@ class Knjappserver::Httpsession
             @size_send = @config[:size_send]
             @alert_sent = false
             
-            Timeout.timeout(30) do
+            Timeout.timeout(1500) do
               @handler.socket_parse(@socket)
             end
             
