@@ -1,3 +1,5 @@
+#encoding: utf-8
+
 #This class handels the adding of content and writing to socket. Since this can be done with multiple threads and multiple IO's it can get complicated.
 class Knjappserver::Httpsession::Contentgroup
   attr_reader :done, :cur_data
@@ -17,7 +19,7 @@ class Knjappserver::Httpsession::Contentgroup
     @done = false
     @thread = nil
     @cur_data = {
-      :str => "".encode("utf-8"),
+      :str => "".force_encoding("utf-8"),
       :done => false
     }
     @ios = [@cur_data]
@@ -70,7 +72,7 @@ class Knjappserver::Httpsession::Contentgroup
   
   def write(cont)
     @mutex.synchronize do
-      @cur_data[:str] << cont.to_s.encode("utf-8")
+      @cur_data[:str] << cont
     end
   end
   

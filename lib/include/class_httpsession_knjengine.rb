@@ -137,7 +137,9 @@ class Knjappserver::Httpsession::Knjengine
         else
           post_data.split("&").each do |splitted|
             splitted = splitted.split("=")
-            post_treated[Knj::Web.urldec(splitted[0])] = splitted[1]
+            key = Knj::Web.urldec(splitted[0]).to_s.encode("utf-8")
+            val = splitted[1].to_s.encode("utf-8")
+            post_treated[key] = val
           end
         end
         
