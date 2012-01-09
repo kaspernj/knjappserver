@@ -5,7 +5,7 @@ if RUBY_PLATFORM == "java" or RUBY_ENGINE == "rbx"
 end
 
 class Knjappserver::Httpsession::Knjengine
-	attr_reader :get, :post, :cookie, :meta, :page_path, :headers, :http_version, :read, :clength, :speed, :percent, :secs_left
+	attr_reader :get, :post, :cookie, :meta, :page_path, :headers, :http_version, :read, :clength, :speed, :percent, :secs_left, :modified_since
 	
 	def initialize(args)
 		@args = args
@@ -24,6 +24,7 @@ class Knjappserver::Httpsession::Knjengine
 	end
 	
 	def socket_parse(socket)
+    @modified_since = nil
 		@cont = ""
 		@socket = socket
 		self.read_socket
@@ -68,6 +69,8 @@ class Knjappserver::Httpsession::Knjengine
         @headers[key] = [] if !@headers.has_key?(key)
         @headers[key] << val
         
+        STDOUT.print "#{key}: #{val}\n"
+        
         case key
           when "cookie"
             Knj::Web.parse_cookies(val).each do |key, val|
@@ -75,6 +78,10 @@ class Knjappserver::Httpsession::Knjengine
             end
           when "content-length"
             @clength = val.to_i
+          when "if-modified-since"
+            mod_match = val.match(/^([A-z]+),\s+(\d+)\s+([A-z]+)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(.+)$/)
+            month_no = Knj::Datet.month_str_to_no(mod_match[3])
+            @modified_since = Time.utc(mod_match[4].to_i, month_no, mod_match[2].to_i, mod_match[5].to_i, mod_match[6].to_i, mod_match[7].to_i)
           else
             key = key.upcase.gsub("-", "_")
             @meta["HTTP_#{key}"] = val
