@@ -1,18 +1,22 @@
 require "uri"
 
+#If we are running on JRuby or Rubinius this will seriously speed things up if we are behind a proxy.
 if RUBY_PLATFORM == "java" or RUBY_ENGINE == "rbx"
   BasicSocket.do_not_reverse_lookup = true
 end
 
+#This class parses the various HTTP requests into easy programmable objects. Get, post, cookie, meta and so on...
 class Knjappserver::Httpsession::Knjengine
 	attr_reader :get, :post, :cookie, :meta, :page_path, :headers, :http_version, :read, :clength, :speed, :percent, :secs_left, :modified_since
 	
+	#Sets the various required data on the object. Knjappserver, crlf and arguments.
 	def initialize(args)
 		@args = args
 		@kas = @args[:kas]
 		@crlf = "\r\n"
 	end
 	
+	#Reads content from the socket until the end of headers. Also does various error-checks.
 	def read_socket
 		loop do
 			raise Errno::ECONNRESET, "Socket closed." if @socket.closed?
@@ -23,6 +27,7 @@ class Knjappserver::Httpsession::Knjengine
 		end
 	end
 	
+	#Generates data on object from the given socket.
 	def socket_parse(socket)
     @modified_since = nil
 		@cont = ""
@@ -68,8 +73,6 @@ class Knjappserver::Httpsession::Knjengine
         
         @headers[key] = [] if !@headers.has_key?(key)
         @headers[key] << val
-        
-        STDOUT.print "#{key}: #{val}\n"
         
         case key
           when "cookie"
@@ -166,6 +169,7 @@ class Knjappserver::Httpsession::Knjengine
     end
 	end
 	
+	#Converts the WEBRick result to the right type of hash.
 	def convert_webrick_post(seton, webrick_post, args = {})
 		webrick_post.each do |varname, value|
 			Knj::Web.parse_name(seton, varname, value, args)
