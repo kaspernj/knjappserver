@@ -92,8 +92,8 @@ class Knjappserver
         mail = Knj::Mailobj.new(@args[:kas].config[:smtp_args])
         mail.to = @args[:to]
         mail.subject = @args[:subject] if @args[:subject]
-        mail.html = @args[:html] if @args[:html]
-        mail.text = @args[:text] if @args[:text]
+        mail.html = Knj::Strings.email_str_safe(@args[:html]) if @args[:html]
+        mail.text = Knj::Strings.email_str_safe(@args[:text]) if @args[:text]
         
         if @args[:from]
           mail.from = @args[:from]
