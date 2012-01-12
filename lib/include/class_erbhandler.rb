@@ -14,6 +14,10 @@ class Knjappserver::ERBHandler
 			@connected[eruby.__id__] = true
 		end
 		
-		eruby.import(httpsess.page_path)
+		if !File.exists?(httpsess.page_path)
+      eruby.import("#{File.dirname(__FILE__)}/../pages/error_notfound.rhtml")
+    else
+      eruby.import(httpsess.page_path)
+    end
 	end
 end

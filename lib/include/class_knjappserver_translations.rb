@@ -19,7 +19,7 @@ class Knjappserver
   
   def trans_set(obj, values, args = {})
     if !args[:locale]
-      args[:locale] = _session[:locale] if _session[:locale] and
+      args[:locale] = _session[:locale] if _session[:locale]
       args[:locale] = _httpsession.data[:locale] if _httpsession.data[:locale] and !args[:locale]
     end
     

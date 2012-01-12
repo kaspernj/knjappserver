@@ -172,17 +172,15 @@ class Knjappserver
     
     
     print "Updating database.\n" if @debug
-    require "rubygems" if !@config.key?(:knjdbrevision_path)
-    require "#{@config[:knjdbrevision_path]}knjdbrevision"
+    require "knj/knjdb/revision.rb"
     
     dbschemapath = "#{File.dirname(__FILE__)}/../files/database_schema.rb"
     raise "'#{dbschemapath}' did not exist." if !File.exists?(dbschemapath)
     require dbschemapath
-    raise "No schema-variable was spawned." if !DATABASE_SCHEMA
+    raise "No schema-variable was spawned." if !Knjappserver::DATABASE_SCHEMA
     
-    dbpath = "#{File.dirname(__FILE__)}/../files/database.sqlite3"
-    dbrev = Knjdbrevision.new
-    dbrev.init_db(DATABASE_SCHEMA, @db)
+    dbrev = Knj::Db::Revision.new
+    dbrev.init_db("schema" => Knjappserver::DATABASE_SCHEMA, "db" => @db)
     
     
     print "Spawning objects.\n" if @debug
