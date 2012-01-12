@@ -351,15 +351,15 @@ class Knjappserver
   #Stops the entire app and releases join.
   def stop
     proc_stop = proc{
-      #This should be done first to be sure it finishes (else we have a serious bug).
-      STDOUT.print "Flush out loaded sessions.\n" if @debug
-      self.sessions_flush
-      
       STDOUT.print "Stopping appserver for real.\n" if @debug
       @httpserv.stop if @httpserv and @httpserv.respond_to?(:stop)
       
       STDOUT.print "Stopping threadpool.\n" if @debug
       @threadpool.stop if @threadpool
+      
+      #This should be done first to be sure it finishes (else we have a serious bug).
+      STDOUT.print "Flush out loaded sessions.\n" if @debug
+      self.sessions_flush
     }
     
     #If we cant get a paused-execution in 10 secs - we just force the stop.
