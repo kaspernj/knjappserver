@@ -7,7 +7,7 @@ end
 
 #This class parses the various HTTP requests into easy programmable objects. Get, post, cookie, meta and so on...
 class Knjappserver::Httpsession::Knjengine
-	attr_reader :get, :post, :cookie, :meta, :page_path, :headers, :http_version, :read, :clength, :speed, :percent, :secs_left, :modified_since
+	attr_reader :get, :post, :cookie, :meta, :page_path, :headers, :http_version, :read, :clength, :speed, :percent, :secs_left
 	
 	#Sets the various required data on the object. Knjappserver, crlf and arguments.
 	def initialize(args)
@@ -35,7 +35,7 @@ class Knjappserver::Httpsession::Knjengine
 		self.read_socket
 		
 		#Parse URI (page_path and get).
-		match = @cont.match(/^(GET|POST|HEAD) (.+) HTTP\/1\.(\d+)\s*/)
+		match = @cont.match(/^(GET|POST|HEAD)\s+(.+)\s+HTTP\/1\.(\d+)\s*/)
 		raise "Could not parse request: '#{@cont.split("\n").first}'." if !match
     
 		@http_version = "1.#{match[3]}"
@@ -81,10 +81,6 @@ class Knjappserver::Httpsession::Knjengine
             end
           when "content-length"
             @clength = val.to_i
-          when "if-modified-since"
-            mod_match = val.match(/^([A-z]+),\s+(\d+)\s+([A-z]+)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(.+)$/)
-            month_no = Knj::Datet.month_str_to_no(mod_match[3])
-            @modified_since = Time.utc(mod_match[4].to_i, month_no, mod_match[2].to_i, mod_match[5].to_i, mod_match[6].to_i, mod_match[7].to_i)
           else
             key = key.upcase.gsub("-", "_")
             @meta["HTTP_#{key}"] = val
@@ -169,6 +165,20 @@ class Knjappserver::Httpsession::Knjengine
     end
 	end
 	
+	#Parses the if-modified-since header and returns it as a Time-object. Returns false is no if-modified-since-header is given or raises an RuntimeError if it cant be parsed.
+	def modified_since
+    return @modified_since if @modified_since
+    return false if !@meta["HTTP_IF_MODIFIED_SINCE"]
+    
+    mod_match = @meta["HTTP_IF_MODIFIED_SINCE"].match(/^([A-z]+),\s+(\d+)\s+([A-z]+)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(.+)$/)
+    raise "Could not parse 'HTTP_IF_MODIFIED_SINCE'." if !mod_match
+    
+    month_no = Knj::Datet.month_str_to_no(mod_match[3])
+    @modified_since = Time.utc(mod_match[4].to_i, month_no, mod_match[2].to_i, mod_match[5].to_i, mod_match[6].to_i, mod_match[7].to_i)
+    
+    return @modified_since
+	end
+	
 	#Converts the WEBRick result to the right type of hash.
 	def convert_webrick_post(seton, webrick_post, args = {})
 		webrick_post.each do |varname, value|
@@ -176,7 +186,7 @@ class Knjappserver::Httpsession::Knjengine
 		end
 	end
 	
-	#Thanks to WEBrick
+	#Parses multipart-form-data. Copied from- and thanks to- WEBRick.
 	def parse_form_data(io, boundary)
 		boundary_regexp = /\A--#{boundary}(--)?#{@crlf}\z/
 		form_data = {}

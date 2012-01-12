@@ -2,7 +2,7 @@ require "digest"
 
 class Knjappserver::Httpsession
   attr_accessor :data, :size_send, :alert_sent
-  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :cgroup, :written_size, :meta, :httpsession_var, :handler
+  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :cgroup, :written_size, :meta, :httpsession_var, :handler, :working
   
   def initialize(httpserver, socket)
     @data = {}
@@ -55,9 +55,6 @@ class Knjappserver::Httpsession
     @thread_request = Knj::Thread.new do
       Thread.current[:knjappserver] = {} if !Thread.current[:knjappserver]
       
-      @kas.db_handler.get_and_register_thread if @kas.db_handler.opts[:threadsafe]
-      @kas.ob.db.get_and_register_thread if @kas.ob.db.opts[:threadsafe]
-      
       begin
         while @active
           begin
@@ -65,6 +62,7 @@ class Knjappserver::Httpsession
             @written_size = 0
             @size_send = @config[:size_send]
             @alert_sent = false
+            @working = false
             
             Timeout.timeout(1500) do
               @handler.socket_parse(@socket)
@@ -82,11 +80,21 @@ class Knjappserver::Httpsession
               end
             end
             
+            #Reserve database connections.
+            @kas.db_handler.get_and_register_thread if @kas.db_handler.opts[:threadsafe]
+            @kas.ob.db.get_and_register_thread if @kas.ob.db.opts[:threadsafe]
+            
             @httpserver.count_add
+            @working = true
             self.serve
           ensure
             @httpserver.count_remove
             @kas.served += 1 if @kas
+            @working = false
+            
+            #Free reserved database-connections.
+            @kas.db_handler.free_thread if @kas and @kas.db_handler.opts[:threadsafe]
+            @kas.ob.db.free_thread if @kas and @kas.ob.db.opts[:threadsafe]
           end
         end
       rescue Errno::ECONNRESET, Errno::ENOTCONN, Errno::EPIPE, Timeout::Error => e
@@ -99,8 +107,6 @@ class Knjappserver::Httpsession
         STDOUT.puts e.inspect
         STDOUT.puts e.backtrace
       ensure
-        @kas.db_handler.free_thread if @kas and @kas.db_handler.opts[:threadsafe]
-        @kas.ob.db.free_thread if @kas and @kas.ob.db.opts[:threadsafe]
         self.destruct
       end
     end
@@ -146,7 +152,7 @@ class Knjappserver::Httpsession
   end
   
   def destruct
-    STDOUT.print "Httpsession destruct (#{@httpserver.http_sessions.length})\n" if @debug
+    STDOUT.print "Httpsession destruct (#{@httpserver.http_sessions.length})\n" if @debug and @httpserver and @httpserver.http_sessions
     
     begin
       @socket.close if !@socket.closed?
