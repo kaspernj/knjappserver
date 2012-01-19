@@ -25,7 +25,6 @@ class Knjappserver
     
     @config[:smtp_args] = {"smtp_host" => "localhost", "smtp_port" => 25} if !@config[:smtp_args]
     @config[:timeout] = 30 if !@config.has_key?(:timeout)
-    @config[:engine_knjengine] = true if !@config[:engine_knjengine] and !@config[:engine_webrick] and !@config[:engine_mongrel]
     raise "No ':doc_root' was given in arguments." if !@config.has_key?(:doc_root)
     
     
@@ -137,6 +136,7 @@ class Knjappserver
       "#{@path_knjappserver}/class_httpsession.rb",
       "#{@path_knjappserver}/class_httpsession_knjengine.rb",
       "#{@path_knjappserver}/class_httpsession_contentgroup.rb",
+      "#{@path_knjappserver}/class_httpsession_post_multipart.rb",
       "#{@path_knjappserver}/class_session.rb",
       "#{@path_knjappserver}/class_log.rb",
       "#{@path_knjappserver}/class_log_access.rb",

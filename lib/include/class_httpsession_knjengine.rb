@@ -138,8 +138,11 @@ class Knjappserver::Httpsession::Knjengine
         end
         
         if @headers["content-type"] and match = @headers["content-type"].first.match(/^multipart\/form-data; boundary=(.+)\Z/)
-          io = StringIO.new(post_data)
-          post_treated = parse_form_data(io, match[1])
+          post_treated = Knjappserver::Httpsession::Post_multipart.new(
+            "io" => StringIO.new("#{post_data}"),
+            "boundary" => match[1],
+            "crlf" => @crlf
+          ).return
         else
           post_data.split("&").each do |splitted|
             splitted = splitted.split("=")
@@ -149,7 +152,7 @@ class Knjappserver::Httpsession::Knjengine
           end
         end
         
-        self.convert_webrick_post(@post, post_treated, {:urldecode => true})
+        self.convert_post(@post, post_treated, {:urldecode => true})
       end
 		ensure
       @read = nil
@@ -179,42 +182,10 @@ class Knjappserver::Httpsession::Knjengine
     return @modified_since
 	end
 	
-	#Converts the WEBRick result to the right type of hash.
-	def convert_webrick_post(seton, webrick_post, args = {})
-		webrick_post.each do |varname, value|
+	#Converts post-result to the right type of hash.
+	def convert_post(seton, post_val, args = {})
+		post_val.each do |varname, value|
 			Knj::Web.parse_name(seton, varname, value, args)
 		end
 	end
-	
-	#Parses multipart-form-data. Copied from- and thanks to- WEBRick.
-	def parse_form_data(io, boundary)
-		boundary_regexp = /\A--#{boundary}(--)?#{@crlf}\z/
-		form_data = {}
-		return form_data unless io
-		data = nil
-		
-		io.each do |line|
-		  if boundary_regexp =~ line
-			  if data
-          data.chop!
-          key = data.name
-          
-          if form_data.has_key?(key)
-            form_data[key].append_data(data)
-          else
-            form_data[key] = data
-          end
-			  end
-			  
-			  data = WEBrick::HTTPUtils::FormData.new
-			  next
-		  else
-			  if data
-				  data << line
-			  end
-		  end
-		end
-		
-		return form_data
-  end
 end
