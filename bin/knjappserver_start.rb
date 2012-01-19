@@ -1,15 +1,24 @@
 #!/usr/bin/env ruby
 
 require "#{File.dirname(__FILE__)}/../lib/knjappserver.rb"
-require "knjrbfw"
+
+knjrbfw_path = ""
 
 ARGV.each do |arg|
-   if arg == "--active_support"
-      ARGV.delete(arg)
-      require "active_support"
-      require "active_support/core_ext"
-   end
+  if arg == "--active_support"
+    ARGV.delete(arg)
+    require "active_support"
+    require "active_support/core_ext"
+  elsif match = arg.match(/--knjrbfw_path=(.+)/)
+    knjrbfw_path = match[1]
+    ARGV.delete(arg)
+  else
+    print "Unknown argument: '#{arg}'.\n"
+    exit
+  end
 end
+
+require "#{knjrbfw_path}knjrbfw"
 
 filepath = File.dirname(__FILE__) + "/../lib/"
 
