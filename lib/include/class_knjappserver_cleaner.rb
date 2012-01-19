@@ -67,7 +67,7 @@ class Knjappserver
             mycmd = @config[:restart_cmd]
             
             if !mycmd or mycmd.to_s.strip.length <= 0
-              fpath = Knj::Php.realpath(File.dirname(__FILE__) + "/../knjappserver.rb")
+              fpath = File.realpath("#{File.dirname(__FILE__)}/../knjappserver.rb")
               mycmd = Knj::Os.executed_cmd
               
               STDOUT.print "Previous cmd: #{mycmd}\n"

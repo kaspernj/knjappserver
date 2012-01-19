@@ -1,4 +1,4 @@
-rpath = Knj::Php.realpath(File.dirname(__FILE__) + "/../include/class_erbhandler.rb")
+rpath = File.realpath(File.dirname(__FILE__) + "/../include/class_erbhandler.rb")
 require rpath
 erbhandler = Knjappserver::ERBHandler.new
 
@@ -38,7 +38,8 @@ begin
 		end
 	end.parse!
 rescue OptionParser::InvalidOption => e
-	Knj::Php.die(e.message + "\n")
+	print "#{e.message}\n"
+	exit
 end
 
 $knjappserver[:knjappserver] = Knjappserver.new(

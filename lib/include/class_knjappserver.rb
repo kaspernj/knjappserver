@@ -323,7 +323,7 @@ class Knjappserver
       return nil
     end
     
-    rpath = Knj::Php.realpath(fpath)
+    rpath = File.realpath(fpath)
     raise "No such filepath: #{fpath}" if !rpath or !File.exists?(rpath)
     
     return true if @mod_files[rpath]

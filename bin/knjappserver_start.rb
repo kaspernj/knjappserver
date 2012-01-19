@@ -32,10 +32,10 @@ require "#{conf_path}conf/conf_vars"
 require "#{$knjappserver_config["knjrbfw"]}knj/autoload"
 
 $knjappserver = {
-	:path => Knj::Php.realpath(File.dirname(__FILE__))
+	:path => File.realpath(File.dirname(__FILE__))
 }
 
-Knj::Os.chdir_file(Knj::Php.realpath(__FILE__))
+Knj::Os.chdir_file(File.realpath(__FILE__))
 require "#{filepath}include/class_knjappserver.rb"
 
 print "Starting knjAppServer.\n"

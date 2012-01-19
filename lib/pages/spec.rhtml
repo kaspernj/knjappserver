@@ -19,7 +19,7 @@
   end
   
   if _get["choice"] == "get_cookies"
-    print Knj::Php.json_encode(_cookie)
+    print JSON.generate(_cookie)
     exit
   end
   

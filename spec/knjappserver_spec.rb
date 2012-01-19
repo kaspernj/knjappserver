@@ -61,7 +61,7 @@ describe "Knjappserver" do
     raise "Unexpected HTML: '#{data["data"]}'." if data["data"].to_s != "Test"
     
     #Check that URL-decoding are being done.
-    data = $http.get("/spec.rhtml?choice=check_get_parse&value=#{Knj::Php.urlencode("gfx/nopic.png")}")
+    data = $http.get("/spec.rhtml?choice=check_get_parse&value=#{Knj::Web.urlenc("gfx/nopic.png")}")
     raise "Unexpected HTML: '#{data["data"]}'." if data["data"].to_s != "gfx/nopic.png"
   end
   
