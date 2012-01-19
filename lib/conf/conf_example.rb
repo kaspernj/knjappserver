@@ -52,7 +52,6 @@ $knjappserver[:knjappserver] = Knjappserver.new(
 	:doc_root => "[path to rhtml files]",
 	:hostname => false,
 	:default_filetype => "text/html",
-	:engine_webrick => true,
 	:error_report_emails => ["admin_email"],
 	:error_report_from => "robot_email",
 	:locales_root => "[path to locale files]",
