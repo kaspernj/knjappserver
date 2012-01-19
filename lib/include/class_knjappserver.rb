@@ -299,6 +299,14 @@ class Knjappserver
     @httpserv = Knjappserver::Httpserver.new(self)
     
     
+    
+    #Start Leakproxy-module if defined in config.
+    if @config[:leakproxy]
+      require "#{File.dirname(__FILE__)}/class_knjappserver_leakproxy_server.rb"
+      @leakproxy_server = Knjappserver::Leakproxy_server.new(:kas => self)
+    end
+    
+    
     #Clear memory at exit.
     at_exit do
       self.stop
