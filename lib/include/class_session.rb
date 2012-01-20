@@ -23,9 +23,13 @@ class Knjappserver::Session < Knj::Datarow
 	end
 	
 	def flush
-    self.update(
-      :sess_data => Base64.encode64(Marshal.dump(@sess_data)),
-      :date_lastused => Time.now
-    )
+    flush_data = Base64.encode64(Marshal.dump(@sess_data))
+    
+    if self[:sess_data] != flush_data
+      self.update(
+        :sess_data => flush_data,
+        :date_lastused => Time.now
+      )
+    end
 	end
 end

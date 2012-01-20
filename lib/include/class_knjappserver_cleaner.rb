@@ -86,6 +86,7 @@ class Knjappserver
       end
     end
     
+    #This flushes (writes) all session-data to the server and deletes old unused sessions from the database.
     self.timeout(:time => 300) do
       STDOUT.print "Cleaning sessions on appserver.\n" if @config[:debug]
       
