@@ -75,6 +75,11 @@ class Knjappserver::Httpsession::Post_multipart::File_upload
     @args = args
   end
   
+  #Returns the size of the upload.
+  def size
+    return @args["data"].length
+  end
+  
   def filename
     return @args["fname"]
   end
@@ -85,5 +90,9 @@ class Knjappserver::Httpsession::Post_multipart::File_upload
   
   def to_s
     return @args["data"]
+  end
+  
+  def to_json(*args)
+    raise "File_upload-objects should not be converted to json."
   end
 end
