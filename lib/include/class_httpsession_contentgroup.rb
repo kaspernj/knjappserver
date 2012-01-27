@@ -44,6 +44,11 @@ class Knjappserver::Httpsession::Contentgroup
     @ios << @cur_data
   end
   
+  #Forces the content to be the input - nothing else can be added after calling this.
+  def force_content(newcont)
+    @ios = [{:str => newcont, :done => true}]
+  end
+  
   def register_thread
     Thread.current[:knjappserver] = {} if !Thread.current[:knjappserver]
     Thread.current[:knjappserver][:contentgroup] = self
@@ -72,7 +77,7 @@ class Knjappserver::Httpsession::Contentgroup
   
   def write(cont)
     @mutex.synchronize do
-      @cur_data[:str] << cont
+      @cur_data[:str] << cont.encode("utf-8")
     end
   end
   

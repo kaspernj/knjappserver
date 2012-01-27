@@ -170,6 +170,11 @@ class Knjappserver::Httpsession
     @thread_request.kill if @thread_request.alive?
   end
   
+  #Forces the content to be the input - nothing else can be added after calling this.
+  def force_content(newcont)
+    @cgroup.force_content(newcont)
+  end
+  
   def serve
     @meta = @handler.meta.merge!(@socket_meta)
     @cookie = @handler.cookie
