@@ -126,4 +126,12 @@ class Knjappserver
   def dprint(obj)
     STDOUT.print Knj::Php.print_r(obj, true)
   end
+  
+  #Prints a string with a single file-line-backtrace prepended which is useful for debugging.
+  def debugs(str)
+    #Get backtrace.
+    backtrace_str = caller[0]
+    backtrace_match = backtrace_str.match(/^(.+):(\d+):in /)
+    STDOUT.print "#{File.basename(backtrace_match[1])}:#{backtrace_match[2]}: #{str}\n"
+  end
 end
