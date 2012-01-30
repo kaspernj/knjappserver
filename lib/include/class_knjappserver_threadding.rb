@@ -20,7 +20,6 @@ class Knjappserver
   def thread(args = {})
     raise "No block given." if !block_given?
     args[:args] = [] if !args[:args]
-    theblock = block
     
     thread_obj = Knjappserver::Thread_instance.new(
       :running => false,
