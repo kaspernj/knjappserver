@@ -264,6 +264,14 @@ class Knjappserver
       :name => :trans_no_str,
       :connections_max => 1
     )
+    @events.add_event(
+      :name => :request_done,
+      :connections_max => 1
+    )
+    @events.add_event(
+      :name => :request_begin,
+      :connections_max => 1
+    )
     
     #Set up the 'vars'-variable that can be used to set custom global variables for web-requests.
     @vars = Knj::Hash_methods.new

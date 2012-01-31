@@ -257,6 +257,10 @@ class Knjappserver::Httpsession
     Thread.current[:knjappserver][:contentgroup] = @cgroup
     time_start = Time.now.to_f if @debug
     
+    @kas.events.call(:request_begin, {
+      :httpsession => self
+    })
+    
     if @handlers_cache.key?(@ext)
       @handlers_cache[@ext].call(self)
     else
@@ -301,10 +305,14 @@ class Knjappserver::Httpsession
       end
     end
     
-    @httpsession_var = {}
     @cgroup.mark_done
     @cgroup.write_output
     STDOUT.print "#{__id__} - Served '#{@meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start} secs (#{@resp.status}).\n" if @debug
     @cgroup.join
+    
+    @kas.events.call(:request_done, {
+      :httpsession => self
+    })
+    @httpsession_var = {}
   end
 end
