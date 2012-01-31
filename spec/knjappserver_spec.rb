@@ -154,6 +154,13 @@ describe "Knjappserver" do
     raise data["data"] if data["data"].to_s != "12345"
   end
   
+  it "should be able to properly parse special characters in post-requests." do
+    data = $http.post("/spec_post.rhtml", {
+      "test" => "123+456%789%20"
+    })
+    raise data["data"] if data["data"] != "123+456%789%20"
+  end
+  
   it "should be able to stop." do
     $appserver.stop
   end
