@@ -143,6 +143,8 @@ class Knjappserver::Httpsession::Knjengine
             "boundary" => match[1],
             "crlf" => @crlf
           ).return
+          
+          self.convert_post(@post, post_treated, {:urldecode => false})
         else
           post_data.split("&").each do |splitted|
             splitted = splitted.split("=")
@@ -150,9 +152,9 @@ class Knjappserver::Httpsession::Knjengine
             val = splitted[1].to_s.encode("utf-8")
             post_treated[key] = val
           end
+          
+          self.convert_post(@post, post_treated, {:urldecode => true})
         end
-        
-        self.convert_post(@post, post_treated, {:urldecode => true})
       end
 		ensure
       @read = nil
