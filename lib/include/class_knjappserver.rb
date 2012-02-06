@@ -134,7 +134,7 @@ class Knjappserver
       "#{@path_knjappserver}/class_httpresp.rb",
       "#{@path_knjappserver}/class_httpserver.rb",
       "#{@path_knjappserver}/class_httpsession.rb",
-      "#{@path_knjappserver}/class_httpsession_knjengine.rb",
+      "#{@path_knjappserver}/class_httpsession_http_request.rb",
       "#{@path_knjappserver}/class_httpsession_contentgroup.rb",
       "#{@path_knjappserver}/class_httpsession_post_multipart.rb",
       "#{@path_knjappserver}/class_session.rb",

@@ -39,7 +39,8 @@ class Knjappserver::Httpsession
     }
     
     @resp = Knjappserver::Httpresp.new(:socket => @socket)
-    @handler = Knjappserver::Httpsession::Knjengine.new(:kas => @kas, :httpsession => self)
+    @handler = Knjappserver::Httpsession::Http_request.new(:kas => @kas, :httpsession => self)
+    
     @cgroup = Knjappserver::Httpsession::Contentgroup.new(
       :socket => @socket,
       :kas => @kas,

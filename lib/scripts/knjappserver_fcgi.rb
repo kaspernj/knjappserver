@@ -7,6 +7,9 @@
 
 #Its a bit slower because it needs to flush writes to the database at end of every request and re-read them on spawn, because multiple instances might be present.
 
+require "rubygems"
+require "fcgi"
+
 require "knj/autoload"
 require "#{File.dirname(Knj::Os.realpath(__FILE__))}/../knjappserver.rb"
 
@@ -22,9 +25,11 @@ class Knjappserver
     end
     
     knjappserver_conf = Knjappserver::CGI_CONF["knjappserver"]
-    knjappserver_conf[:cmdline] = false
-    knjappserver_conf[:port] = 0 #Ruby picks random port and we get the actual port after starting the appserver.
-
+    knjappserver_conf.merge!(
+      :cmdline => false,
+      :port => 0 #Ruby picks random port and we get the actual port after starting the appserver.
+    )
+    
     knjappserver = Knjappserver.new(knjappserver_conf)
     knjappserver.start
     
@@ -32,6 +37,16 @@ class Knjappserver
     http = Knj::Http2.new(:host => "localhost", :port => port)
     
     return [knjappserver, http]
+  end
+  
+  def self.convert_fcgi_post(params)
+    post_hash = {}
+    
+    params.each do |key, val|
+      post_hash[key] = val.first
+    end
+    
+    return post_hash
   end
 end
 
@@ -43,6 +58,8 @@ loadfp = "#{File.basename(__FILE__).slice(0..-6)}.rhtml"
 
 FCGI.each_cgi do |cgi|
   begin
+    $cgi = cgi
+    
     if !knjappserver
       knjappserver, http = Knjappserver.fcgi_start(cgi)
     end
@@ -55,7 +72,6 @@ FCGI.each_cgi do |cgi|
     headers = {}
     cgi.env_table.each do |key, val|
       if key[0, 5] == "HTTP_" and key != "HTTP_KNJAPPSERVER_CGI_CONFIG"
-        #key = key[5, key.length]
         key = Knj::Php.ucwords(key[5, key.length].gsub("_", " ")).gsub(" ", "-")
         headers[key] = val
       end
@@ -72,15 +88,41 @@ FCGI.each_cgi do |cgi|
       url << "?#{cgi.env_table["QUERY_STRING"]}"
     end
     
-    count = 0
-    http.get(url, {
-      :default_headers => headers,
-      :cookies => false,
-      :on_content => proc{|line|
-        cgi.print(line) if count > 0
-        count += 1
-      }
-    })
+    #cgi.print "Content-Type: text/html\r\n"
+    #cgi.print "\r\n"
+    #cgi.print Knj::Php.print_r(cgi.params, true)
+    
+    if cgi.request_method == "POST" and cgi.content_type.to_s.downcase.index("multipart/form-data") != nil
+      count = 0
+      http.post_multipart(url, Knjappserver.convert_fcgi_post(cgi.params), {
+        :default_headers => headers,
+        :cookies => false,
+        :on_content => proc{|line|
+          cgi.print(line) if count > 0
+          count += 1
+        }
+      })
+    elsif cgi.request_method == "POST"
+      count = 0
+      http.post(url, Knjappserver.convert_fcgi_post(cgi.params), {
+        :default_headers => headers,
+        :cookies => false,
+        :on_content => proc{|line|
+          cgi.print(line) if count > 0
+          count += 1
+        }
+      })
+    else
+      count = 0
+      http.get(url, {
+        :default_headers => headers,
+        :cookies => false,
+        :on_content => proc{|line|
+          cgi.print(line) if count > 0
+          count += 1
+        }
+      })
+    end
     
     thread_spawn = Thread.new do
       knjappserver.sessions_reset

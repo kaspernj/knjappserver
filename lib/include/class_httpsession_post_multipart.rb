@@ -33,6 +33,8 @@ class Knjappserver::Httpsession::Post_multipart
       end
     end
     
+    self.finish_data if @data and @data.to_s.length > 0
+    
     @data = nil
     @headers = nil
     @mode = nil
