@@ -6,7 +6,7 @@ require "stringio"
 require "socket"
 
 class Knjappserver
-  attr_reader :config, :httpserv, :debug, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_procs, :magic_vars, :types, :eruby_cache, :httpsessions_ids
+  attr_reader :cio, :config, :httpserv, :debug, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_procs, :magic_vars, :types, :eruby_cache, :httpsessions_ids
   attr_accessor :served, :should_restart, :should_restart_done
   
   autoload :ERBHandler, "#{File.dirname(__FILE__)}/class_erbhandler"
@@ -142,7 +142,6 @@ class Knjappserver
       "#{@path_knjappserver}/class_log_access.rb",
       "#{@path_knjappserver}/class_log_data_value.rb",
       "#{@path_knjappserver}/class_knjappserver_cleaner.rb",
-      "#{@path_knjappserver}/class_knjappserver_cmdline.rb",
       "#{@path_knjappserver}/class_knjappserver_errors.rb",
       "#{@path_knjappserver}/class_knjappserver_logging.rb",
       "#{@path_knjappserver}/class_knjappserver_mailing.rb",
@@ -152,6 +151,9 @@ class Knjappserver
       "#{@path_knjappserver}/class_knjappserver_translations.rb",
       "#{@path_knjappserver}/class_knjappserver_web.rb"
     ]
+    
+    files << "#{@path_knjappserver}/class_knjappserver_cmdline.rb" if !@config.key?(:cmdline) or @config[:cmdline]
+    
     files << "#{@path_knjrbfw}knj/gettext_threadded.rb" if @config[:locales_root]
     files.each do |file|
       STDOUT.print "Loading: '#{file}'.\n" if @debug
@@ -226,8 +228,8 @@ class Knjappserver
       
       if $stdout.class.name != "Knjappserver::CustomIO"
         require "#{@path_knjappserver}/class_customio.rb"
-        cio = Knjappserver::CustomIO.new
-        $stdout = cio
+        @cio = Knjappserver::CustomIO.new
+        $stdout = @cio
       end
     end
     
@@ -298,20 +300,9 @@ class Knjappserver
     print "Init cleaner.\n" if @debug
     initialize_cleaner
     
-    print "Init cmdline.\n" if @debug
-    initialize_cmdline
-    
-    
-    #Start the appserver.
-    print "Spawning appserver.\n" if @debug
-    @httpserv = Knjappserver::Httpserver.new(self)
-    
-    
-    
-    #Start Leakproxy-module if defined in config.
-    if @config[:leakproxy]
-      require "#{File.dirname(__FILE__)}/class_knjappserver_leakproxy_server.rb"
-      @leakproxy_server = Knjappserver::Leakproxy_server.new(:kas => self)
+    if !@config.key?(:cmdline) or @config[:cmdline]
+      print "Init cmdline.\n" if @debug
+      initialize_cmdline
     end
     
     
@@ -345,6 +336,18 @@ class Knjappserver
   
   #Starts the HTTP-server and threadpool.
   def start
+    #Start the appserver.
+    print "Spawning appserver.\n" if @debug
+    @httpserv = Knjappserver::Httpserver.new(self)
+    
+    
+    #Start Leakproxy-module if defined in config.
+    if @config[:leakproxy]
+      require "#{File.dirname(__FILE__)}/class_knjappserver_leakproxy_server.rb"
+      @leakproxy_server = Knjappserver::Leakproxy_server.new(:kas => self)
+    end
+    
+    
     STDOUT.print "Starting appserver.\n" if @debug
     Thread.current[:knjappserver] = {:kas => self} if !Thread.current[:knjappserver]
     

@@ -62,4 +62,10 @@ class Knjappserver
       end
     end
   end
+  
+  #Writes all session-data and resets the hash.
+  def sessions_reset
+    self.sessions_flush
+    @sessions = {}
+  end
 end
