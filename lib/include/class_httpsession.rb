@@ -1,8 +1,13 @@
-require "digest"
-
 class Knjappserver::Httpsession
   attr_accessor :data, :size_send, :alert_sent
   attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :cgroup, :written_size, :meta, :httpsession_var, :handler, :working
+  
+  dir = File.dirname(__FILE__)
+  
+  autoload :Contentgroup, "#{dir}/class_httpsession_contentgroup.rb"
+  autoload :Http_request, "#{dir}/class_httpsession_http_request.rb"
+  autoload :Http_response, "#{dir}/class_httpsession_http_response.rb"
+  autoload :Post_multipart, "#{dir}/class_httpsession_post_multipart.rb"
   
   def initialize(httpserver, socket)
     @data = {}
@@ -38,7 +43,7 @@ class Knjappserver::Httpsession
       "SERVER_PORT" => addr_peer[1]
     }
     
-    @resp = Knjappserver::Httpresp.new(:socket => @socket)
+    @resp = Knjappserver::Httpsession::Http_response.new(:socket => @socket)
     @handler = Knjappserver::Httpsession::Http_request.new(:kas => @kas, :httpsession => self)
     
     @cgroup = Knjappserver::Httpsession::Contentgroup.new(
@@ -260,7 +265,7 @@ class Knjappserver::Httpsession
     
     @kas.events.call(:request_begin, {
       :httpsession => self
-    })
+    }) if @kas.events
     
     if @handlers_cache.key?(@ext)
       @handlers_cache[@ext].call(self)
@@ -313,7 +318,7 @@ class Knjappserver::Httpsession
     
     @kas.events.call(:request_done, {
       :httpsession => self
-    })
+    }) if @kas.events
     @httpsession_var = {}
   end
 end

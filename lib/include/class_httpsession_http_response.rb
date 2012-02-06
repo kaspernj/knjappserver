@@ -1,7 +1,7 @@
 require "time"
 
 #This object writes headers, trailing headers, status headers and more for HTTP-sessions.
-class Knjappserver::Httpresp
+class Knjappserver::Httpsession::Http_response
   attr_accessor :chunked, :cgroup, :nl, :status, :http_version, :headers, :headers_trailing, :headers_sent, :socket
   
   STATUS_CODES = {
