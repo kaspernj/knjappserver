@@ -19,5 +19,7 @@ class Knjappserver::ERBHandler
     else
       eruby.import(httpsess.page_path)
     end
+    
+    httpsess.resp.status = 500 if eruby.error
 	end
 end
