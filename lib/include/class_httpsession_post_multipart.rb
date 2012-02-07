@@ -1,3 +1,4 @@
+#This class parses and handels post-multipart requests.
 class Knjappserver::Httpsession::Post_multipart
   attr_reader :return
   
@@ -12,9 +13,7 @@ class Knjappserver::Httpsession::Post_multipart
     @args["io"].each do |line|
       if boundary_regexp =~ line
         #Finish the data we were writing.
-        if @data
-          self.finish_data
-        end
+        self.finish_data if @data
         
         @data = ""
         @mode = "headers"
@@ -39,6 +38,7 @@ class Knjappserver::Httpsession::Post_multipart
     @args = nil
   end
   
+  #Add the current treated data to the return-hash.
   def finish_data
     @data.chop!
     name = nil
@@ -70,20 +70,36 @@ class Knjappserver::Httpsession::Post_multipart
   end
 end
 
+#This is the actual returned object for fileuploads. It is able to do various user-friendly things like save the content to a given path, return the filename, returns the content to a string and more.
 class Knjappserver::Httpsession::Post_multipart::File_upload
   def initialize(args)
     @args = args
   end
   
+  #Returns the filename given for the fileupload.
   def filename
     return @args["fname"]
   end
   
+  #Returns the size of the fileupload.
+  def length
+    return @args["data"].length
+  end
+  
+  #Returns the headers given for the fileupload. Type and more should be here.
   def headers
     return @args["headers"]
   end
   
+  #Returns the content of the file-upload as a string.
   def to_s
     return @args["data"]
+  end
+  
+  #Saves the content of the fileupload to a given path.
+  def save_to(filepath)
+    File.open(filepath, "w") do |fp|
+      fp.write(self.to_s)
+    end
   end
 end
