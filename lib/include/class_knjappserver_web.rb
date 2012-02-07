@@ -119,4 +119,9 @@ class Knjappserver
       return arg
     end
   end
+  
+  #Returns the socket-port the appserver is currently running on.
+  def port
+    return @httpserv.server.addr[1]
+  end
 end

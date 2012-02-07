@@ -32,6 +32,8 @@ class Knjappserver::Httpsession::Post_multipart
       end
     end
     
+    self.finish_data if @data and @data.to_s.length > 0
+    
     @data = nil
     @headers = nil
     @mode = nil
@@ -76,14 +78,19 @@ class Knjappserver::Httpsession::Post_multipart::File_upload
     @args = args
   end
   
-  #Returns the filename given for the fileupload.
-  def filename
-    return @args["fname"]
+  #Returns the size of the upload.
+  def size
+    return @args["data"].length
   end
   
   #Returns the size of the fileupload.
   def length
     return @args["data"].length
+  end
+  
+  #Returns the filename given for the fileupload.
+  def filename
+    return @args["fname"]
   end
   
   #Returns the headers given for the fileupload. Type and more should be here.
@@ -101,5 +108,10 @@ class Knjappserver::Httpsession::Post_multipart::File_upload
     File.open(filepath, "w") do |fp|
       fp.write(self.to_s)
     end
+  end
+  
+  #This methods prevents the object from being converted to JSON. This can make some serious bugs.
+  def to_json(*args)
+    raise "File_upload-objects should not be converted to json."
   end
 end

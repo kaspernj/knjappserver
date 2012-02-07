@@ -1,15 +1,9 @@
-require "timeout"
-require "digest"
-require "erubis"
-require "base64"
-require "stringio"
-require "socket"
-
 class Knjappserver
-  attr_reader :config, :httpserv, :debug, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_procs, :magic_vars, :types, :eruby_cache, :httpsessions_ids
+  attr_reader :cio, :config, :httpserv, :debug, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_procs, :magic_vars, :types, :eruby_cache, :httpsessions_ids
   attr_accessor :served, :should_restart, :should_restart_done
   
-  autoload :ERBHandler, "#{File.dirname(__FILE__)}/class_erbhandler"
+  appsrv_dir = File.dirname(__FILE__)
+  autoload :ERBHandler, "#{appsrv_dir}/class_erbhandler"
   
   def initialize(config)
     raise "No arguments given." if !config.is_a?(Hash)
@@ -109,49 +103,51 @@ class Knjappserver
       :xml => "text/xml",
       :js => "text/javascript"
     }
-    @types = @types.merge(@config[:filetypes]) if @config.has_key?(:filetypes)
+    @types.merge!(@config[:filetypes]) if @config.has_key?(:filetypes)
     
     
     
     #Load various required files from knjrbfw and stuff in the knjappserver-framework.
     files = [
       "#{@path_knjrbfw}knjrbfw.rb",
-      "#{@path_knjrbfw}knj/arrayext.rb",
-      "#{@path_knjrbfw}knj/event_handler.rb",
-      "#{@path_knjrbfw}knj/errors.rb",
-      "#{@path_knjrbfw}knj/eruby.rb",
-      "#{@path_knjrbfw}knj/hash_methods.rb",
-      "#{@path_knjrbfw}knj/objects.rb",
-      "#{@path_knjrbfw}knj/web.rb",
-      "#{@path_knjrbfw}knj/datarow.rb",
-      "#{@path_knjrbfw}knj/datet.rb",
-      "#{@path_knjrbfw}knj/php.rb",
-      "#{@path_knjrbfw}knj/thread.rb",
-      "#{@path_knjrbfw}knj/threadhandler.rb",
-      "#{@path_knjrbfw}knj/threadpool.rb",
-      "#{@path_knjrbfw}knj/translations.rb",
-      "#{@path_knjrbfw}knj/knjdb/libknjdb.rb",
-      "#{@path_knjappserver}/class_httpresp.rb",
       "#{@path_knjappserver}/class_httpserver.rb",
       "#{@path_knjappserver}/class_httpsession.rb",
-      "#{@path_knjappserver}/class_httpsession_knjengine.rb",
-      "#{@path_knjappserver}/class_httpsession_contentgroup.rb",
-      "#{@path_knjappserver}/class_httpsession_post_multipart.rb",
-      "#{@path_knjappserver}/class_session.rb",
-      "#{@path_knjappserver}/class_log.rb",
-      "#{@path_knjappserver}/class_log_access.rb",
-      "#{@path_knjappserver}/class_log_data_value.rb",
-      "#{@path_knjappserver}/class_knjappserver_cleaner.rb",
-      "#{@path_knjappserver}/class_knjappserver_cmdline.rb",
       "#{@path_knjappserver}/class_knjappserver_errors.rb",
       "#{@path_knjappserver}/class_knjappserver_logging.rb",
       "#{@path_knjappserver}/class_knjappserver_mailing.rb",
       "#{@path_knjappserver}/class_knjappserver_sessions.rb",
-      "#{@path_knjappserver}/class_knjappserver_threadding.rb",
-      "#{@path_knjappserver}/class_knjappserver_threadding_timeout.rb",
       "#{@path_knjappserver}/class_knjappserver_translations.rb",
       "#{@path_knjappserver}/class_knjappserver_web.rb"
     ]
+    
+    if @config[:preload]
+      require "timeout"
+      require "digest"
+      require "erubis"
+      require "base64"
+      require "stringio"
+      require "socket"
+      
+      files += [
+        "#{@path_knjrbfw}knj/event_handler.rb",
+        "#{@path_knjrbfw}knj/errors.rb",
+        "#{@path_knjrbfw}knj/eruby.rb",
+        "#{@path_knjrbfw}knj/hash_methods.rb",
+        "#{@path_knjrbfw}knj/objects.rb",
+        "#{@path_knjrbfw}knj/web.rb",
+        "#{@path_knjrbfw}knj/datarow.rb",
+        "#{@path_knjrbfw}knj/datet.rb",
+        "#{@path_knjrbfw}knj/php.rb",
+        "#{@path_knjrbfw}knj/thread.rb",
+        "#{@path_knjrbfw}knj/threadhandler.rb",
+        "#{@path_knjrbfw}knj/threadpool.rb",
+        "#{@path_knjrbfw}knj/translations.rb",
+        "#{@path_knjrbfw}knj/knjdb/libknjdb.rb",
+      ]
+    else
+      files << "#{@path_knjrbfw}knj/autoload.rb"
+    end
+    
     files << "#{@path_knjrbfw}knj/gettext_threadded.rb" if @config[:locales_root]
     files.each do |file|
       STDOUT.print "Loading: '#{file}'.\n" if @debug
@@ -171,16 +167,18 @@ class Knjappserver
     end
     
     
-    print "Updating database.\n" if @debug
-    require "knj/knjdb/revision.rb"
-    
-    dbschemapath = "#{File.dirname(__FILE__)}/../files/database_schema.rb"
-    raise "'#{dbschemapath}' did not exist." if !File.exists?(dbschemapath)
-    require dbschemapath
-    raise "No schema-variable was spawned." if !Knjappserver::DATABASE_SCHEMA
-    
-    dbrev = Knj::Db::Revision.new
-    dbrev.init_db("schema" => Knjappserver::DATABASE_SCHEMA, "db" => @db)
+    if !@config.key?(:dbrev) or @config[:dbrev]
+      print "Updating database.\n" if @debug
+      require "knj/knjdb/revision.rb"
+      
+      dbschemapath = "#{File.dirname(__FILE__)}/../files/database_schema.rb"
+      raise "'#{dbschemapath}' did not exist." if !File.exists?(dbschemapath)
+      require dbschemapath
+      raise "No schema-variable was spawned." if !Knjappserver::DATABASE_SCHEMA
+      
+      dbrev = Knj::Db::Revision.new
+      dbrev.init_db("schema" => Knjappserver::DATABASE_SCHEMA, "db" => @db)
+    end
     
     
     print "Spawning objects.\n" if @debug
@@ -212,9 +210,7 @@ class Knjappserver
       @gettext = Knj::Gettext_threadded.new("dir" => config[:locales_root])
     end
     
-    if @config[:locales_gettext_funcs]
-      require "#{@path_knjappserver}/gettext_funcs"
-    end
+    require "#{@path_knjappserver}/gettext_funcs" if @config[:locales_gettext_funcs]
     
     if @config[:magic_methods] or !@config.has_key?(:magic_methods)
       print "Loading magic-methods.\n" if @debug
@@ -226,8 +222,8 @@ class Knjappserver
       
       if $stdout.class.name != "Knjappserver::CustomIO"
         require "#{@path_knjappserver}/class_customio.rb"
-        cio = Knjappserver::CustomIO.new
-        $stdout = cio
+        @cio = Knjappserver::CustomIO.new
+        $stdout = @cio
       end
     end
     
@@ -250,20 +246,30 @@ class Knjappserver
     
     
     #Set up various events for the appserver.
-    print "Loading events.\n" if @debug
-    @events = Knj::Event_handler.new
-    @events.add_event(
-      :name => :check_page_access,
-      :connections_max => 1
-    )
-    @events.add_event(
-      :name => :ob,
-      :connections_max => 1
-    )
-    @events.add_event(
-      :name => :trans_no_str,
-      :connections_max => 1
-    )
+    if !@config.key?(:events) or @config[:events]
+      print "Loading events.\n" if @debug
+      @events = Knj::Event_handler.new
+      @events.add_event(
+        :name => :check_page_access,
+        :connections_max => 1
+      )
+      @events.add_event(
+        :name => :ob,
+        :connections_max => 1
+      )
+      @events.add_event(
+        :name => :trans_no_str,
+        :connections_max => 1
+      )
+      @events.add_event(
+        :name => :request_done,
+        :connections_max => 1
+      )
+      @events.add_event(
+        :name => :request_begin,
+        :connections_max => 1
+      )
+    end
     
     #Set up the 'vars'-variable that can be used to set custom global variables for web-requests.
     @vars = Knj::Hash_methods.new
@@ -273,42 +279,39 @@ class Knjappserver
     
     #Initialize the various feature-modules.
     print "Init sessions.\n" if @debug
-    initialize_sessions
+    self.initialize_sessions
     
-    print "Init threadding.\n" if @debug
-    initialize_threadding
+    if !@config.key?(:threadding) or @config[:threadding]
+      self.loadfile("#{@path_knjappserver}/class_knjappserver_threadding.rb")
+      self.loadfile("#{@path_knjappserver}/class_knjappserver_threadding_timeout.rb")
+      print "Init threadding.\n" if @debug
+      self.initialize_threadding
+    end
     
     print "Init mailing.\n" if @debug
-    initialize_mailing
+    self.initialize_mailing
     
     print "Init errors.\n" if @debug
-    initialize_errors
+    self.initialize_errors
     
     print "Init logging.\n" if @debug
-    initialize_logging
+    self.initialize_logging
     
-    print "Init cleaner.\n" if @debug
-    initialize_cleaner
+    if !@config.key?(:cleaner) or @config[:cleaner]
+      self.loadfile("#{@path_knjappserver}/class_knjappserver_cleaner.rb")
+      print "Init cleaner.\n" if @debug
+      self.initialize_cleaner
+    end
     
-    print "Init cmdline.\n" if @debug
-    initialize_cmdline
-    
-    
-    #Start the appserver.
-    print "Spawning appserver.\n" if @debug
-    @httpserv = Knjappserver::Httpserver.new(self)
-    
-    
-    
-    #Start Leakproxy-module if defined in config.
-    if @config[:leakproxy]
-      require "#{File.dirname(__FILE__)}/class_knjappserver_leakproxy_server.rb"
-      @leakproxy_server = Knjappserver::Leakproxy_server.new(:kas => self)
+    if !@config.key?(:cmdline) or @config[:cmdline]
+      self.loadfile("#{@path_knjappserver}/class_knjappserver_cmdline.rb")
+      print "Init cmdline.\n" if @debug
+      self.initialize_cmdline
     end
     
     
     #Clear memory at exit.
-    at_exit do
+    Kernel.at_exit do
       self.stop
     end
     
@@ -337,6 +340,18 @@ class Knjappserver
   
   #Starts the HTTP-server and threadpool.
   def start
+    #Start the appserver.
+    print "Spawning appserver.\n" if @debug
+    @httpserv = Knjappserver::Httpserver.new(self)
+    
+    
+    #Start Leakproxy-module if defined in config.
+    if @config[:leakproxy]
+      require "#{File.dirname(__FILE__)}/class_knjappserver_leakproxy_server.rb"
+      @leakproxy_server = Knjappserver::Leakproxy_server.new(:kas => self)
+    end
+    
+    
     STDOUT.print "Starting appserver.\n" if @debug
     Thread.current[:knjappserver] = {:kas => self} if !Thread.current[:knjappserver]
     

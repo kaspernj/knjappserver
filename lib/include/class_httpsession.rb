@@ -1,8 +1,13 @@
-require "digest"
-
 class Knjappserver::Httpsession
   attr_accessor :data, :size_send, :alert_sent
   attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :cgroup, :written_size, :meta, :httpsession_var, :handler, :working
+  
+  dir = File.dirname(__FILE__)
+  
+  autoload :Contentgroup, "#{dir}/class_httpsession_contentgroup.rb"
+  autoload :Http_request, "#{dir}/class_httpsession_http_request.rb"
+  autoload :Http_response, "#{dir}/class_httpsession_http_response.rb"
+  autoload :Post_multipart, "#{dir}/class_httpsession_post_multipart.rb"
   
   def initialize(httpserver, socket)
     @data = {}
@@ -38,8 +43,9 @@ class Knjappserver::Httpsession
       "SERVER_PORT" => addr_peer[1]
     }
     
-    @resp = Knjappserver::Httpresp.new(:socket => @socket)
-    @handler = Knjappserver::Httpsession::Knjengine.new(:kas => @kas, :httpsession => self)
+    @resp = Knjappserver::Httpsession::Http_response.new(:socket => @socket)
+    @handler = Knjappserver::Httpsession::Http_request.new(:kas => @kas, :httpsession => self)
+    
     @cgroup = Knjappserver::Httpsession::Contentgroup.new(
       :socket => @socket,
       :kas => @kas,
@@ -170,6 +176,11 @@ class Knjappserver::Httpsession
     @thread_request.kill if @thread_request.alive?
   end
   
+  #Forces the content to be the input - nothing else can be added after calling this.
+  def force_content(newcont)
+    @cgroup.force_content(newcont)
+  end
+  
   def serve
     @meta = @handler.meta.merge!(@socket_meta)
     @cookie = @handler.cookie
@@ -252,6 +263,10 @@ class Knjappserver::Httpsession
     Thread.current[:knjappserver][:contentgroup] = @cgroup
     time_start = Time.now.to_f if @debug
     
+    @kas.events.call(:request_begin, {
+      :httpsession => self
+    }) if @kas.events
+    
     if @handlers_cache.key?(@ext)
       @handlers_cache[@ext].call(self)
     else
@@ -296,10 +311,14 @@ class Knjappserver::Httpsession
       end
     end
     
-    @httpsession_var = {}
     @cgroup.mark_done
     @cgroup.write_output
     STDOUT.print "#{__id__} - Served '#{@meta["REQUEST_URI"]}' in #{Time.now.to_f - time_start} secs (#{@resp.status}).\n" if @debug
     @cgroup.join
+    
+    @kas.events.call(:request_done, {
+      :httpsession => self
+    }) if @kas.events
+    @httpsession_var = {}
   end
 end

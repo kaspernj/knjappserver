@@ -6,7 +6,7 @@ if RUBY_PLATFORM == "java" or RUBY_ENGINE == "rbx"
 end
 
 #This class parses the various HTTP requests into easy programmable objects. Get, post, cookie, meta and so on...
-class Knjappserver::Httpsession::Knjengine
+class Knjappserver::Httpsession::Http_request
 	attr_reader :get, :post, :cookie, :meta, :page_path, :headers, :http_version, :read, :clength, :speed, :percent, :secs_left
 	
 	#Sets the various required data on the object. Knjappserver, crlf and arguments.
@@ -101,9 +101,9 @@ class Knjappserver::Httpsession::Knjengine
         Knj::Thread.new do
           time_cur = Time.now
           read_last = 0
+          sleep 0.1
           
           while @clength and @read != nil and @read < @clength
-            sleep 2
             break if !@clength or !@read
             
             time_now = Time.now
@@ -123,6 +123,8 @@ class Knjappserver::Httpsession::Knjengine
             else
               @secs_left = false
             end
+            
+            sleep 2
           end
         end
         
@@ -143,6 +145,8 @@ class Knjappserver::Httpsession::Knjengine
             "boundary" => match[1],
             "crlf" => @crlf
           ).return
+          
+          self.convert_post(@post, post_treated, {:urldecode => false})
         else
           post_data.split("&").each do |splitted|
             splitted = splitted.split("=")
@@ -150,9 +154,9 @@ class Knjappserver::Httpsession::Knjengine
             val = splitted[1].to_s.encode("utf-8")
             post_treated[key] = val
           end
+          
+          self.convert_post(@post, post_treated, {:urldecode => true})
         end
-        
-        self.convert_post(@post, post_treated, {:urldecode => true})
       end
 		ensure
       @read = nil
