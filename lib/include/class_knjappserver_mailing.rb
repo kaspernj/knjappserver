@@ -3,10 +3,6 @@ class Knjappserver
   
 	def initialize_mailing
     require "knj/autoload/ping"
-    require "knj/mailobj"
-    
-    STDOUT.print "Loading mail.\n" if @config[:debug]
-    require "mail" if !@config.has_key?(:mail_require) or @config[:mail_require]
     
 		@mails_waiting = []
 		@mails_mutex = Mutex.new
@@ -41,31 +37,44 @@ class Knjappserver
 	#Sends all queued mails to the respective servers, if we are online.
 	def mail_flush
 		@mails_mutex.synchronize do
-			return false if @mails_waiting.length <= 0
-			
-			status = Ping.pingecho("google.dk", 10, 80)
-			if !status
-				STDOUT.print "We are not online - skipping mail flush.\n"
-				return false  #Dont run if we dont have a connection to the internet and then properly dont have a connection to the SMTP as well.
-			end
-			
-			STDOUT.print "Flushing emails." if @debug
-			@mails_waiting.each do |mail|
-				begin
-          STDOUT.print "Sending email: #{mail.__id__}\n" if @debug
-					if mail.send
-            STDOUT.print "Email sent: #{mail.__id__}\n" if @debug
-						@mails_waiting.delete(mail)
-					end
-				rescue Timeout::Error
-					#ignore - 
-				rescue => e
-					@mails_waiting.delete(mail)
-					self.handle_error(e, {:email => false})
-				end
-				
-				sleep 1 #sleep so we dont take up too much bandwidth.
-			end
+      return false if @mails_waiting.length <= 0
+      
+      status = Ping.pingecho("google.dk", 10, 80)
+      if !status
+        STDOUT.print "We are not online - skipping mail flush.\n"
+        return false  #Dont run if we dont have a connection to the internet and then properly dont have a connection to the SMTP as well.
+      end
+      
+      begin
+        #Use subprocessing to avoid the mail-framework (activesupport and so on, also possible memory leaks in those large frameworks).
+        require "knj/process_meta"
+        subproc = Knj::Process_meta.new("debug" => true)
+        subproc.static("Object", "require", "rubygems")
+        subproc.static("Object", "require", "mail")
+        subproc.static("Object", "require", "#{@config[:knjrbfw_path]}knjrbfw")
+        subproc.static("Object", "require", "knj/autoload")
+        
+        STDOUT.print "Flushing emails." if @debug
+        @mails_waiting.each do |mail|
+          begin
+            STDOUT.print "Sending email: #{mail.__id__}\n" if @debug
+            if mail.send("proc" => @proc)
+              STDOUT.print "Email sent: #{mail.__id__}\n" if @debug
+              @mails_waiting.delete(mail)
+            end
+          rescue Timeout::Error
+            #ignore - 
+          rescue => e
+            @mails_waiting.delete(mail)
+            self.handle_error(e, {:email => false})
+          end
+          
+          sleep 1 #sleep so we dont take up too much bandwidth.
+        end
+      ensure
+        subproc.destroy if subproc
+        subproc = nil
+      end
 		end
 	end
 	
@@ -85,43 +94,48 @@ class Knjappserver
 		end
 		
 		#Sends the email to the receiver.
-		def send
+		def send(args = {})
       STDOUT.print "Sending mail '#{__id__}'.\n" if @args[:kas].debug
       
-      begin
+      if @args["proc"]
+        @args["proc"].static("Object", "require", "knj/mailobj")
+        mail = @args["proc"].new("Knj::Mailobj", @args[:kas].config[:smtp_args])
+      else
+        require "knj/mailobj"
         mail = Knj::Mailobj.new(@args[:kas].config[:smtp_args])
-        mail.to = @args[:to]
-        mail.subject = @args[:subject] if @args[:subject]
-        mail.html = Knj::Strings.email_str_safe(@args[:html]) if @args[:html]
-        mail.text = Knj::Strings.email_str_safe(@args[:text]) if @args[:text]
-        
-        if @args[:from]
-          mail.from = @args[:from]
-        elsif @args[:kas].config[:error_report_from]
-          mail.from = @args[:kas].config[:error_report_from]
-        else
-          raise "Dont know where to take the 'from'-paramter from - none given in appserver config or mail-method-arguments?"
-        end
-        
-				mail.send
-				@args[:status] = :sent
-				STDOUT.print "Sent email #{self.__id__}\n" if @args[:kas].debug
-				return true
-			rescue Exception => e
-        if @args[:kas].debug
-          STDOUT.print "Could not send email.\n"
-          STDOUT.puts e.inspect
-          STDOUT.puts e.backtrace
-        end
-        
-				@args[:errors][e.class.name] = {:count => 0} if !@args[:errors].has_key?(e.class.name)
-				@args[:errors][e.class.name][:count] += 1
-				raise e if @args[:errors][e.class.name][:count] >= 5
-				@args[:status] = :error
-				@args[:error] = e
-				
-				return false
-			end
+      end
+      
+      mail.to = @args[:to]
+      mail.subject = @args[:subject] if @args[:subject]
+      mail.html = Knj::Strings.email_str_safe(@args[:html]) if @args[:html]
+      mail.text = Knj::Strings.email_str_safe(@args[:text]) if @args[:text]
+      
+      if @args[:from]
+        mail.from = @args[:from]
+      elsif @args[:kas].config[:error_report_from]
+        mail.from = @args[:kas].config[:error_report_from]
+      else
+        raise "Dont know where to take the 'from'-paramter from - none given in appserver config or mail-method-arguments?"
+      end
+      
+      mail.send
+      @args[:status] = :sent
+      STDOUT.print "Sent email #{self.__id__}\n" if @args[:kas].debug
+      return true
+    rescue Exception => e
+      if @args[:kas].debug
+        STDOUT.print "Could not send email.\n"
+        STDOUT.puts e.inspect
+        STDOUT.puts e.backtrace
+      end
+      
+      @args[:errors][e.class.name] = {:count => 0} if !@args[:errors].has_key?(e.class.name)
+      @args[:errors][e.class.name][:count] += 1
+      raise e if @args[:errors][e.class.name][:count] >= 5
+      @args[:status] = :error
+      @args[:error] = e
+      
+      return false
 		end
 	end
 end
