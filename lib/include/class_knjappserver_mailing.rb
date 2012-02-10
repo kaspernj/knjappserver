@@ -58,7 +58,7 @@ class Knjappserver
         @mails_waiting.each do |mail|
           begin
             STDOUT.print "Sending email: #{mail.__id__}\n" if @debug
-            if mail.send("proc" => @proc)
+            if mail.send("proc" => subproc)
               STDOUT.print "Email sent: #{mail.__id__}\n" if @debug
               @mails_waiting.delete(mail)
             end
@@ -97,28 +97,34 @@ class Knjappserver
 		def send(args = {})
       STDOUT.print "Sending mail '#{__id__}'.\n" if @args[:kas].debug
       
-      if @args["proc"]
-        @args["proc"].static("Object", "require", "knj/mailobj")
-        mail = @args["proc"].new("Knj::Mailobj", @args[:kas].config[:smtp_args])
-      else
-        require "knj/mailobj"
-        mail = Knj::Mailobj.new(@args[:kas].config[:smtp_args])
-      end
-      
-      mail.to = @args[:to]
-      mail.subject = @args[:subject] if @args[:subject]
-      mail.html = Knj::Strings.email_str_safe(@args[:html]) if @args[:html]
-      mail.text = Knj::Strings.email_str_safe(@args[:text]) if @args[:text]
-      
       if @args[:from]
-        mail.from = @args[:from]
+        from = @args[:from]
       elsif @args[:kas].config[:error_report_from]
-        mail.from = @args[:kas].config[:error_report_from]
+        from = @args[:kas].config[:error_report_from]
       else
         raise "Dont know where to take the 'from'-paramter from - none given in appserver config or mail-method-arguments?"
       end
       
-      mail.send
+      if args["proc"]
+        args["proc"].static("Object", "require", "knj/mailobj")
+        mail = args["proc"].new("Knj::Mailobj", @args[:kas].config[:smtp_args])
+        mail._pm_send_noret("to=", @args[:to])
+        mail._pm_send_noret("subject=", @args[:subject]) if @args[:subject]
+        mail._pm_send_noret("html=", Knj::Strings.email_str_safe(@args[:html])) if @args[:html]
+        mail._pm_send_noret("text=", Knj::Strings.email_str_safe(@args[:text])) if @args[:text]
+        mail._pm_send_noret("from=", from)
+        mail._pm_send_noret("send")
+      else
+        require "knj/mailobj"
+        mail = Knj::Mailobj.new(@args[:kas].config[:smtp_args])
+        mail.to = @args[:to]
+        mail.subject = @args[:subject] if @args[:subject]
+        mail.html = Knj::Strings.email_str_safe(@args[:html]) if @args[:html]
+        mail.text = Knj::Strings.email_str_safe(@args[:text]) if @args[:text]
+        mail.from = from
+        mail.send
+      end
+      
       @args[:status] = :sent
       STDOUT.print "Sent email #{self.__id__}\n" if @args[:kas].debug
       return true

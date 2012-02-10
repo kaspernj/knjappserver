@@ -4,6 +4,7 @@ class Knjappserver
   
   appsrv_dir = File.dirname(__FILE__)
   autoload :ERBHandler, "#{appsrv_dir}/class_erbhandler"
+  autoload :Log, "#{appsrv_dir}/class_log.rb"
   
   def initialize(config)
     raise "No arguments given." if !config.is_a?(Hash)
