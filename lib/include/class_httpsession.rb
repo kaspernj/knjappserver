@@ -1,6 +1,6 @@
 class Knjappserver::Httpsession
-  attr_accessor :data, :size_send, :alert_sent
-  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :cgroup, :written_size, :meta, :httpsession_var, :handler, :working
+  attr_accessor :data, :alert_sent
+  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :cgroup, :meta, :httpsession_var, :handler, :working
   
   dir = File.dirname(__FILE__)
   
@@ -58,7 +58,7 @@ class Knjappserver::Httpsession
     ObjectSpace.define_finalizer(self, self.class.method(:finalize).to_proc) if @debug
     STDOUT.print "New httpsession #{self.__id__} (total: #{@httpserver.http_sessions.count}).\n" if @debug
     
-    @thread_request = Knj::Thread.new do
+    @thread_request = Thread.new do
       Thread.current[:knjappserver] = {} if !Thread.current[:knjappserver]
       
       begin
@@ -82,7 +82,7 @@ class Knjappserver::Httpsession
             break if @kas.should_restart
             
             if @config.key?(:max_requests_working)
-              while @httpserver and @config and @httpserver.working_count >= @config[:max_requests_working]
+              while @httpserver and @config and @httpserver.working_count.to_i >= @config[:max_requests_working].to_i
                 STDOUT.print "Maximum amounts of requests are working (#{@httpserver.working_count}, #{@config[:max_requests_working]}) - sleeping.\n" if @debug
                 sleep 0.1
               end
@@ -111,13 +111,19 @@ class Knjappserver::Httpsession
         #STDOUT.puts e.backtrace
       rescue SystemExit, Interrupt => e
         raise e
-      rescue RuntimeError, Exception => e
+      rescue Exception => e
         STDOUT.puts e.inspect
         STDOUT.puts e.backtrace
       ensure
         self.destruct
       end
     end
+  end
+  
+  #Is called when content is added and begings to write the output if it goes above the limit.
+  def add_size(size)
+    @written_size += size
+    @cgroup.write_output if @written_size >= @size_send
   end
   
   def threadded_content(block)
