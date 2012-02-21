@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjappserver}
-  s.version = "0.0.16"
+  s.version = "0.0.17"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = %q{2011-11-15}
+  s.date = %q{2012-02-21}
   s.description = %q{Which supports a lot of undocumented stuff.}
   s.email = %q{k@spernj.org}
   s.executables = ["check_running.rb", "knjappserver_start.rb"]
@@ -36,17 +36,18 @@ Gem::Specification.new do |s|
     "lib/files/run/README",
     "lib/include/class_customio.rb",
     "lib/include/class_erbhandler.rb",
-    "lib/include/class_httpresp.rb",
     "lib/include/class_httpserver.rb",
     "lib/include/class_httpsession.rb",
     "lib/include/class_httpsession_contentgroup.rb",
-    "lib/include/class_httpsession_knjengine.rb",
-    "lib/include/class_httpsession_mongrel.rb",
-    "lib/include/class_httpsession_webrick.rb",
+    "lib/include/class_httpsession_http_request.rb",
+    "lib/include/class_httpsession_http_response.rb",
+    "lib/include/class_httpsession_post_multipart.rb",
     "lib/include/class_knjappserver.rb",
     "lib/include/class_knjappserver_cleaner.rb",
     "lib/include/class_knjappserver_cmdline.rb",
     "lib/include/class_knjappserver_errors.rb",
+    "lib/include/class_knjappserver_leakproxy_client.rb",
+    "lib/include/class_knjappserver_leakproxy_server.rb",
     "lib/include/class_knjappserver_logging.rb",
     "lib/include/class_knjappserver_mailing.rb",
     "lib/include/class_knjappserver_sessions.rb",
@@ -68,13 +69,23 @@ Gem::Specification.new do |s|
     "lib/pages/benchmark_print.rhtml",
     "lib/pages/benchmark_simple.rhtml",
     "lib/pages/benchmark_threadded_content.rhtml",
+    "lib/pages/debug_database_connections.rhtml",
+    "lib/pages/debug_http_sessions.rhtml",
+    "lib/pages/error_notfound.rhtml",
     "lib/pages/logs_latest.rhtml",
     "lib/pages/logs_show.rhtml",
     "lib/pages/spec.rhtml",
+    "lib/pages/spec_post.rhtml",
     "lib/pages/spec_test_multiple_clients.rhtml",
+    "lib/pages/spec_thread_joins.rhtml",
     "lib/pages/spec_threadded_content.rhtml",
+    "lib/pages/tests.rhtml",
     "lib/scripts/benchmark.rb",
+    "lib/scripts/knjappserver_cgi.rb",
+    "lib/scripts/knjappserver_fcgi.rb",
+    "lib/scripts/leakproxy.rb",
     "spec/knjappserver_spec.rb",
+    "spec/leakproxy_spec.rb",
     "spec/spec_helper.rb"
   ]
   s.homepage = %q{http://github.com/kaspernj/knjappserver}
