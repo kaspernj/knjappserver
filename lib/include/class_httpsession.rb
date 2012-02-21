@@ -94,6 +94,7 @@ class Knjappserver::Httpsession
             
             @httpserver.count_add
             @working = true
+            STDOUT.print "Serving.\n" if @debug
             self.serve
           ensure
             @httpserver.count_remove
@@ -182,6 +183,7 @@ class Knjappserver::Httpsession
   end
   
   def serve
+    STDOUT.print "Generating meta, cookie, get, post and headers.\n" if @debug
     @meta = @handler.meta.merge!(@socket_meta)
     @cookie = @handler.cookie
     @get = @handler.get
@@ -218,6 +220,7 @@ class Knjappserver::Httpsession
       raise "Could not figure out the IP of the session."
     end
     
+    STDOUT.print "Figuring out session-ID, session-object and more.\n" if @debug
     if @cookie["KnjappserverSession"].to_s.length > 0
       @session_id = @cookie["KnjappserverSession"]
     elsif @browser["browser"] == "bot"
@@ -246,6 +249,7 @@ class Knjappserver::Httpsession
     end
     
     if @config.key?(:logging) and @config[:logging][:access_db]
+      STDOUT.print "Doing access-logging.\n" if @debug
       @ips = [@meta["REMOTE_ADDR"]]
       @ips << @meta["HTTP_X_FORWARDED_FOR"].split(",")[0].strip if @meta["HTTP_X_FORWARDED_FOR"]
       @kas.logs_access_pending << {
@@ -259,6 +263,7 @@ class Knjappserver::Httpsession
       }
     end
     
+    STDOUT.print "Initializing thread and content-group.\n" if @debug
     self.init_thread
     Thread.current[:knjappserver][:contentgroup] = @cgroup
     time_start = Time.now.to_f if @debug
@@ -268,6 +273,7 @@ class Knjappserver::Httpsession
     }) if @kas.events
     
     if @handlers_cache.key?(@ext)
+      STDOUT.print "Calling handler.\n" if @debug
       @handlers_cache[@ext].call(self)
     else
       #check if we should use a handler for this request.
