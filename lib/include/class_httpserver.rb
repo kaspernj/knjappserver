@@ -16,35 +16,47 @@ class Knjappserver::Httpserver
     raise "No port was given." if @kas and !@kas.config.has_key?(:port)
 		@server = TCPServer.new(@kas.config[:host], @kas.config[:port])
 		
-		@thread_accept = Knj::Thread.new do
-			loop do
-				if !@server or @server.closed?
-					sleep 1
-					next
-				end
-				
-				begin
-					self.spawn_httpsession(@server.accept)
-					STDOUT.print "Starting new HTTP-request.\n" if @debug
-				rescue => e
-					STDOUT.puts e.inspect
-					STDOUT.puts e.backtrace
-					STDOUT.print "\n"
-					STDOUT.print "Could not accept HTTP-request - waiting 1 sec and then trying again.\n"
-					sleep 1
-				end
-			end
+		@thread_accept = Thread.new do
+      begin
+        loop do
+          if !@server or @server.closed?
+            sleep 1
+            next
+          end
+          
+          begin
+            self.spawn_httpsession(@server.accept)
+            STDOUT.print "Starting new HTTP-request.\n" if @debug
+          rescue => e
+            STDOUT.puts e.inspect
+            STDOUT.puts e.backtrace
+            STDOUT.print "\n"
+            STDOUT.print "Could not accept HTTP-request - waiting 1 sec and then trying again.\n"
+            sleep 1
+          end
+        end
+      rescue => e
+        STDOUT.print Knj::Errors.error_str(e)
+      end
 		end
 		
-		@thread_restart = Knj::Thread.new do
-      loop do
-        sleep 10
-        break if @kas.should_restart and @kas.should_restart_done
-        
-        if !@kas.should_restart and (!@server or @server.closed?)
-          STDOUT.print "Socket does not exist or is closed - restarting HTTP-server!\n"
-          @server = TCPServer.new(@kas.config[:host], @kas.config[:port])
-          STDOUT.print "Done.\n"
+		@thread_restart = Thread.new do
+      begin
+        loop do
+          sleep 10
+          break if @kas.should_restart and @kas.should_restart_done
+          
+          if !@kas.should_restart and (!@server or @server.closed?)
+            STDOUT.print "Socket does not exist or is closed - restarting HTTP-server!\n"
+            @server = TCPServer.new(@kas.config[:host], @kas.config[:port])
+            STDOUT.print "Done.\n"
+          end
+        end
+      rescue => e
+        if @kas
+          @kas.handle_error(e)
+        else
+          STDOUT.print Knj::Errors.error_str(e)
         end
       end
     end

@@ -98,33 +98,41 @@ class Knjappserver::Httpsession::Http_request
         @read = 0
         post_data = ""
         
-        Knj::Thread.new do
-          time_cur = Time.now
-          read_last = 0
-          sleep 0.1
-          
-          while @clength and @read != nil and @read < @clength
-            break if !@clength or !@read
+        Thread.new do
+          begin
+            time_cur = Time.now
+            read_last = 0
+            sleep 0.1
             
-            time_now = Time.now
-            time_betw = time_now.to_f - time_cur.to_f
-            read_betw = @read - read_last
-            
-            time_cur = time_now
-            read_last = @read
-            
-            @percent = @read.to_f / @clength.to_f
-            @speed = read_betw.to_f / time_betw.to_f
-            
-            bytes_left = @clength - read
-            
-            if @speed > 0 and bytes_left > 0
-              @secs_left = bytes_left.to_f / @speed
-            else
-              @secs_left = false
+            while @clength and @read != nil and @read < @clength
+              break if !@clength or !@read
+              
+              time_now = Time.now
+              time_betw = time_now.to_f - time_cur.to_f
+              read_betw = @read - read_last
+              
+              time_cur = time_now
+              read_last = @read
+              
+              @percent = @read.to_f / @clength.to_f
+              @speed = read_betw.to_f / time_betw.to_f
+              
+              bytes_left = @clength - read
+              
+              if @speed > 0 and bytes_left > 0
+                @secs_left = bytes_left.to_f / @speed
+              else
+                @secs_left = false
+              end
+              
+              sleep 2
             end
-            
-            sleep 2
+          rescue => e
+            if @kas
+              @kas.handle_error(e)
+            else
+              STDOUT.print Knj::Errors.error_str(e)
+            end
           end
         end
         

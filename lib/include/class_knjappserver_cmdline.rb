@@ -2,28 +2,32 @@ class Knjappserver
   def initialize_cmdline
     @cmds = {}
     
-    Knj::Thread.new do
-      line = $stdin.gets
-      next if line == "\n"
-      
-      called = 0
-      @cmds.each do |key, connects|
-        data = {}
+    Thread.new do
+      begin
+        line = $stdin.gets
+        next if line == "\n"
         
-        if key.is_a?(Regexp)
-          if line.match(key)
-            connects.each do |conn|
-              called += 1
-              conn[:block].call(data)
+        called = 0
+        @cmds.each do |key, connects|
+          data = {}
+          
+          if key.is_a?(Regexp)
+            if line.match(key)
+              connects.each do |conn|
+                called += 1
+                conn[:block].call(data)
+              end
             end
+          else
+            raise "Unknown class for 'cmd_connect': '#{key.class.name}'."
           end
-        else
-          raise "Unknown class for 'cmd_connect': '#{key.class.name}'."
         end
-      end
-      
-      if called == 0
-        print "Unknown command: '#{line.strip}'.\n"
+        
+        if called == 0
+          print "Unknown command: '#{line.strip}'.\n"
+        end
+      rescue => e
+        self.handle_error(e)
       end
     end
     
@@ -33,6 +37,7 @@ class Knjappserver
     end
     
     self.cmd_connect(/^\s*stop\s*$/i) do |data|
+      print "Stopping appserver.\n"
       self.stop
     end
   end
