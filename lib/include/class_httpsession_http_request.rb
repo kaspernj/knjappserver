@@ -1,4 +1,5 @@
 require "uri"
+require "knj/web"
 
 #If we are running on JRuby or Rubinius this will seriously speed things up if we are behind a proxy.
 if RUBY_PLATFORM == "java" or RUBY_ENGINE == "rbx"

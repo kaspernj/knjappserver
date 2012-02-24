@@ -1,7 +1,7 @@
 class Knjappserver
   def initialize_threadding
     @config[:threadding] = {} if !@config.has_key?(:threadding)
-    @config[:threadding][:max_running] = 1 if !@config[:threadding].has_key?(:max_running)
+    @config[:threadding][:max_running] = 8 if !@config[:threadding].has_key?(:max_running)
     
     @threadpool = Knj::Threadpool.new(:threads => @config[:threadding][:max_running], :sleep => 0.1)
     @threadpool.events.connect(:on_error) do |event, error|
