@@ -3,7 +3,7 @@ source "http://rubygems.org"
 # Example:
 #   gem "activesupport", ">= 2.3.5"
 
-gem "knjrbfw", ">= 0.0.9"
+gem "knjrbfw", ">= 0.0.10"
 gem "erubis"
 gem "mail"
 
