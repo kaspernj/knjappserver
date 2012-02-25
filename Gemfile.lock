@@ -11,8 +11,6 @@ GEM
       rake
     json (1.6.1)
     json (1.6.1-java)
-    knjdbrevision (0.0.3)
-      knjrbfw (>= 0.0.3)
     knjrbfw (0.0.8)
     mail (2.3.0)
       i18n (>= 0.4.0)
@@ -45,8 +43,7 @@ DEPENDENCIES
   erubis
   jeweler (~> 1.6.3)
   json
-  knjdbrevision (>= 0.0.2)
-  knjrbfw (>= 0.0.8)
+  knjrbfw
   mail
   rcov
   rspec (~> 2.3.0)
