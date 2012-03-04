@@ -69,13 +69,23 @@ class Knjappserver::Httpsession
             @size_send = @config[:size_send]
             @alert_sent = false
             @working = false
+            break if @kas.should_restart
             
-            Timeout.timeout(1500) do
+            STDOUT.print "#{__id__} - Waiting to parse from socket.\n" if @debug
+            
+            #Timeout on sockets is currently broken in JRuby.
+            if RUBY_ENGINE == "jruby"
               @handler.socket_parse(@socket)
+            else
+              Timeout.timeout(1800) do
+                @handler.socket_parse(@socket)
+              end
             end
             
+            STDOUT.print "#{__id__} - Done parsing from socket.\n" if @debug
+            
             while @kas.paused? #Check if we should be waiting with executing the pending request.
-              STDOUT.print "Paused! (#{@kas.paused}) - sleeping.\n" if @debug
+              STDOUT.print "#{__id__} - Paused! (#{@kas.paused}) - sleeping.\n" if @debug
               sleep 0.1
             end
             
@@ -83,7 +93,7 @@ class Knjappserver::Httpsession
             
             if @config.key?(:max_requests_working)
               while @httpserver and @config and @httpserver.working_count.to_i >= @config[:max_requests_working].to_i
-                STDOUT.print "Maximum amounts of requests are working (#{@httpserver.working_count}, #{@config[:max_requests_working]}) - sleeping.\n" if @debug
+                STDOUT.print "#{__id__} - Maximum amounts of requests are working (#{@httpserver.working_count}, #{@config[:max_requests_working]}) - sleeping.\n" if @debug
                 sleep 0.1
               end
             end
@@ -94,22 +104,26 @@ class Knjappserver::Httpsession
             
             @httpserver.count_add
             @working = true
-            STDOUT.print "Serving.\n" if @debug
-            self.serve
-          ensure
-            @httpserver.count_remove
-            @kas.served += 1 if @kas
-            @working = false
+            STDOUT.print "#{__id__} - Serving.\n" if @debug
             
+            begin
+              self.serve
+            ensure
+              @httpserver.count_remove
+              @kas.served += 1 if @kas
+              @working = false
+            end
+          ensure
+            STDOUT.print "#{__id__} - Closing request.\n" if @debug
             #Free reserved database-connections.
             @kas.db_handler.free_thread if @kas and @kas.db_handler.opts[:threadsafe]
             @kas.ob.db.free_thread if @kas and @kas.ob.db.opts[:threadsafe]
           end
         end
-      rescue Errno::ECONNRESET, Errno::ENOTCONN, Errno::EPIPE, Timeout::Error => e
-        #Ignore - the user probaly left.
-        #STDOUT.puts e.inspect
-        #STDOUT.puts e.backtrace
+      rescue Timeout::Error
+        STDOUT.print "#{__id__} - Closing httpsession because of timeout.\n" if @debug
+      rescue Errno::ECONNRESET, Errno::ENOTCONN, Errno::EPIPE => e
+        STDOUT.print "#{__id__} - Connection error (#{e.inspect})...\n" if @debug
       rescue SystemExit, Interrupt => e
         raise e
       rescue Exception => e
