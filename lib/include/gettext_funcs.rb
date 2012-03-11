@@ -3,10 +3,21 @@
 def _(str)
 	kas = _kas
 	session = _session
+	locale = nil
 	
-	return str.to_s.encode("utf-8") if !kas or !session
-	session[:locale] = kas.config[:locale_default] if !session[:locale] and kas.config[:locale_default]
-	raise "No locale set for session and ':locale_default' not set in config." if !session[:locale]
-	str = kas.gettext.trans(session[:locale], str)
-	return str.to_s.encode("utf-8")
+	if Thread.current[:locale].to_s.length > 0
+    locale = Thread.current[:locale]
+  elsif session and session[:locale].to_s.strip.length > 0
+    locale = session[:locale]
+  elsif kas and session and session[:locale].to_s.strip.length <= 0 and kas.config[:locale_default].to_s.strip.length > 0
+    session[:locale] = kas.config[:locale_default]
+    locale = kas.config[:locale_default]
+  elsif !session and !kas
+    return str
+  else
+    raise "No locale set for session and ':locale_default' not set in config."
+  end
+  
+  return str if !locale
+	return kas.gettext.trans(locale, str)
 end
