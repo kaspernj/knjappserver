@@ -1,6 +1,10 @@
 class Knjappserver
   #Imports a .rhtml-file and executes it.
   def import(filepath)
+    if filepath.to_s.index("../proc/self") != nil
+      raise Knj::Errors::NoAccess, "Possible attempt to hack the appserver."
+    end
+    
     _httpsession.eruby.import(filepath)
   end
   
