@@ -47,9 +47,13 @@ class Knjappserver::Httpsession::Http_response
     
     @headers_11 = {
       "Connection" => "Keep-Alive",
-      "Transfer-Encoding" => "chunked",
-      "Keep-Alive" => "timeout=15, max=30"
+      "Transfer-Encoding" => "chunked"
     }
+    
+    #Socket-timeout is currently broken in JRuby.
+    if RUBY_ENGINE != "jruby"
+      @headers_11["Keep-Alive"] = "timeout=15, max=30"
+    end
     
     @cookies = []
   end

@@ -28,10 +28,13 @@ class Knjappserver::Httpserver
             self.spawn_httpsession(@server.accept)
             STDOUT.print "Starting new HTTP-request.\n" if @debug
           rescue => e
-            STDOUT.puts e.inspect
-            STDOUT.puts e.backtrace
-            STDOUT.print "\n"
-            STDOUT.print "Could not accept HTTP-request - waiting 1 sec and then trying again.\n"
+            if @debug
+              STDOUT.puts e.inspect
+              STDOUT.puts e.backtrace
+              STDOUT.print "\n"
+              STDOUT.print "Could not accept HTTP-request - waiting 1 sec and then trying again.\n"
+            end
+            
             sleep 1
           end
         end

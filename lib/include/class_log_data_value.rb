@@ -12,8 +12,7 @@ class Knjappserver::Log_data_value < Knj::Datarow
 	end
 	
 	def self.force_id(d, value)
-    q_val = d.db.select(:Log_data_value, {"value" => value})
-    while d_val = q_val.fetch
+    d.db.select(:Log_data_value, {"value" => value}) do |d_val|
       return d_val[:id].to_i if d_val[:value].to_s == value.to_s #MySQL doesnt take upper/lower-case into consideration because value is a text-column... lame! - knj
     end
     
