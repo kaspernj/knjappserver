@@ -122,6 +122,7 @@ class Knjappserver
   
   #Returns the socket-port the appserver is currently running on.
   def port
+    raise "Http-server not spawned yet. Call Knjappserver#start to spawn it." if !@httpserv
     return @httpserv.server.addr[1]
   end
 end
