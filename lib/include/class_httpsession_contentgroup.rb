@@ -70,7 +70,7 @@ class Knjappserver::Httpsession::Contentgroup
   def write_begin
     begin
       @resp.write if @httpsession.meta["METHOD"] != "HEAD"
-    rescue Errno::ECONNRESET, Errno::ENOTCONN, Errno::EPIPE, Timeout::Error
+    rescue Errno::ECONNRESET, Errno::ENOTCONN, Errno::EPIPE
       #Ignore - the user probaly left.
     end
   end
