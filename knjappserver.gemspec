@@ -30,6 +30,7 @@ Gem::Specification.new do |s|
     "bin/knjappserver_start.rb",
     "knjappserver.gemspec",
     "lib/conf/README",
+    "lib/conf/apache2_cgi_rhtml_conf.conf",
     "lib/conf/conf_example.rb",
     "lib/conf/conf_vars_example.rb",
     "lib/files/database_schema.rb",
