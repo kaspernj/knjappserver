@@ -1,5 +1,9 @@
 class Knjappserver::Log < Knj::Datarow
-	def self.list(d)
+  has_many [
+    {:class => :Log_link, :col => :log_id, :method => :links, :depends => true, :autodelete => true}
+  ]
+  
+	def self.list(d, &block)
 		sql = "SELECT #{table}.* FROM #{table}"
 		
 		if d.args["object_lookup"]
@@ -30,7 +34,7 @@ class Knjappserver::Log < Knj::Datarow
 		sql << ret[:sql_order]
 		sql << ret[:sql_limit]
 		
-		return d.ob.list_bysql(:Log, sql)
+		return d.ob.list_bysql(:Log, sql, &block)
 	end
 	
 	def self.add(d)
@@ -71,6 +75,10 @@ class Knjappserver::Log < Knj::Datarow
     ob.args[:knjappserver].log_data_hash(self[:meta_keys_data_id], self[:meta_values_data_id])
   end
   
+  def session
+    ob.args[:knjappserver].log_data_hash(self[:session_keys_data_id], self[:session_values_data_id])
+  end
+  
   def ip
     meta_d = self.meta
     
@@ -81,10 +89,6 @@ class Knjappserver::Log < Knj::Datarow
 	
 	def first_line
 		lines = self.text.to_s.split("\n").first.to_s
-	end
-	
-	def links(args = {})
-		return ob.list(:Log_link, {"log" => self}.merge(args))
 	end
 	
 	def objects_html(ob_use)

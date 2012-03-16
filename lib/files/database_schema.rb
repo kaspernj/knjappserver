@@ -14,6 +14,8 @@ class Knjappserver
           {"name" => "cookie_values_data_id", "type" => "bigint"},
           {"name" => "meta_keys_data_id", "type" => "bigint"},
           {"name" => "meta_values_data_id", "type" => "bigint"},
+          {"name" => "session_keys_data_id", "type" => "bigint"},
+          {"name" => "session_values_data_id", "type" => "bigint"},
           {"name" => "tag_data_id", "type" => "bigint"},
           {"name" => "comment_data_id", "type" => "bigint"}
         ],
