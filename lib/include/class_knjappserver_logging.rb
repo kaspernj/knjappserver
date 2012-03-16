@@ -195,11 +195,20 @@ class Knjappserver
 	
 	#Writes a custom log to the database.
 	def log(msg, objs, args = {})
+    #This can come in handy if migrating logs to appserver-database.
+    if args[:date_saved]
+      date_saved = args[:date_saved]
+    else
+      date_saved = Time.now
+    end
+    
+    objs = [objs] if !objs.is_a?(Array)
+    
 		@logs_mutex.synchronize do
-			objs = [objs] if !objs.is_a?(Array)
 			log_value_id = @ob.static(:Log_data_value, :force_id, msg)
+			
 			ins_data = {
-				:date_saved => Time.now,
+				:date_saved => date_saved,
 				:text_value_id => log_value_id
 			}
 			
@@ -225,6 +234,12 @@ class Knjappserver
       if cookie_hash
         ins_data[:meta_keys_data_id] = meta_hash[:keys_data_id]
         ins_data[:meta_values_data_id] = meta_hash[:values_data_id]
+      end
+      
+      session_hash = log_hash_ins(_session) if _session
+      if session_hash
+        ins_data[:session_keys_data_id] = session_hash[:keys_data_id]
+        ins_data[:session_values_data_id] = session_hash[:values_data_id]
       end
       
       if args[:tag]

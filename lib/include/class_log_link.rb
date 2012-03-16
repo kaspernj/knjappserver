@@ -1,9 +1,9 @@
 class Knjappserver::Log_link < Knj::Datarow
   has_one [
-    {:class => :Log, :col => :log_id}
+    {:class => :Log, :col => :log_id, :method => :log}
   ]
   
-	def self.list(d)
+	def self.list(d, &block)
 		sql = "SELECT * FROM #{table} WHERE 1=1"
 		
 		ret = list_helper(d)
@@ -22,7 +22,7 @@ class Knjappserver::Log_link < Knj::Datarow
 		sql << ret[:sql_order]
 		sql << ret[:sql_limit]
 		
-		return d.ob.list_bysql(:Log_link, sql)
+		return d.ob.list_bysql(:Log_link, sql, &block)
 	end
 	
 	def self.add(d)

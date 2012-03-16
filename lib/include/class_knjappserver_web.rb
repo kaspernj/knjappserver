@@ -1,6 +1,10 @@
 class Knjappserver
   #Imports a .rhtml-file and executes it.
   def import(filepath)
+    if filepath.to_s.index("../proc/self") != nil
+      raise Knj::Errors::NoAccess, "Possible attempt to hack the appserver."
+    end
+    
     _httpsession.eruby.import(filepath)
   end
   
@@ -122,6 +126,7 @@ class Knjappserver
   
   #Returns the socket-port the appserver is currently running on.
   def port
+    raise "Http-server not spawned yet. Call Knjappserver#start to spawn it." if !@httpserv
     return @httpserv.server.addr[1]
   end
 end
