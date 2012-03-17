@@ -121,24 +121,22 @@ class Knjappserver::Httpsession::Contentgroup
       if data.is_a?(Knjappserver::Httpsession::Contentgroup)
         data.write_to_socket
       elsif data.key?(:str)
-        if data[:str].is_a?(File)
-          file = data[:str]
-          
-          loop do
-            begin
-              buf = file.sysread(16384)
-            rescue EOFError
-              break
-            end
-            
-            if @chunked
-              @socket.write("#{buf.length.to_s(16)}#{NL}#{buf}#{NL}")
-            else
-              @socket.write(buf)
+        if data[:str].is_a?(Hash) and data[:str][:type] == :file
+          File.open(data[:str][:path], "r") do |file|
+            loop do
+              begin
+                buf = file.sysread(16384)
+              rescue EOFError
+                break
+              end
+              
+              if @chunked
+                @socket.write("#{buf.length.to_s(16)}#{NL}#{buf}#{NL}")
+              else
+                @socket.write(buf)
+              end
             end
           end
-          
-          file.close
         else
           loop do
             break if data[:done] and data[:str].size <= 0 

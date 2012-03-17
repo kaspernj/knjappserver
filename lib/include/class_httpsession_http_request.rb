@@ -18,31 +18,30 @@ class Knjappserver::Httpsession::Http_request
 	end
 	
 	#Reads content from the socket until the end of headers. Also does various error-checks.
-	def read_socket
+	def read_socket(socket, cont)
 		loop do
-			raise Errno::ECONNRESET, "Socket closed." if @socket.closed?
-			read = @socket.gets
+			raise Errno::ECONNRESET, "Socket closed." if socket.closed?
+			read = socket.gets
 			raise Errno::ECONNRESET, "Socket returned non-string: '#{read.class.name}'." if !read.is_a?(String)
-			@cont << read
-			break if @cont[-4..-1] == "\r\n\r\n" or @cont[-2..-1] == "\n\n"
+			cont << read
+			break if cont[-4..-1] == "\r\n\r\n" or cont[-2..-1] == "\n\n"
 		end
 	end
 	
 	#Generates data on object from the given socket.
 	def socket_parse(socket)
     @modified_since = nil
-		@cont = ""
-		@socket = socket
-		self.read_socket
+		cont = ""
+		self.read_socket(socket, cont)
 		
 		#Parse URI (page_path and get).
-		match = @cont.match(/^(GET|POST|HEAD)\s+(.+)\s+HTTP\/1\.(\d+)\s*/)
-		raise "Could not parse request: '#{@cont.split("\n").first}'." if !match
+		match = cont.match(/^(GET|POST|HEAD)\s+(.+)\s+HTTP\/1\.(\d+)\s*/)
+		raise "Could not parse request: '#{cont.split("\n").first}'." if !match
     
 		@http_version = "1.#{match[3]}"
 		
 		method = match[1]
-		@cont = @cont.gsub(match[0], "")
+		cont = cont.gsub(match[0], "")
 		uri = URI.parse(match[2])
 		
 		page_filepath = Knj::Web.urldec(uri.path)
@@ -68,7 +67,7 @@ class Knjappserver::Httpsession::Http_request
         "SCRIPT_NAME" => uri.path
       }
       
-      @cont.scan(/^(\S+):\s*(.+)\r\n/) do |header_match|
+      cont.scan(/^(\S+):\s*(.+)\r\n/) do |header_match|
         key = header_match[0].downcase
         val = header_match[1]
         
@@ -141,8 +140,8 @@ class Knjappserver::Httpsession::Http_request
           read_size = @clength - @read
           read_size = 4096 if read_size > 4096
           
-          raise Errno::ECONNRESET, "Socket closed." if @socket.closed?
-          read = @socket.read(read_size)
+          raise Errno::ECONNRESET, "Socket closed." if socket.closed?
+          read = socket.read(read_size)
           raise Errno::ECONNRESET, "Socket returned non-string: '#{read.class.name}'." if !read.is_a?(String)
           post_data << read
           @read += read.length

@@ -204,7 +204,7 @@ class Knjappserver::Httpsession
   
   def serve
     STDOUT.print "Generating meta, cookie, get, post and headers.\n" if @debug
-    @meta = @handler.meta.merge!(@socket_meta)
+    @meta = @handler.meta.merge(@socket_meta)
     @cookie = @handler.cookie
     @get = @handler.get
     @post = @handler.post
@@ -325,7 +325,7 @@ class Knjappserver::Httpsession
         @resp.header("Expires", (Time.now + 86400).httpdate) #next day.
         
         if !cache_dont and @headers["if-modified-since"] and @headers["if-modified-since"][0]
-          request_mod = Knj::Datet.parse(@headers["if-modified-since"][0]).time
+          request_mod = Knj::Datet.parse(@headers["if-modified-since"].first).time
           
           if request_mod == lastmod
             @resp.status = 304
@@ -333,7 +333,7 @@ class Knjappserver::Httpsession
           end
         end
         
-        @cgroup.new_io(File.new(@page_path))
+        @cgroup.new_io(:type => :file, :path => @page_path)
       end
     end
     
