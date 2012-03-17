@@ -1,4 +1,3 @@
-require "uri"
 require "knj/web"
 
 #If we are running on JRuby or Rubinius this will seriously speed things up if we are behind a proxy.
@@ -42,15 +41,16 @@ class Knjappserver::Httpsession::Http_request
 		
 		method = match[1]
 		cont = cont.gsub(match[0], "")
-		uri = URI.parse(match[2])
 		
-		page_filepath = Knj::Web.urldec(uri.path)
+		uri = Knj::Web.parse_uri(match[2])
+		
+		page_filepath = Knj::Web.urldec(uri[:path])
 		if page_filepath.length <= 0 or page_filepath == "/" or File.directory?("#{@kas.config[:doc_root]}/#{page_filepath}")
 			page_filepath = "#{page_filepath}/#{@kas.config[:default_page]}"
 		end
 		
 		@page_path = "#{@kas.config[:doc_root]}/#{page_filepath}"
-		@get = Knj::Web.parse_urlquery(uri.query.to_s, {:urldecode => true, :force_utf8 => true})
+		@get = Knj::Web.parse_urlquery(uri[:query], {:urldecode => true, :force_utf8 => true})
 		
     if @get["_kas_httpsession_id"]
       @kas.httpsessions_ids[@get["_kas_httpsession_id"]] = @args[:httpsession]
@@ -62,9 +62,9 @@ class Knjappserver::Httpsession::Http_request
       @cookie = {}
       @meta = {
         "REQUEST_METHOD" => method,
-        "QUERY_STRING" => uri.query,
+        "QUERY_STRING" => uri[:query],
         "REQUEST_URI" => match[2],
-        "SCRIPT_NAME" => uri.path
+        "SCRIPT_NAME" => uri[:path]
       }
       
       cont.scan(/^(\S+):\s*(.+)\r\n/) do |header_match|
