@@ -68,8 +68,6 @@ class Knjappserver
     @path_knjappserver = File.dirname(__FILE__)
     if @config[:knjrbfw_path]
       @path_knjrbfw = @config[:knjrbfw_path]
-    elsif $knjappserver_config and $knjappserver_config["knjrbfw"]
-      @path_knjrbfw = $knjappserver_config["knjrbfw"]
     else
       @path_knjrbfw = ""
     end

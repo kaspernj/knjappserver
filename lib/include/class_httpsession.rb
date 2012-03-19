@@ -1,12 +1,13 @@
 class Knjappserver::Httpsession
   attr_accessor :data, :alert_sent
-  attr_reader :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :cgroup, :meta, :httpsession_var, :handler, :working
+  attr_reader :get, :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :post, :cgroup, :meta, :httpsession_var, :handler, :working
   
   dir = File.dirname(__FILE__)
   
   autoload :Contentgroup, "#{dir}/class_httpsession_contentgroup.rb"
   autoload :Http_request, "#{dir}/class_httpsession_http_request.rb"
   autoload :Http_response, "#{dir}/class_httpsession_http_response.rb"
+  autoload :Page_environment, "#{dir}/class_httpsession_page_environment.rb"
   autoload :Post_multipart, "#{dir}/class_httpsession_post_multipart.rb"
   
   def initialize(httpserver, socket)
@@ -17,10 +18,14 @@ class Knjappserver::Httpsession
     @types = @kas.types
     @config = @kas.config
     @active = true
-    @eruby = Knj::Eruby.new(:cache_hash => @kas.eruby_cache)
     @debug = @kas.debug
     @handlers_cache = @config[:handlers_cache]
     @httpsession_var = {}
+    
+    @eruby = Knj::Eruby.new(
+      :cache_hash => @kas.eruby_cache,
+      :binding_callback => self.method("create_binding")
+    )
     
     #Set socket stuff.
     if RUBY_PLATFORM == "java" or RUBY_ENGINE == "rbx"
@@ -133,6 +138,12 @@ class Knjappserver::Httpsession
         self.destruct
       end
     end
+  end
+  
+  #Creates a new Knjappserver::Binding-object and returns the binding for that object.
+  def create_binding
+    binding_obj = Knjappserver::Httpsession::Page_environment.new(:httpsession => self, :kas => @kas)
+    return binding_obj.get_binding
   end
   
   #Is called when content is added and begings to write the output if it goes above the limit.
