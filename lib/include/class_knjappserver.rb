@@ -394,9 +394,7 @@ class Knjappserver
     #If we cant get a paused-execution in 10 secs - we just force the stop.
     begin
       Timeout.timeout(10) do
-        self.paused_exec do
-          proc_stop.call
-        end
+        self.paused_exec(&proc_stop)
       end
     rescue Timeout::Error, SystemExit, Interrupt
       STDOUT.print "Forcing stop-appserver - couldnt get timing window.\n" if @debug
@@ -422,12 +420,15 @@ class Knjappserver
   
   #Will stop handeling any more HTTP-requests, run the proc given and return handeling HTTP-requests.
   def paused_exec
+    raise "No block given." if !block_given?
     self.pause
     
     begin
       sleep 0.2 while @httpserv and @httpserv.working_count and @httpserv.working_count > 0
       @paused_mutex.synchronize do
-        yield
+        Timeout.timeout(15) do
+          yield
+        end
       end
     ensure
       self.unpause

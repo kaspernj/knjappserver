@@ -8,7 +8,7 @@ class Knjappserver
     
     #This should not be runned via _kas.timeout because timeout wont run when @should_restart is true! - knj
     Thread.new do
-        begin
+      begin
         loop do
           sleep time
           
@@ -91,51 +91,43 @@ class Knjappserver
     end
     
     #This flushes (writes) all session-data to the server and deletes old unused sessions from the database.
-    self.timeout(:time => @config[:cleaner_timeout]) do
-      self.clean
-    end
+    self.timeout(:time => @config[:cleaner_timeout], &self.method("clean"))
 	end
 	
 	#This method can be used to clean the appserver. Dont call this from a HTTP-request.
 	def clean
-    self.paused_exec do
-      STDOUT.print "Cleaning sessions on appserver.\n" if @config[:debug]
+    STDOUT.print "Cleaning sessions on appserver.\n" if @config[:debug]
+    
+    #Clean up various inactive sessions.
+    session_not_ids = []
+    time_check = Time.now.to_i - 300
+    newsessions = {}
+    @sessions.each do |session_hash, session_data|
+      session_data[:dbobj].flush
       
-      #Clean up various inactive sessions.
-      session_not_ids = []
-      time_check = Time.now.to_i - 300
-      newsessions = {}
-      @sessions.each do |session_hash, session_data|
-        session_data[:dbobj].flush
-        
-        if session_data[:time_lastused].to_i > time_check
-          newsessions[session_hash] = session_data
-          session_not_ids << session_data[:dbobj].id
-        end
+      if session_data[:time_lastused].to_i > time_check
+        newsessions[session_hash] = session_data
+        session_not_ids << session_data[:dbobj].id
       end
-      
-      @sessions = newsessions
-      
-      STDOUT.print "Delete sessions...\n" if @config[:debug]
-      @ob.list(:Session, {"id_not" => session_not_ids, "date_lastused_below" => (Time.now - 5356800)}) do |session|
-        idhash = session[:idhash]
-        STDOUT.print "Deleting session: '#{session.id}'.\n" if @config[:debug]
-        @ob.delete(session)
-        @sessions.delete(idhash)
-      end
-      
-      
-      #Clean database weak references from the tables-module.
-      @db.clean
-      
-      #Clean the object-handler.
-      @ob.clean_all
-      
-      #Run garbage-collector.
-      GC.start
-      
-      #Call various user-connected methods.
-      @events.call(:on_clean) if @events
     end
+    
+    @sessions = newsessions
+    
+    STDOUT.print "Delete sessions...\n" if @config[:debug]
+    @ob.list(:Session, {"id_not" => session_not_ids, "date_lastused_below" => (Time.now - 5356800)}) do |session|
+      idhash = session[:idhash]
+      STDOUT.print "Deleting session: '#{session.id}'.\n" if @config[:debug]
+      @ob.delete(session)
+      @sessions.delete(idhash)
+    end
+    
+    #Clean database weak references from the tables-module.
+    @db.clean
+    
+    #Clean the object-handler.
+    @ob.clean_all
+    
+    #Call various user-connected methods.
+    @events.call(:on_clean) if @events
 	end
 end

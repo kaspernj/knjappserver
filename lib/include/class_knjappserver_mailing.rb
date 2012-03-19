@@ -48,7 +48,7 @@ class Knjappserver
       begin
         #Use subprocessing to avoid the mail-framework (activesupport and so on, also possible memory leaks in those large frameworks).
         require "knj/process_meta"
-        subproc = Knj::Process_meta.new("debug" => @debug, "debug_err" => true)
+        subproc = Knj::Process_meta.new("debug" => @debug, "debug_err" => true, "id" => "knjappserver_mailing")
         subproc.static("Object", "require", "rubygems")
         subproc.static("Object", "require", "mail")
         subproc.static("Object", "require", "#{@config[:knjrbfw_path]}knjrbfw")
