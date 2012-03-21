@@ -303,49 +303,56 @@ class Knjappserver::Httpsession
       :httpsession => self
     }) if @kas.events
     
-    if @handlers_cache.key?(@ext)
-      STDOUT.print "Calling handler.\n" if @debug
-      @handlers_cache[@ext].call(self)
-    else
-      #check if we should use a handler for this request.
-      @config[:handlers].each do |handler_info|
-        if handler_info.key?(:file_ext) and handler_info[:file_ext] == @ext
-          return handler_info[:callback].call(self)
-        elsif handler_info.key?(:path) and handler_info[:mount] and @meta["SCRIPT_NAME"].slice(0, handler_info[:path].length) == handler_info[:path]
-          @page_path = "#{handler_info[:mount]}#{@meta["SCRIPT_NAME"].slice(handler_info[:path].length, @meta["SCRIPT_NAME"].length)}"
-          break
-        end
-      end
-      
-      if !File.exists?(@page_path)
-        @resp.status = 404
-        @resp.header("Content-Type", "text/html")
-        @cgroup.write("File you are looking for was not found: '#{@meta["REQUEST_URI"]}'.")
-      else
-        if @headers["cache-control"] and @headers["cache-control"][0]
-          cache_control = {}
-          @headers["cache-control"][0].scan(/(.+)=(.+)/) do |match|
-            cache_control[match[1]] = match[2]
+    begin
+      Timeout.timeout(@kas.config[:timeout]) do
+        if @handlers_cache.key?(@ext)
+          STDOUT.print "Calling handler.\n" if @debug
+          @handlers_cache[@ext].call(self)
+        else
+          #check if we should use a handler for this request.
+          @config[:handlers].each do |handler_info|
+            if handler_info.key?(:file_ext) and handler_info[:file_ext] == @ext
+              return handler_info[:callback].call(self)
+            elsif handler_info.key?(:path) and handler_info[:mount] and @meta["SCRIPT_NAME"].slice(0, handler_info[:path].length) == handler_info[:path]
+              @page_path = "#{handler_info[:mount]}#{@meta["SCRIPT_NAME"].slice(handler_info[:path].length, @meta["SCRIPT_NAME"].length)}"
+              break
+            end
           end
-        end
-        
-        cache_dont = true if cache_control and cache_control.key?("max-age") and cache_control["max-age"].to_i <= 0
-        lastmod = File.mtime(@page_path)
-        
-        @resp.header("Last-Modified", lastmod.httpdate)
-        @resp.header("Expires", (Time.now + 86400).httpdate) #next day.
-        
-        if !cache_dont and @headers["if-modified-since"] and @headers["if-modified-since"][0]
-          request_mod = Knj::Datet.parse(@headers["if-modified-since"].first).time
           
-          if request_mod == lastmod
-            @resp.status = 304
-            return nil
+          if !File.exists?(@page_path)
+            @resp.status = 404
+            @resp.header("Content-Type", "text/html")
+            @cgroup.write("File you are looking for was not found: '#{@meta["REQUEST_URI"]}'.")
+          else
+            if @headers["cache-control"] and @headers["cache-control"][0]
+              cache_control = {}
+              @headers["cache-control"][0].scan(/(.+)=(.+)/) do |match|
+                cache_control[match[1]] = match[2]
+              end
+            end
+            
+            cache_dont = true if cache_control and cache_control.key?("max-age") and cache_control["max-age"].to_i <= 0
+            lastmod = File.mtime(@page_path)
+            
+            @resp.header("Last-Modified", lastmod.httpdate)
+            @resp.header("Expires", (Time.now + 86400).httpdate) #next day.
+            
+            if !cache_dont and @headers["if-modified-since"] and @headers["if-modified-since"][0]
+              request_mod = Knj::Datet.parse(@headers["if-modified-since"].first).time
+              
+              if request_mod == lastmod
+                @resp.status = 304
+                return nil
+              end
+            end
+            
+            @cgroup.new_io(:type => :file, :path => @page_path)
           end
         end
-        
-        @cgroup.new_io(:type => :file, :path => @page_path)
       end
+    rescue Timeout::Error
+      @resp.status = 500
+      print "The request timed out."
     end
     
     @cgroup.mark_done
