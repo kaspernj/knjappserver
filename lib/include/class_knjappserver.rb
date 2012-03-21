@@ -371,8 +371,8 @@ class Knjappserver
       STDOUT.print "Threadpool startet.\n" if @debug
       @httpserv.start
       STDOUT.print "Appserver startet.\n" if @debug
-    rescue Interrupt
-      STDOUT.print "Got interrupt - stopping appserver.\n" if @debug
+    rescue Interrupt => e
+      STDOUT.print "Got interrupt - trying to stop appserver.\n" if @debug
       self.stop
     end
   end
@@ -391,9 +391,9 @@ class Knjappserver
       self.sessions_flush
     }
     
-    #If we cant get a paused-execution in 10 secs - we just force the stop.
+    #If we cant get a paused-execution in 5 secs - we just force the stop.
     begin
-      Timeout.timeout(10) do
+      Timeout.timeout(5) do
         self.paused_exec(&proc_stop)
       end
     rescue Timeout::Error, SystemExit, Interrupt
