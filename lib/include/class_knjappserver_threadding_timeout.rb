@@ -49,7 +49,14 @@ class Knjappserver::Threadding_timeout
               
               begin
                 @running = true
-                @args[:block].call(*@args[:args])
+                
+                if @args.key?(:timeout)
+                  Timeout.timeout(@args[:timeout]) do
+                    @args[:block].call(*@args[:args])
+                  end
+                else
+                  @args[:block].call(*@args[:args])
+                end
               ensure
                 @running = false
                 @kas.ob.db.free_thread if @kas.ob.db.opts[:threadsafe]
