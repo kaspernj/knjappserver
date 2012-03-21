@@ -93,10 +93,10 @@ class Knjappserver
         end
         
         html = "An error occurred.<br /><br />"
-        html << "<b>#{e.class.name.html}: #{e.message.html}</b><br /><br />"
+        html << "<b>#{Knj::Web.html(e.class.name)}: #{Knj::Web.html(e.message)}</b><br /><br />"
         
         e.backtrace.each do |line|
-          html << line.html + "<br />"
+          html << "#{Knj::Web.html(line)}<br />"
         end
         
         html << "<br /><b>Post:</b><br /><pre>#{Knj::Php.print_r(_post, true)}</pre>" if _post
