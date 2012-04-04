@@ -269,6 +269,18 @@ class Knjappserver
 		end
 	end
 	
+	#Deletes all logs for an object.
+	def logs_delete(obj)
+    @ob.list(:Log_link, {"object_class" => obj.class.name, "object_id" => obj.id}) do |log_link|
+      log = log_link.log
+      @ob.delete(log_link)
+      
+      if log
+        @ob.delete(log) if log.links("count" => true) <= 0
+      end
+    end
+	end
+	
 	#Returns the HTML for a table with logs from a given object.
 	def logs_table(obj, args = {})
 		links = @ob.list(:Log_link, {"object_class" => obj.class.name, "object_id" => obj.id, "limit" => 500, "orderby" => [["id", "desc"]]})

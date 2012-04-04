@@ -4,9 +4,15 @@ class Knjappserver::Log_link < Knj::Datarow
   ]
   
 	def self.list(d, &block)
-		sql = "SELECT * FROM #{table} WHERE 1=1"
+    if d.args["count"]
+      sql = "SELECT COUNT(id) AS count FROM #{table} WHERE 1=1"
+      count = true
+      d.args.delete("count")
+    else
+      sql = "SELECT * FROM #{table} WHERE 1=1"
+    end
 		
-		ret = list_helper(d)
+		ret = self.list_helper(d)
 		d.args.each do |key, val|
       case key
         when "object_class"
@@ -19,6 +25,9 @@ class Knjappserver::Log_link < Knj::Datarow
 		end
 		
 		sql << ret[:sql_where]
+		
+		return d.db.query(sql).fetch[:count].to_i if count
+		
 		sql << ret[:sql_order]
 		sql << ret[:sql_limit]
 		

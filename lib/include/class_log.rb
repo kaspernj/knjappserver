@@ -25,6 +25,13 @@ class Knjappserver::Log < Knj::Datarow
 			case key
 				when "object_lookup"
           sql << " AND Log_link.id IS NOT NULL"
+        when "tag"
+          data_val = d.ob.get_by(:Log_data_value, {"value" => val})
+          if !data_val
+            sql << " AND false"
+          else
+            sql << " AND Log.tag_data_id = '#{d.db.esc(data_val.id)}'"
+          end
 				else
 					raise "Invalid key: #{key}."
 				end
