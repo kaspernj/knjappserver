@@ -231,8 +231,7 @@ class Knjappserver
     
     #Save the PID to the run-file.
     print "Setting run-file.\n" if @debug
-    require "tmpdir"
-    tmpdir = "#{Dir.tmpdir}/knjappserver"
+    tmpdir = "#{Knj::Os.tmpdir}/knjappserver"
     tmppath = "#{tmpdir}/run_#{@config[:title]}"
     
     if !File.exists?(tmpdir)
