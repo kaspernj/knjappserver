@@ -112,7 +112,27 @@ class Knjappserver
 		end
 	end
 	
+	#Converts fileuploads into strings so logging wont be crazy big.
+	def log_hash_safe(hash)
+    hash_obj = {}
+    hash.each do |key, val|
+      if val.is_a?(Knjappserver::Httpsession::Post_multipart::File_upload)
+        hash_obj[key] = "<Fileupload>"
+      elsif val.is_a?(Hash)
+        hash_obj[key] = self.log_hash_safe(val)
+      else
+        hash_obj[key] = val
+      end
+    end
+    
+    return hash_obj
+	end
+	
+	#Handles the hashes that should be logged.
 	def log_hash_ins(hash_obj)
+    #Sort out fileuploads - it would simply bee too big to log this.
+    hash_obj = self.log_hash_safe(hash_obj)
+    
 		inserts_links = []
 		ret = {}
 		[:keys, :values].each do |type|
