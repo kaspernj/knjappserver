@@ -1,13 +1,6 @@
 class Knjappserver
   def trans(obj, key, args = {})
-    if !args.key?(:locale)
-      if _session[:locale]
-        args[:locale] = _session[:locale]
-      elsif _httpsession.data[:locale]
-        args[:locale] = _httpsession.data[:locale]
-      end
-    end
-    
+    args[:locale] = self.trans_locale if !args[:locale]
     trans_val = @translations.get(obj, key, args).to_s
     
     if trans_val.length <= 0
@@ -17,12 +10,24 @@ class Knjappserver
     return trans_val
   end
   
-  def trans_set(obj, values, args = {})
-    if !args[:locale]
-      args[:locale] = _session[:locale] if _session[:locale]
-      args[:locale] = _httpsession.data[:locale] if _httpsession.data[:locale] and !args[:locale]
+  def trans_locale(args = {})
+    if args.is_a?(Hash) and args[:locale]
+      return args[:locale]
+    elsif _session and _session[:locale]
+      return _session[:locale]
+    elsif _httpsession and _httpsession.data[:locale]
+      return _httpsession.data[:locale]
+    elsif Thread.current[:locale]
+      return Thread.current[:locale]
+    elsif @config[:locale_default]
+      return @config[:locale_default]
     end
     
+    raise "Could not figure out locale."
+  end
+  
+  def trans_set(obj, values, args = {})
+    args[:locale] = self.trans_locale if !args[:locale]
     @translations.set(obj, values, args)
   end
   
