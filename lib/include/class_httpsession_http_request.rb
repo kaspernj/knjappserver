@@ -27,9 +27,25 @@ class Knjappserver::Httpsession::Http_request
 		end
 	end
 	
+	def reset
+    @modified_since = nil
+    @get = nil
+    @post = nil
+    @cookie = nil
+    @meta = nil
+    @page_path = nil
+    @headers = nil
+    @http_version = nil
+    @read = nil
+    @clength = nil
+    @speec = nil
+    @percent = nil
+    @secs_left = nil
+	end
+	
 	#Generates data on object from the given socket.
 	def socket_parse(socket)
-    @modified_since = nil
+    self.reset
 		cont = ""
 		self.read_socket(socket, cont)
 		
