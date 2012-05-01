@@ -92,6 +92,7 @@ class Knjappserver
     return Knj::Locales.number_out(*args)
   end
   
+  #Hashes with numeric keys will be turned into arrays instead. This is not done automatically because it can wrongly corrupt data if not used correctly.
   def get_parse_arrays(arg = nil, ob = nil)
     arg = _get.clone if !arg
     
