@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjappserver}
-  s.version = "0.0.20"
+  s.version = "0.0.21"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = %q{2012-03-16}
+  s.date = %q{2012-04-26}
   s.description = %q{Which supports a lot of undocumented stuff.}
   s.email = %q{k@spernj.org}
   s.executables = ["check_running.rb", "knjappserver_start.rb"]
@@ -42,6 +42,7 @@ Gem::Specification.new do |s|
     "lib/include/class_httpsession_contentgroup.rb",
     "lib/include/class_httpsession_http_request.rb",
     "lib/include/class_httpsession_http_response.rb",
+    "lib/include/class_httpsession_page_environment.rb",
     "lib/include/class_httpsession_post_multipart.rb",
     "lib/include/class_knjappserver.rb",
     "lib/include/class_knjappserver_cleaner.rb",

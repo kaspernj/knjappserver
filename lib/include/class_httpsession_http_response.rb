@@ -59,6 +59,9 @@ class Knjappserver::Httpsession::Http_response
   end
   
   def header(key, val)
+    lines = val.to_s.count("\n") + 1
+    raise "Value contains more lines than 1 (#{lines})." if lines > 1
+    
     if !@headers_sent
       @headers[key.to_s.downcase] = [key, val]
     else

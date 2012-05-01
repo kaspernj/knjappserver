@@ -112,7 +112,27 @@ class Knjappserver
 		end
 	end
 	
+	#Converts fileuploads into strings so logging wont be crazy big.
+	def log_hash_safe(hash)
+    hash_obj = {}
+    hash.each do |key, val|
+      if val.is_a?(Knjappserver::Httpsession::Post_multipart::File_upload)
+        hash_obj[key] = "<Fileupload>"
+      elsif val.is_a?(Hash)
+        hash_obj[key] = self.log_hash_safe(val)
+      else
+        hash_obj[key] = val
+      end
+    end
+    
+    return hash_obj
+	end
+	
+	#Handles the hashes that should be logged.
 	def log_hash_ins(hash_obj)
+    #Sort out fileuploads - it would simply bee too big to log this.
+    hash_obj = self.log_hash_safe(hash_obj)
+    
 		inserts_links = []
 		ret = {}
 		[:keys, :values].each do |type|
@@ -267,6 +287,18 @@ class Knjappserver
 			
 			@db.insert_multi(:Log_link, log_links)
 		end
+	end
+	
+	#Deletes all logs for an object.
+	def logs_delete(obj)
+    @ob.list(:Log_link, {"object_class" => obj.class.name, "object_id" => obj.id}) do |log_link|
+      log = log_link.log
+      @ob.delete(log_link)
+      
+      if log
+        @ob.delete(log) if log.links("count" => true) <= 0
+      end
+    end
 	end
 	
 	#Returns the HTML for a table with logs from a given object.
