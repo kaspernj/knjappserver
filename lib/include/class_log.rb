@@ -18,6 +18,7 @@ class Knjappserver::Log < Knj::Datarow
 			"
 		end
 		
+		return_sql = false
 		sql << " WHERE 1=1"
 		
 		ret = list_helper(d)
@@ -25,6 +26,8 @@ class Knjappserver::Log < Knj::Datarow
 			case key
 				when "object_lookup"
           sql << " AND Log_link.id IS NOT NULL"
+        when "return_sql"
+          return_sql = true
 				else
 					raise "Invalid key: #{key}."
 				end
@@ -33,6 +36,8 @@ class Knjappserver::Log < Knj::Datarow
 		sql << ret[:sql_where]
 		sql << ret[:sql_order]
 		sql << ret[:sql_limit]
+		
+		return sql if return_sql
 		
 		return d.ob.list_bysql(:Log, sql, &block)
 	end
