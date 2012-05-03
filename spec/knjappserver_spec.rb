@@ -5,10 +5,9 @@ describe "Knjappserver" do
     require "rubygems"
     require "knjappserver"
     require "knjrbfw"
-    require "tmpdir"
     require "knj/autoload"
     
-    db_path = "#{Dir.tmpdir}/knjappserver_rspec.sqlite3"
+    db_path = "#{Knj::Os.tmpdir}/knjappserver_rspec.sqlite3"
     File.unlink(db_path) if File.exists?(db_path)
     
     require "knj/knjdb/libknjdb.rb"

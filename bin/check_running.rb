@@ -51,9 +51,8 @@ end
 
 require "#{options[:knjrbfw_path]}knjrbfw"
 require "knj/autoload"
-require "tmpdir"
 
-tmpdir = "#{Dir.tmpdir}/knjappserver"
+tmpdir = "#{Knj::Os.tmpdir}/knjappserver"
 tmppath = "#{tmpdir}/run_#{options[:title]}"
 count = 0
 
