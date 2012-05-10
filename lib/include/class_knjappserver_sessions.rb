@@ -1,6 +1,6 @@
 class Knjappserver
   def initialize_sessions
-    @sessions = Knj::Threadsafe::Synced_hash.new
+    @sessions = Tsafe::MonHash.new
   end
   
   #Returns or adds session based on idhash and meta-data.

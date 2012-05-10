@@ -6,6 +6,7 @@ source "http://rubygems.org"
 gem "knjrbfw"
 gem "erubis"
 gem "mail"
+gem "tsafe"
 
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.
