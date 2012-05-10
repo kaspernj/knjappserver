@@ -128,6 +128,7 @@ class Knjappserver
       require "base64"
       require "stringio"
       require "socket"
+      require "tsafe"
       
       files += [
         "#{@path_knjrbfw}knj/event_handler.rb",
