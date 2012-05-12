@@ -2,9 +2,9 @@ class Knjappserver::Session < Knj::Datarow
 	attr_reader :edata
 	attr_accessor :sess_data
 	
-	def initialize(d)
+	def initialize(*args, &block)
 		@edata = {}
-		super(d)
+		super(*args, &block)
 		
 		if self[:sess_data].to_s.length > 0
 			begin
