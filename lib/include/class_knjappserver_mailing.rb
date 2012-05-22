@@ -3,10 +3,11 @@ class Knjappserver
   
 	def initialize_mailing
     require "knj/autoload/ping"
+    require "monitor"
     
 		@mails_waiting = []
-		@mails_mutex = Mutex.new
-		@mails_queue_mutex = Mutex.new
+		@mails_mutex = Monitor.new
+		@mails_queue_mutex = Monitor.new
 		@mails_timeout = self.timeout(:time => 10) do
 			self.mail_flush
 		end
@@ -29,7 +30,8 @@ class Knjappserver
 			
 			mailobj = Knjappserver::Mail.new({:kas => self, :errors => {}, :status => :waiting}.merge(mail_args))
 			STDOUT.print "Added mail '#{mailobj.__id__}' to the mail-send-queue.\n" if debug
-			@mails_waiting << mailobj
+			@mails_waiting << mailobj if mail_args[:now]
+			self.mail_flush
 			return mailobj
 		end
 	end

@@ -1,7 +1,5 @@
 #!/usr/bin/env ruby1.9.1
 
-time_begin = Time.now
-
 #This scripts start an appserver, executes a HTTP-request and terminates.
 #Good for programming appserver-supported projects without running an appserver all the time,
 #but really slow because of startup for every request.
@@ -65,20 +63,18 @@ begin
     :cleaner => false,
     :dbrev => false,
     :mail_require => false,
+    :debug => false,
     :port => 0 #Ruby picks random port and we get the actual port after starting the appserver.
   }.merge(Knjappserver::CGI_CONF["knjappserver"])
   knjappserver = Knjappserver.new(knjappserver_conf)
   knjappserver.start
   port = knjappserver.port
   
-  
   #Make request.
   http = Knj::Http2.new(:host => "localhost", :port => port)
   
-  
   #Spawn CGI-variable to emulate FCGI part.
   cgi = Cgi_is_retarded.new
-  
   
   #The rest is copied from the FCGI-part.
   headers = {}
@@ -136,9 +132,13 @@ begin
     })
   end
 rescue Exception => e
-  knjappserver.stop
-  
   print "Content-Type: text/html\r\n"
   print "\n\n"
   print Knj::Errors.error_str(e, {:html => true})
+  
+  begin
+    knjappserver.stop if knjappserver
+  rescue => e
+    print "<br />\n<br />\n" + Knj::Errors.error_str(e, {:html => true})
+  end
 end

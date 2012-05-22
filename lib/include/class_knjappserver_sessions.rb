@@ -1,5 +1,6 @@
 class Knjappserver
   def initialize_sessions
+    require "tsafe"
     @sessions = Tsafe::MonHash.new
   end
   
