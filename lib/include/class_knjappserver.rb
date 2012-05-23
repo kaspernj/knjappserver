@@ -2,10 +2,11 @@ class Knjappserver
   attr_reader :cio, :config, :httpserv, :debug, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_procs, :magic_vars, :types, :eruby_cache, :httpsessions_ids
   attr_accessor :served, :should_restart, :should_restart_done
   
-  appsrv_dir = File.dirname(__FILE__)
-  autoload :ERBHandler, "#{appsrv_dir}/class_erbhandler"
-  autoload :Log, "#{appsrv_dir}/class_log.rb"
-  autoload :Log_link, "#{appsrv_dir}/class_log_link.rb"
+  #Autoloader for subclasses.
+  def self.const_missing(name)
+    require "#{File.dirname(__FILE__)}/class_#{name.to_s.downcase}.rb"
+    return Knjappserver.const_get(name)
+  end
   
   def initialize(config)
     raise "No arguments given." if !config.is_a?(Hash)

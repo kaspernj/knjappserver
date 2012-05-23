@@ -1,14 +1,13 @@
+#This class handels the HTTP-sessions.
 class Knjappserver::Httpsession
   attr_accessor :data, :alert_sent
   attr_reader :cookie, :get, :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :post, :cgroup, :meta, :httpsession_var, :handler, :working
   
-  dir = File.dirname(__FILE__)
-  
-  autoload :Contentgroup, "#{dir}/class_httpsession_contentgroup.rb"
-  autoload :Http_request, "#{dir}/class_httpsession_http_request.rb"
-  autoload :Http_response, "#{dir}/class_httpsession_http_response.rb"
-  autoload :Page_environment, "#{dir}/class_httpsession_page_environment.rb"
-  autoload :Post_multipart, "#{dir}/class_httpsession_post_multipart.rb"
+  #Autoloader for subclasses.
+  def self.const_missing(name)
+    require "#{File.dirname(__FILE__)}/class_httpsession_#{name.to_s.downcase}.rb"
+    return Knjappserver::Httpsession.const_get(name.to_s.to_sym)
+  end
   
   def initialize(httpserver, socket)
     @data = {}
