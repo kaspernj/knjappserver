@@ -39,15 +39,27 @@ class Knjappserver
       begin
         thread_obj.args[:running] = true
         yield(*args[:args])
-      rescue Exception => e
-        handle_error(e)
+      rescue => e
+        self.handle_error(e)
         thread_obj.args[:error] = true
         thread_obj.args[:error_obj] = e
       ensure
+        STDOUT.print "Free thread ob-db.\n" if @debug
         @ob.db.free_thread if @ob.db.opts[:threadsafe]
+        
+        STDOUT.print "Free thread db-handler.\n" if @debug
         @db_handler.free_thread if @db_handler.opts[:threadsafe]
+        
+        STDOUT.print "Set args on thread.\n" if @debug
         thread_obj.args[:running] = false
         thread_obj.args[:done] = true
+        
+        STDOUT.print "Totally done...\n" if @debug
+        
+        ObjectSpace.each_object(Thread) do |thread|
+          next if !thread.alive? or thread.__id__ == Thread.current.__id__
+          STDOUT.print "Thread alive: #{thread.inspect} #{thread.backtrace} #{thread.__start_caller}\n"
+        end
       end
     end
     

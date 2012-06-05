@@ -375,13 +375,17 @@ class Knjappserver
     rescue Interrupt => e
       STDOUT.print "Got interrupt - trying to stop appserver.\n" if @debug
       self.stop
+      raise e
     end
   end
   
   #Stops the entire app and releases join.
   def stop
+    return nil if @stop_called
+    @stop_called = true
+    
     proc_stop = proc{
-      STDOUT.print "Stopping appserver for real.\n" if @debug
+      STDOUT.print "Stopping appserver.\n" if @debug
       @httpserv.stop if @httpserv and @httpserv.respond_to?(:stop)
       
       STDOUT.print "Stopping threadpool.\n" if @debug
@@ -390,6 +394,8 @@ class Knjappserver
       #This should be done first to be sure it finishes (else we have a serious bug).
       STDOUT.print "Flush out loaded sessions.\n" if @debug
       self.sessions_flush
+      
+      STDOUT.print "Stopping done...\n"
     }
     
     #If we cant get a paused-execution in 5 secs - we just force the stop.
@@ -454,7 +460,7 @@ class Knjappserver
     begin
       @httpserv.thread_accept.join
       @httpserv.thread_restart.join if @httpserv and @httpserv.thread_restart
-    rescue Interrupt
+    rescue Interrupt => e
       self.stop
     end
     

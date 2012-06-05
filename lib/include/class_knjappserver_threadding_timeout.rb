@@ -64,7 +64,7 @@ class Knjappserver::Threadding_timeout
               end
             end
           end
-        rescue Exception => e
+        rescue => e
           @kas.handle_error(e)
         end
       end

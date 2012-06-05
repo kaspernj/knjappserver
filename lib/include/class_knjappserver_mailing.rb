@@ -130,7 +130,7 @@ class Knjappserver
       @args[:status] = :sent
       STDOUT.print "Sent email #{self.__id__}\n" if @args[:kas].debug
       return true
-    rescue Exception => e
+    rescue => e
       if @args[:kas].debug
         STDOUT.print "Could not send email.\n"
         STDOUT.puts e.inspect
