@@ -4,27 +4,26 @@ class Knjappserver
     
     Thread.new do
       begin
-        line = $stdin.gets
-        next if line == "\n"
-        
-        called = 0
-        @cmds.each do |key, connects|
-          data = {}
-          
-          if key.is_a?(Regexp)
-            if line.match(key)
-              connects.each do |conn|
-                called += 1
-                conn[:block].call(data)
+        $stdin.each_line do |line|
+          called = 0
+          @cmds.each do |key, connects|
+            data = {}
+            
+            if key.is_a?(Regexp)
+              if line.match(key)
+                connects.each do |conn|
+                  called += 1
+                  conn[:block].call(data)
+                end
               end
+            else
+              raise "Unknown class for 'cmd_connect': '#{key.class.name}'."
             end
-          else
-            raise "Unknown class for 'cmd_connect': '#{key.class.name}'."
           end
-        end
-        
-        if called == 0
-          print "Unknown command: '#{line.strip}'.\n"
+          
+          if called == 0
+            print "Unknown command: '#{line.strip}'.\n"
+          end
         end
       rescue => e
         self.handle_error(e)

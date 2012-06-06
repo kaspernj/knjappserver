@@ -42,39 +42,12 @@ class Knjappserver::Httpserver
         STDOUT.print Knj::Errors.error_str(e)
       end
 		end
-		
-		@thread_restart = Thread.new do
-      begin
-        loop do
-          sleep 10
-          break if @kas.should_restart and @kas.should_restart_done
-          
-          if !@kas.should_restart and (!@server or @server.closed?)
-            STDOUT.print "Socket does not exist or is closed - restarting HTTP-server!\n"
-            @server = TCPServer.new(@kas.config[:host], @kas.config[:port])
-            STDOUT.print "Done.\n"
-          end
-        end
-      rescue => e
-        if @kas
-          @kas.handle_error(e)
-        else
-          STDOUT.print Knj::Errors.error_str(e)
-        end
-      end
-    end
 	end
 	
 	def stop
-    begin
-      STDOUT.print "Stopping accept-thread.\n" if @debug
-      @thread_accept.kill if @thread_accept and @thread_accept.alive?
-      @thread_restart.kill if @thread_restart and @thread_restart.alive?
-    rescue => e
-      STDOUT.print "Could not stop threads.\n" if @debug
-      STDOUT.puts e.inspect
-      STDOUT.puts e.backtrace
-    end
+    STDOUT.print "Stopping accept-thread.\n" if @debug
+    @thread_accept.kill if @thread_accept and @thread_accept.alive?
+    @thread_restart.kill if @thread_restart and @thread_restart.alive?
     
     STDOUT.print "Stopping all HTTP sessions.\n" if @debug
     if @http_sessions

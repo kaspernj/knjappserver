@@ -79,7 +79,7 @@ class Knjappserver
               @should_restart_done = true
               print exec(mycmd)
               exit
-            rescue Exception => e
+            rescue => e
               STDOUT.puts e.inspect
               STDOUT.puts e.backtrace
             end
