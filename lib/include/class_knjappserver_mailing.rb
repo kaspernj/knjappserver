@@ -8,7 +8,8 @@ class Knjappserver
 		@mails_waiting = []
 		@mails_mutex = Monitor.new
 		@mails_queue_mutex = Monitor.new
-		@mails_timeout = self.timeout(:time => 10) do
+		@mails_timeout = self.timeout(:time => 30) do
+      STDOUT.print "Flushing mails.\n" if @debug
 			self.mail_flush
 		end
 	end
@@ -30,8 +31,8 @@ class Knjappserver
 			
 			mailobj = Knjappserver::Mail.new({:kas => self, :errors => {}, :status => :waiting}.merge(mail_args))
 			STDOUT.print "Added mail '#{mailobj.__id__}' to the mail-send-queue.\n" if debug
-			@mails_waiting << mailobj if mail_args[:now]
-			self.mail_flush
+			@mails_waiting << mailobj
+			self.mail_flush if mail_args[:now]
 			return mailobj
 		end
 	end
@@ -39,8 +40,12 @@ class Knjappserver
 	#Sends all queued mails to the respective servers, if we are online.
 	def mail_flush
 		@mails_mutex.synchronize do
-      return false if @mails_waiting.length <= 0
+      if @mails_waiting.length <= 0
+        STDOUT.print "No mails to flush - skipping.\n" if @debug
+        return false
+      end
       
+      STDOUT.print "Trying to ping Google to figure out if we are online...\n" if @debug
       status = Ping.pingecho("google.dk", 10, 80)
       if !status
         STDOUT.print "We are not online - skipping mail flush.\n"
@@ -49,6 +54,7 @@ class Knjappserver
       
       begin
         #Use subprocessing to avoid the mail-framework (activesupport and so on, also possible memory leaks in those large frameworks).
+        STDOUT.print "Starting subprocess for mailing.\n" if @debug
         require "knj/process_meta"
         subproc = Knj::Process_meta.new("debug" => @debug, "debug_err" => true, "id" => "knjappserver_mailing")
         subproc.static("Object", "require", "rubygems")
