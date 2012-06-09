@@ -53,13 +53,6 @@ class Knjappserver
         STDOUT.print "Set args on thread.\n" if @debug
         thread_obj.args[:running] = false
         thread_obj.args[:done] = true
-        
-        STDOUT.print "Totally done...\n" if @debug
-        
-        ObjectSpace.each_object(Thread) do |thread|
-          next if !thread.alive? or thread.__id__ == Thread.current.__id__
-          STDOUT.print "Thread alive: #{thread.inspect} #{thread.backtrace} #{thread.__start_caller}\n"
-        end
       end
     end
     
