@@ -395,7 +395,7 @@ class Knjappserver
       STDOUT.print "Flush out loaded sessions.\n" if @debug
       self.sessions_flush
       
-      STDOUT.print "Stopping done...\n"
+      STDOUT.print "Stopping done...\n" if @debug
     }
     
     #If we cant get a paused-execution in 5 secs - we just force the stop.
