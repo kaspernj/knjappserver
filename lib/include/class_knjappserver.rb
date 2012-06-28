@@ -1,3 +1,12 @@
+#The class that stands for the whole appserver / webserver.
+#===Examples
+# appsrv = Knjappserver.new(
+#   :locales_root => "/some/path/locales",
+#   :locales_gettext_funcs => true,
+#   :magic_methods => true
+# )
+# appsrv.start
+# appsrv.join
 class Knjappserver
   attr_reader :cio, :config, :httpserv, :debug, :db, :db_handler, :ob, :translations, :paused, :should_restart, :events, :mod_event, :db_handler, :gettext, :sessions, :logs_access_pending, :threadpool, :vars, :magic_procs, :magic_vars, :types, :eruby_cache, :httpsessions_ids
   attr_accessor :served, :should_restart, :should_restart_done
