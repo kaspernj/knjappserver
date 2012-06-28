@@ -9,6 +9,7 @@ class Knjappserver::Httpsession::Post_multipart
     @data = nil
     @mode = nil
     @headers = {}
+    @counts = {}
     
     @args["io"].each do |line|
       if boundary_regexp =~ line
@@ -48,9 +49,26 @@ class Knjappserver::Httpsession::Post_multipart
     disp = @headers["content-disposition"]
     raise "No 'content-disposition' was given." if !disp
     
+    
+    #Figure out value-name in post-hash.
     match_name = disp.match(/name=\"(.+?)\"/)
     raise "Could not match name." if !match_name
+    name = match_name[1]
     
+    
+    #Fix count with name if given as increamental [].
+    if match = name.match(/^(.+)\[\]$/)
+      if !@counts.key?(match[1])
+        @counts[match[1]] = 0
+      else
+        @counts[match[1]] += 1
+      end
+      
+      name = "#{match[1]}[#{@counts[match[1]]}]"
+    end
+    
+    
+    #Figure out actual filename.
     match_fname = disp.match(/filename=\"(.+?)\"/)
     
     if match_fname
@@ -59,12 +77,12 @@ class Knjappserver::Httpsession::Post_multipart
         "headers" => @headers,
         "data" => @data
       )
-      @return[match_name[1]] = obj
+      @return[name] = obj
       @data = nil
       @headers = {}
       @mode = nil
     else
-      @return[match_name[1]] = @data
+      @return[name] = @data
       @data = nil
       @headers = {}
       @mode = nil
