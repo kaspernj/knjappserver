@@ -5,13 +5,10 @@ describe "Knjappserver" do
     require "rubygems"
     require "knjappserver"
     require "knjrbfw"
-    require "knj/autoload"
+    require "sqlite3" if RUBY_ENGINE != "jruby"
     
     db_path = "#{Knj::Os.tmpdir}/knjappserver_rspec.sqlite3"
     File.unlink(db_path) if File.exists?(db_path)
-    
-    require "knj/knjdb/libknjdb.rb"
-    #require "sqlite3" if RUBY_ENGINE != "jruby"
     
     begin
       db = Knj::Db.new(
@@ -158,6 +155,43 @@ describe "Knjappserver" do
       "test" => "123+456%789%20"
     })
     raise data["data"] if data["data"] != "123+456%789%20"
+  end
+  
+  it "should be able to do logging" do
+    class ::TestModels
+      class Person < Knj::Datarow
+        
+      end
+    end
+    
+    Knj::Db::Revision.new.init_db("db" => $appserver.db, "schema" => {
+      "tables" => {
+        "Person" => {
+          "columns" => [
+            {"name" => "id", "type" => "int", "autoincr" => true, "primarykey" => true},
+            {"name" => "name", "type" => "varchar"}
+          ]
+        }
+      }
+    })
+    
+    ob = Knj::Objects.new(
+      :db => $appserver.db,
+      :datarow => true,
+      :require => false,
+      :module => ::TestModels
+    )
+    
+    person = ob.add(:Person, :name => "Kasper")
+    
+    $appserver.log("This is a test", person)
+    logs = $appserver.ob.list(:Log, "object_lookup" => person).to_a
+    raise "Expected count to be 1 but got: #{logs.length}" if logs.length != 1
+    
+    $appserver.logs_delete(person)
+    
+    logs = $appserver.ob.list(:Log, "object_lookup" => person).to_a
+    raise "Expected count to be 0 but got: #{logs.length}" if logs.length != 0
   end
   
   it "should be able to stop." do

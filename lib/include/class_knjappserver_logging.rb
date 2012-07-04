@@ -291,10 +291,14 @@ class Knjappserver
 	
 	#Deletes all logs for an object.
 	def logs_delete(obj)
-    @ob.list(:Log_link, {"object_class" => obj.class.name, "object_id" => obj.id}) do |log_link|
-      log = log_link.log
-      @ob.delete(log_link)
-      @ob.delete(log) if log and log.links("count" => true) <= 0
+    @db.q_buffer do |db_buffer|
+      buffer_hash = {:db_buffer => db_buffer}
+      
+      @ob.list(:Log_link, {"object_class" => obj.class.name, "object_id" => obj.id}) do |log_link|
+        log = log_link.log
+        @ob.delete(log_link, buffer_hash)
+        @ob.delete(log, buffer_hash) if log and log.links("count" => true) <= 0
+      end
     end
 	end
 	
