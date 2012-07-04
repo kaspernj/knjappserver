@@ -294,10 +294,7 @@ class Knjappserver
     @ob.list(:Log_link, {"object_class" => obj.class.name, "object_id" => obj.id}) do |log_link|
       log = log_link.log
       @ob.delete(log_link)
-      
-      if log
-        @ob.delete(log) if log.links("count" => true) <= 0
-      end
+      @ob.delete(log) if log and log.links("count" => true) <= 0
     end
 	end
 	
