@@ -128,11 +128,10 @@ class Knjappserver::Httpsession
         STDOUT.print "#{__id__} - Closing httpsession because of timeout.\n" if @debug
       rescue Errno::ECONNRESET, Errno::ENOTCONN, Errno::EPIPE => e
         STDOUT.print "#{__id__} - Connection error (#{e.inspect})...\n" if @debug
-      rescue SystemExit, Interrupt => e
+      rescue Interrupt => e
         raise e
       rescue Exception => e
-        STDOUT.puts e.inspect
-        STDOUT.puts e.backtrace
+        STDOUT.puts Knj::Errors.error_str(e)
       ensure
         self.destruct
       end
@@ -298,11 +297,9 @@ class Knjappserver::Httpsession
     Thread.current[:knjappserver][:contentgroup] = @cgroup
     time_start = Time.now.to_f if @debug
     
-    @kas.events.call(:request_begin, {
-      :httpsession => self
-    }) if @kas.events
-    
     begin
+      @kas.events.call(:request_begin, :httpsession => self) if @kas.events
+      
       Timeout.timeout(@kas.config[:timeout]) do
         if @handlers_cache.key?(@ext)
           STDOUT.print "Calling handler.\n" if @debug
@@ -349,6 +346,8 @@ class Knjappserver::Httpsession
           end
         end
       end
+    rescue SystemExit
+      #do nothing - ignore.
     rescue Timeout::Error
       @resp.status = 500
       print "The request timed out."
