@@ -11,8 +11,13 @@ class Knjappserver::CustomIO < StringIO
 		end
 	end
 	
+	def puts(str)
+    res = self.print(str)
+    self.print "\n"
+    return res
+	end
+	
 	alias << print
 	alias write print
 	alias p print
-	alias puts print
 end

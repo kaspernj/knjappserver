@@ -357,4 +357,42 @@ class Knjappserver
 		
 		return html
 	end
+	
+	#Removes all logs for objects that have been deleted.
+	#===Examples
+	#Remember to pass Knj::Objects-object handler to the method.
+	# appsrv.logs_delete_dead(:ob => ob, :debug => false)
+	def logs_delete_dead(args)
+    raise "No :ob-argument given." if !args[:ob]
+    
+    @db.q_buffer do |db_buffer|
+      STDOUT.puts "Starting to look for dead log-links." if @debug or args[:debug]
+      @ob.list(:Log_link, :cloned_ubuf => true) do |log_link|
+        classname = log_link.object_class.to_s.split("::").last
+        obj_exists = args[:ob].exists?(classname, log_link[:object_id])
+        next if obj_exists
+        
+        log = log_link.log
+        
+        STDOUT.puts "Deleting log-link #{log_link.id} for #{classname}(#{log_link[:object_id]})." if @debug or args[:debug]
+        @ob.delete(log_link, :db_buffer => db_buffer)
+        
+        links_count = log.links("count" => true)
+        
+        if links_count <= 0
+          STDOUT.puts "Deleting log #{log.id} because it has no more links." if @debug or args[:debug]
+          @ob.delete(log, :db_buffer => db_buffer)
+        end
+      end
+      
+      STDOUT.puts "Starting to look for logs with no links." if @debug or args[:debug]
+      @ob.list(:Log, {
+        [:Log_link, "id"] => {:type => :sqlval, :val => :null},
+        :cloned_ubuf => true
+      }) do |log|
+        STDOUT.puts "Deleting log #{log.id} because it has no links: '#{log.text}'." if @debug or args[:debug]
+        @ob.delete(log, :db_buffer => db_buffer)
+      end
+    end
+	end
 end

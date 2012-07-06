@@ -18,10 +18,13 @@ class Knjappserver::Log < Knj::Datarow
 			"
 		end
 		
+		q_args = nil
 		return_sql = false
+		ret = self.list_helper(d)
+		
+		sql << ret[:sql_joins]
 		sql << " WHERE 1=1"
 		
-		ret = list_helper(d)
 		d.args.each do |key, val|
 			case key
 				when "object_lookup"
@@ -35,6 +38,8 @@ class Knjappserver::Log < Knj::Datarow
           else
             sql << " AND Log.tag_data_id = '#{d.db.esc(data_val.id)}'"
           end
+        when :cloned_ubuf
+          q_args = {:cloned_ubuf => true}
 				else
 					raise "Invalid key: #{key}."
 				end
@@ -46,7 +51,7 @@ class Knjappserver::Log < Knj::Datarow
 		
 		return sql if return_sql
 		
-		return d.ob.list_bysql(:Log, sql, &block)
+		return d.ob.list_bysql(:Log, sql, q_args, &block)
 	end
 	
 	def self.add(d)
