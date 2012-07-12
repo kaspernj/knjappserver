@@ -138,7 +138,7 @@ class Knjappserver
       require "base64"
       require "stringio"
       require "socket"
-      require "tsafe"
+      require "tsafe" if !Kernel.const_defined?(:Tsafe)
       
       files += [
         "#{@path_knjrbfw}knj/event_handler.rb",

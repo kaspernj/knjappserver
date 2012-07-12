@@ -204,7 +204,7 @@ class Knjappserver::Httpsession::Http_request
     mod_match = @meta["HTTP_IF_MODIFIED_SINCE"].match(/^([A-z]+),\s+(\d+)\s+([A-z]+)\s+(\d+)\s+(\d+):(\d+):(\d+)\s+(.+)$/)
     raise "Could not parse 'HTTP_IF_MODIFIED_SINCE'." if !mod_match
     
-    month_no = Knj::Datet.month_str_to_no(mod_match[3])
+    month_no = Datet.month_str_to_no(mod_match[3])
     @modified_since = Time.utc(mod_match[4].to_i, month_no, mod_match[2].to_i, mod_match[5].to_i, mod_match[6].to_i, mod_match[7].to_i)
     
     return @modified_since

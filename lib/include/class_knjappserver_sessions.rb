@@ -1,6 +1,6 @@
 class Knjappserver
   def initialize_sessions
-    require "tsafe"
+    require "tsafe" if !Kernel.const_defined?(:Tsafe)
     @sessions = Tsafe::MonHash.new
   end
   

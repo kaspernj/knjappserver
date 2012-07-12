@@ -34,7 +34,7 @@ class Knjappserver
     knjappserver.start
     
     port = knjappserver.port
-    http = Knj::Http2.new(:host => "localhost", :port => port)
+    http = Http2.new(:host => "localhost", :port => port)
     
     return [knjappserver, http]
   end
@@ -94,7 +94,7 @@ FCGI.each_cgi do |cgi|
     
     if cgi.request_method == "POST" and cgi.content_type.to_s.downcase.index("multipart/form-data") != nil
       count = 0
-      http.post_multipart(url, Knjappserver.convert_fcgi_post(cgi.params), {
+      http.post_multipart(:url => url, :post => Knjappserver.convert_fcgi_post(cgi.params),
         :default_headers => headers,
         :cookies => false,
         :on_content => proc{|line|
@@ -104,7 +104,7 @@ FCGI.each_cgi do |cgi|
       })
     elsif cgi.request_method == "POST"
       count = 0
-      http.post(url, Knjappserver.convert_fcgi_post(cgi.params), {
+      http.post(:url => url, :post => Knjappserver.convert_fcgi_post(cgi.params),
         :default_headers => headers,
         :cookies => false,
         :on_content => proc{|line|
@@ -114,7 +114,7 @@ FCGI.each_cgi do |cgi|
       })
     else
       count = 0
-      http.get(url, {
+      http.get(:url => url,
         :default_headers => headers,
         :cookies => false,
         :on_content => proc{|line|

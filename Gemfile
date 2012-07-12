@@ -7,6 +7,8 @@ gem "knjrbfw"
 gem "erubis"
 gem "mail"
 gem "tsafe"
+gem "datet"
+gem "http2"
 
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.

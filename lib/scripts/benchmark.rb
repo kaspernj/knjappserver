@@ -57,7 +57,7 @@ count_requests = 0
   Knj::Thread.new(count_thread) do |count_thread|
     print "Thread #{count_thread} started.\n"
     
-    http = Knj::Http2.new(
+    http = Http2.new(
       :host => "localhost",
       :port => 15081,
       :user_agent => "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.0.1; debugid:#{count_thread}) Gecko/20060111 Firefox/3.6.0.1",
@@ -65,7 +65,7 @@ count_requests = 0
     )
     
     loop do
-      resp = http.get(args[:filename])
+      resp = http.get(:url => args[:filename])
       count_requests += 1
       raise "Invalid code: #{resp.code}\n" if resp.code.to_i != 200
     end

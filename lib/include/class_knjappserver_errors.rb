@@ -34,8 +34,8 @@ class Knjappserver
           if error_email[:messages].length == 1
             html = error_email[:messages].first
           else
-            html = "<b>First time:</b> #{Knj::Datet.in(error_email[:first_time]).out}<br />"
-            html << "<b>Last time:</b> #{Knj::Datet.in(error_email[:last_time]).out}<br />"
+            html = "<b>First time:</b> #{Datet.in(error_email[:first_time]).out}<br />"
+            html << "<b>Last time:</b> #{Datet.in(error_email[:last_time]).out}<br />"
             html << "<b>Number of errors:</b> #{error_email[:messages].length}<br />"
             count = 0
             
