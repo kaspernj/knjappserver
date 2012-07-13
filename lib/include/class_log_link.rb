@@ -54,7 +54,7 @@ class Knjappserver::Log_link < Knj::Datarow
 		begin
 			class_name = ob.get(:Log_data_value, self[:object_class_value_id])[:value].split("::").last
 			return ob_use.get(class_name, self[:object_id])
-		rescue Knj::Errors::NotFound
+		rescue Errno::ENOENT
 			return false
 		end
 	end

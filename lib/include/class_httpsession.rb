@@ -261,7 +261,7 @@ class Knjappserver::Httpsession
     
     begin
       @session, @session_hash = @kas.session_fromid(@ip, @session_id, @meta)
-    rescue Knj::Errors::InvalidData => e
+    rescue ArgumentError => e
       #User should not have the session he asked for because of invalid user-agent or invalid IP.
       @session_id = @kas.session_generate_id(@meta)
       @session, @session_hash = @kas.session_fromid(@ip, @session_id, @meta)
