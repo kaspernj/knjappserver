@@ -29,7 +29,7 @@ class Knjappserver
     end
     
     if ip != "bot" and !session.remember? and ip.to_s != session[:ip].to_s
-      raise Knj::Errors::InvalidData, "Invalid IP."
+      raise ArgumentError, "Invalid IP."
     end
     
     @sessions[idhash][:time_lastused] = Time.now

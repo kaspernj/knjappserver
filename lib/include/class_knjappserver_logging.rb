@@ -179,7 +179,7 @@ class Knjappserver
     begin
       keys_data_obj = @ob.get(:Log_data, keys_id)
       values_data_obj = @ob.get(:Log_data, values_id)
-    rescue Knj::Errors::NotFound
+    rescue Errno::ENOENT
       return {}
     end
 		
