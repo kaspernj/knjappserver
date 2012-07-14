@@ -35,6 +35,14 @@ class Knjappserver
     raise "No ':doc_root' was given in arguments." if !@config.has_key?(:doc_root)
     
     
+    #Require gems.
+    gems = %w[datet]
+    gems.each do |gem|
+      puts "Loading gem: '#{gem}'." if @debug
+      require gem
+    end
+    
+    
     #Setup default handlers if none are given.
     if !@config.has_key?(:handlers)
       @erbhandler = Knjappserver::ERBHandler.new
