@@ -334,7 +334,7 @@ class Knjappserver::Httpsession
             @resp.header("Expires", (Time.now + 86400).httpdate) #next day.
             
             if !cache_dont and @headers["if-modified-since"] and @headers["if-modified-since"][0]
-              request_mod = Datet.parse(@headers["if-modified-since"].first).time
+              request_mod = Datet.in(@headers["if-modified-since"].first).time
               
               if request_mod == lastmod
                 @resp.status = 304
