@@ -101,7 +101,7 @@ FCGI.each_cgi do |cgi|
           cgi.print(line) if count > 0
           count += 1
         }
-      })
+      )
     elsif cgi.request_method == "POST"
       count = 0
       http.post(:url => url, :post => Knjappserver.convert_fcgi_post(cgi.params),
@@ -111,7 +111,7 @@ FCGI.each_cgi do |cgi|
           cgi.print(line) if count > 0
           count += 1
         }
-      })
+      )
     else
       count = 0
       http.get(:url => url,
@@ -121,7 +121,7 @@ FCGI.each_cgi do |cgi|
           cgi.print(line) if count > 0
           count += 1
         }
-      })
+      )
     end
     
     thread_spawn = Thread.new do

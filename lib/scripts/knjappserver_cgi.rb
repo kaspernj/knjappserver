@@ -44,7 +44,8 @@ class Knjappserver
 end
 
 begin
-  require "knj/autoload"
+  require "knjrbfw"
+  require "http2"
   require "#{File.dirname(Knj::Os.realpath(__FILE__))}/../knjappserver.rb"
   
   raise "No HTTP_KNJAPPSERVER_CGI_CONFIG-header was given." if !ENV["HTTP_KNJAPPSERVER_CGI_CONFIG"]
@@ -109,7 +110,7 @@ begin
         cgi.print(line) if count > 0
         count += 1
       }
-    })
+    )
   elsif cgi.request_method == "POST"
     count = 0
     http.post(:url => url, :post => Knjappserver.convert_fcgi_post(cgi.params),
@@ -119,17 +120,18 @@ begin
         cgi.print(line) if count > 0
         count += 1
       }
-    })
+    )
   else
     count = 0
-    http.get(url, {
+    http.get(
+      :url => url,
       :default_headers => headers,
       :cookies => false,
       :on_content => proc{|line|
         cgi.print(line) if count > 0
         count += 1
       }
-    })
+    )
   end
 rescue Exception => e
   print "Content-Type: text/html\r\n"
