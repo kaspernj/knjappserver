@@ -8,9 +8,11 @@
 #Its a bit slower because it needs to flush writes to the database at end of every request and re-read them on spawn, because multiple instances might be present.
 
 require "rubygems"
+require "knjrbfw"
+require "http2"
+require "tsafe"
 require "fcgi"
 
-require "knj/autoload"
 require "#{File.dirname(Knj::Os.realpath(__FILE__))}/../knjappserver.rb"
 
 class Knjappserver

@@ -43,10 +43,18 @@ class Knjappserver
   end
 end
 
+require "knjrbfw"
+
 begin
-  require "knjrbfw"
   require "http2"
-  require "#{File.dirname(Knj::Os.realpath(__FILE__))}/../knjappserver.rb"
+  require "tsafe"
+  
+  #Read real path.
+  file = __FILE__
+  file = File.readlink(file) if File.symlink?(file)
+  file = File.realpath(file)
+  
+  require "#{File.dirname(file)}/../knjappserver.rb"
   
   raise "No HTTP_KNJAPPSERVER_CGI_CONFIG-header was given." if !ENV["HTTP_KNJAPPSERVER_CGI_CONFIG"]
   require ENV["HTTP_KNJAPPSERVER_CGI_CONFIG"]
@@ -81,7 +89,7 @@ begin
   headers = {}
   cgi.env_table.each do |key, val|
     if key[0, 5] == "HTTP_" and key != "HTTP_KNJAPPSERVER_CGI_CONFIG"
-      key = Knj::Php.ucwords(key[5, key.length].gsub("_", " ")).gsub(" ", "-")
+      key = key[5, key.length].gsub("_", " ").gsub(" ", "-")
       headers[key] = val
     end
   end
@@ -141,6 +149,6 @@ rescue Exception => e
   begin
     knjappserver.stop if knjappserver
   rescue => e
-    print "<br />\n<br />\n" + Knj::Errors.error_str(e, {:html => true})
+    print "<br />\n<br />\n#{Knj::Errors.error_str(e, {:html => true})}"
   end
 end
