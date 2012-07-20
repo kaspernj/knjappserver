@@ -1,3 +1,11 @@
+require "timeout"
+require "digest"
+require "erubis"
+require "base64"
+require "stringio"
+require "socket"
+require "tsafe" if !Kernel.const_defined?(:Tsafe)
+
 #The class that stands for the whole appserver / webserver.
 #===Examples
 # appsrv = Knjappserver.new(
@@ -129,8 +137,6 @@ class Knjappserver
     #Load various required files from knjrbfw and stuff in the knjappserver-framework.
     files = [
       "#{@path_knjrbfw}knjrbfw.rb",
-      "#{@path_knjappserver}/class_httpserver.rb",
-      "#{@path_knjappserver}/class_httpsession.rb",
       "#{@path_knjappserver}/class_knjappserver_errors.rb",
       "#{@path_knjappserver}/class_knjappserver_logging.rb",
       "#{@path_knjappserver}/class_knjappserver_mailing.rb",
@@ -138,35 +144,6 @@ class Knjappserver
       "#{@path_knjappserver}/class_knjappserver_translations.rb",
       "#{@path_knjappserver}/class_knjappserver_web.rb"
     ]
-    
-    if @config[:preload]
-      require "timeout"
-      require "digest"
-      require "erubis"
-      require "base64"
-      require "stringio"
-      require "socket"
-      require "tsafe" if !Kernel.const_defined?(:Tsafe)
-      
-      files += [
-        "#{@path_knjrbfw}knj/event_handler.rb",
-        "#{@path_knjrbfw}knj/errors.rb",
-        "#{@path_knjrbfw}knj/eruby.rb",
-        "#{@path_knjrbfw}knj/hash_methods.rb",
-        "#{@path_knjrbfw}knj/objects.rb",
-        "#{@path_knjrbfw}knj/web.rb",
-        "#{@path_knjrbfw}knj/datarow.rb",
-        "#{@path_knjrbfw}knj/datet.rb",
-        "#{@path_knjrbfw}knj/php.rb",
-        "#{@path_knjrbfw}knj/thread.rb",
-        "#{@path_knjrbfw}knj/threadhandler.rb",
-        "#{@path_knjrbfw}knj/threadpool.rb",
-        "#{@path_knjrbfw}knj/translations.rb",
-        "#{@path_knjrbfw}knj/knjdb/libknjdb.rb",
-      ]
-    else
-      files << "#{@path_knjrbfw}knj/autoload.rb"
-    end
     
     files << "#{@path_knjrbfw}knj/gettext_threadded.rb" if @config[:locales_root]
     files.each do |file|
