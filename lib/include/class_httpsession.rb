@@ -1,7 +1,7 @@
 #This class handels the HTTP-sessions.
 class Knjappserver::Httpsession
   attr_accessor :data, :alert_sent
-  attr_reader :cookie, :get, :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :post, :cgroup, :meta, :httpsession_var, :handler, :working
+  attr_reader :cookie, :get, :headers, :session, :session_id, :session_hash, :kas, :active, :out, :eruby, :browser, :debug, :resp, :page_path, :post, :cgroup, :meta, :httpsession_var, :handler, :working
   
   #Autoloader for subclasses.
   def self.const_missing(name)
