@@ -8,10 +8,7 @@ class Knjappserver
 		@mails_waiting = []
 		@mails_mutex = Monitor.new
 		@mails_queue_mutex = Monitor.new
-		@mails_timeout = self.timeout(:time => 30) do
-      STDOUT.print "Flushing mails.\n" if @debug
-			self.mail_flush
-		end
+		@mails_timeout = self.timeout(:time => 30, &self.method(:mail_flush))
 	end
 	
 	#Queue a mail for sending. Possible keys are: :subject, :from, :to, :text and :html.
@@ -40,6 +37,8 @@ class Knjappserver
 	#Sends all queued mails to the respective servers, if we are online.
 	def mail_flush
 		@mails_mutex.synchronize do
+      STDOUT.print "Flushing mails.\n" if @debug
+      
       if @mails_waiting.length <= 0
         STDOUT.print "No mails to flush - skipping.\n" if @debug
         return false
@@ -83,6 +82,8 @@ class Knjappserver
         subproc.destroy if subproc
         subproc = nil
       end
+      
+      return nil
 		end
 	end
 	

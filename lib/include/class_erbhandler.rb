@@ -7,10 +7,7 @@ class Knjappserver::ERBHandler
     eruby = httpsess.eruby
     
 		if !@connected.key?(eruby.__id__)
-			eruby.connect("error") do |e|
-				_kas.handle_error(e)
-			end
-			
+			eruby.connect("error", self.method(:on_error))
 			@connected[eruby.__id__] = true
 		end
 		
@@ -21,5 +18,10 @@ class Knjappserver::ERBHandler
     end
     
     httpsess.resp.status = 500 if eruby.error
+	end
+	
+	#Handels the event when an error in the eruby-instance occurs.
+	def on_error(e)
+    _kas.handle_error(e)
 	end
 end

@@ -47,6 +47,7 @@ class Knjappserver
     raise "HTTP-session not active." if !_httpsession.resp
     raise "Not a hash: '#{cookie.class.name}', '#{cookie}'." unless cookie.is_a?(Hash)
     _httpsession.resp.cookie(cookie)
+    return nil
   end
   
   #Sends a header to the clients browser.
@@ -56,6 +57,7 @@ class Knjappserver
     raise "No HTTP-session attached to this thread." if !_httpsession
     raise "HTTP-session not active." if !_httpsession.resp
     _httpsession.resp.header(key, val)
+    return nil
   end
   
   #Sends a raw header-line to the clients browser.
@@ -63,6 +65,7 @@ class Knjappserver
     raise "No HTTP-session attached to this thread." if !_httpsession
     raise "HTTP-session not active." if !_httpsession.resp
     Knj::Php.header(str)
+    return nil
   end
   
   #Returns true if the headers are already sent.
@@ -80,6 +83,7 @@ class Knjappserver
   def headers_send_size=(newsize)
     raise "The headers are already sent and you cannot modify the send-size any more." if self.headers_sent?
     _httpsession.size_send = newsize.to_i
+    return nil
   end
   
   #Serves the given filepath and enables caching for it. No other content should be written to the page when using this method.
@@ -115,6 +119,7 @@ class Knjappserver
     end
     
     httpsess.force_content(:type => :file, :path => filepath)
+    return nil
   end
   
   #Sends a javascript back to the browser and exits.

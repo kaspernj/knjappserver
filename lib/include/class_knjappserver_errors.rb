@@ -13,13 +13,12 @@ class Knjappserver
       @error_emails_time = 180
     end
     
-    self.timeout(:time => @error_emails_time) do
-      self.flush_error_emails
-    end
+    self.timeout(:time => @error_emails_time, &self.method(:flush_error_emails))
   end
   
   #Send error-emails based on error-emails-cache (cached so the same error isnt send out every time it occurrs to prevent spamming).
   def flush_error_emails
+    print "Flusing error emails.\n"
     @error_emails_pending_mutex.synchronize do
       send_time_older_than = Time.new.to_i - @error_emails_time
       

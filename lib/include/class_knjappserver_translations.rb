@@ -1,15 +1,15 @@
 class Knjappserver
+  #Translates a given key for a given object.
+  #===Examples
+  # print _kas.trans(obj, :title) #=> "Trala"
   def trans(obj, key, args = {})
     args[:locale] = self.trans_locale if !args[:locale]
     trans_val = @translations.get(obj, key, args).to_s
-    
-    if trans_val.length <= 0
-      trans_val = @events.call(:trans_no_str, {:obj => obj, :key => key, :args => args})
-    end
-    
+    trans_val = @events.call(:trans_no_str, {:obj => obj, :key => key, :args => args}) if trans_val.length <= 0
     return trans_val
   end
   
+  #Returns the locale for the current thread.
   def trans_locale(args = {})
     if args.is_a?(Hash) and args[:locale]
       return args[:locale]
@@ -26,11 +26,17 @@ class Knjappserver
     raise "Could not figure out locale."
   end
   
+  #Sets new translations for the given object.
+  #===Examples
+  # _kas.trans_set(obj, {:title => "Trala"})
   def trans_set(obj, values, args = {})
     args[:locale] = self.trans_locale if !args[:locale]
     @translations.set(obj, values, args)
   end
   
+  #Deletes all translations for the given object.
+  #===Examples
+  # _kas.trans_del(obj)
   def trans_del(obj)
     @translations.delete(obj)
   end

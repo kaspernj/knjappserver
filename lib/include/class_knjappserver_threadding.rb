@@ -4,9 +4,12 @@ class Knjappserver
     @config[:threadding][:max_running] = 8 if !@config[:threadding].has_key?(:max_running)
     
     @threadpool = Knj::Threadpool.new(:threads => @config[:threadding][:max_running], :sleep => 0.1)
-    @threadpool.events.connect(:on_error) do |event, error|
-      self.handle_error(error)
-    end
+    @threadpool.events.connect(:on_error, &self.method(:threadpool_on_error))
+  end
+  
+  #Callback for when an error occurs in the threadpool.
+  def threadpool_on_error(event, error)
+    self.handle_error(error)
   end
   
   #Inits the thread so it has access to the appserver and various magic methods can be used.
@@ -71,6 +74,7 @@ class Knjappserver
   #Spawns a thread to run the given proc and add the output of that block in the correct order to the HTML.
   def threadded_content(&block)
     _httpsession.threadded_content(block)
+    return nil
   end
 end
 

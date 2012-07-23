@@ -1,9 +1,10 @@
-require "timeout"
+require "base64"
 require "digest"
 require "erubis"
-require "base64"
+require "monitor"
 require "stringio"
 require "socket"
+require "timeout"
 require "tsafe" if !Kernel.const_defined?(:Tsafe)
 
 #The class that stands for the whole appserver / webserver.
@@ -67,9 +68,7 @@ class Knjappserver
     
     
     #Add extra handlers if given.
-    if @config[:handlers_extra]
-      @config[:handlers] += @config[:handlers_extra]
-    end
+    @config[:handlers] += @config[:handlers_extra] if @config[:handlers_extra]
     
     
     #Setup cache to make .rhtml-calls faster.
@@ -168,9 +167,7 @@ class Knjappserver
       raise "'#{dbschemapath}' did not exist." if !File.exists?(dbschemapath)
       require dbschemapath
       raise "No schema-variable was spawned." if !Knjappserver::DATABASE_SCHEMA
-      
-      dbrev = Knj::Db::Revision.new
-      dbrev.init_db("schema" => Knjappserver::DATABASE_SCHEMA, "db" => @db)
+      Knj::Db::Revision.new.init_db("schema" => Knjappserver::DATABASE_SCHEMA, "db" => @db)
     end
     
     

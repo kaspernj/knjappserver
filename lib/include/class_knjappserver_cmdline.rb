@@ -30,15 +30,18 @@ class Knjappserver
       end
     end
     
-    self.cmd_connect(/^\s*restart\s*$/i) do |data|
-      print "Restart will begin shortly.\n"
-      self.should_restart = true
-    end
-    
-    self.cmd_connect(/^\s*stop\s*$/i) do |data|
-      print "Stopping appserver.\n"
-      self.stop
-    end
+    self.cmd_connect(/^\s*restart\s*$/i, &self.method(:cmdline_on_restart_cmd))
+    self.cmd_connect(/^\s*stop\s*$/i, &self.method(:cmdline_on_stop_cmd))
+  end
+  
+  def cmdline_on_restart_cmd(data)
+    print "Restart will begin shortly.\n"
+    self.should_restart = true
+  end
+  
+  def cmdline_on_stop_cmd(data)
+    print "Stopping appserver.\n"
+    self.stop
   end
   
   #Connects a proc to a specific command in the command-line (key should be a regex).
