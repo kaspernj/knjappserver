@@ -6,7 +6,7 @@ class Knjappserver
 		if @config[:logging] and @config[:logging][:access_db]
 			self.timeout(:time => 30) do
 				if @logs_access_pending.length > 0
-					flush_access_log
+					self.flush_access_log
 				end
 			end
 		end
@@ -306,7 +306,9 @@ class Knjappserver
 	def logs_table(obj, args = {})
 		links = @ob.list(:Log_link, {"object_class" => obj.class.name, "object_id" => obj.id, "limit" => 500, "orderby" => [["id", "desc"]]})
 		
-		html = "<table class=\"list knjappserver_log_table\">"
+		html = ""
+		
+		html << "<table class=\"list knjappserver_log_table\">"
 		html << "<thead>"
 		html << "<tr>"
 		html << "<th>ID</th>"

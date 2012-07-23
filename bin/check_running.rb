@@ -50,7 +50,6 @@ if !options[:command]
 end
 
 require "#{options[:knjrbfw_path]}knjrbfw"
-require "knj/autoload"
 
 tmpdir = "#{Knj::Os.tmpdir}/knjappserver"
 tmppath = "#{tmpdir}/run_#{options[:title]}"

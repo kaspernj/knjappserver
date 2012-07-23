@@ -108,11 +108,7 @@ class Knjappserver
       ]
       
       print "Auto restarting.\n" if @debug
-      @mod_event = Knj::Event_filemod.new(:wait => 2, :paths => paths) do |event, path|
-        print "File changed - restart server: #{path}\n"
-        @should_restart = true
-        @mod_event.destroy if @mod_event
-      end
+      @mod_event = Knj::Event_filemod.new(:wait => 2, :paths => paths, &self.method(:on_event_filemod))
     end
     
     
@@ -186,9 +182,7 @@ class Knjappserver
       :datarow => true,
       :knjappserver => self
     )
-    @ob.events.connect(:no_date) do |event, classname|
-      "[no date]"
-    end
+    @ob.events.connect(:no_date, &self.method(:no_date))
     
     
     if @config[:httpsession_db_args]
@@ -312,12 +306,20 @@ class Knjappserver
     
     
     #Clear memory at exit.
-    Kernel.at_exit do
-      self.stop
-    end
+    Kernel.at_exit(&self.method(:stop))
     
     
     print "Appserver spawned.\n" if @debug
+  end
+  
+  def no_date(event, classname)
+    return "[no date]"
+  end
+  
+  def on_event_filemod(event, path)
+    print "File changed - restart server: #{path}\n"
+    @should_restart = true
+    @mod_event.destroy if @mod_event
   end
   
   #If you want to use auto-restart, every file reloaded through loadfile will be watched for changes. When changed the server will do a restart to reflect that.
