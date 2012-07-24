@@ -7,7 +7,7 @@ class Knjappserver::ERBHandler
     eruby = httpsess.eruby
     
 		if !@connected.key?(eruby.__id__)
-			eruby.connect("error", self.method(:on_error))
+			eruby.connect("error", &self.method(:on_error))
 			@connected[eruby.__id__] = true
 		end
 		
