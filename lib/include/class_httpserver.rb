@@ -82,15 +82,21 @@ class Knjappserver::Httpserver
     @http_sessions << Knjappserver::Httpsession.new(self, socket)
 	end
 	
-	def count_add
-    @mutex_count.synchronize do
-      @working_count += 1 if @working_count
-    end
-	end
-	
-	def count_remove
-    @mutex_count.synchronize do
-      @working_count -= 1 if @working_count
+	def count_block
+    begin
+      added = false
+      @mutex_count.synchronize do
+        @working_count += 1 if @working_count != nil
+        added = true
+      end
+      
+      yield
+    ensure
+      @kas.served += 1 if @kas
+      
+      @mutex_count.synchronize do
+        @working_count -= 1 if @working_count != nil and added
+      end
     end
 	end
 end
