@@ -45,7 +45,7 @@ class Knjappserver
     
     
     #Require gems.
-    gems = %w[datet]
+    gems = %w[datet php4r]
     gems.each do |gem|
       puts "Loading gem: '#{gem}'." if @debug
       require gem
