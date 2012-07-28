@@ -7,6 +7,11 @@ class Knjappserver
     self.timeout(:time => @config[:cleaner_timeout], &self.method(:clean_sessions))
 	end
 	
+	def clean
+    self.clean_sessions
+    self.clean_autorestart
+	end
+	
 	def clean_autorestart
     begin
       if @config[:autorestart]
