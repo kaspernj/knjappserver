@@ -44,7 +44,7 @@ class Knjappserver::Leakproxy_server
             STDOUT.print obj["str"]
           end
         else
-          STDOUT.print Knj::Php.print_r(obj, true)
+          STDOUT.print Php4r.print_r(obj, true)
         end
       }
     )

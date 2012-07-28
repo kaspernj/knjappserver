@@ -107,7 +107,7 @@ begin
   
   #cgi.print "Content-Type: text/html\r\n"
   #cgi.print "\r\n"
-  #cgi.print Knj::Php.print_r(cgi.params, true)
+  #cgi.print Php4r.print_r(cgi.params, true)
   
   if cgi.request_method == "POST" and cgi.content_type.to_s.downcase.index("multipart/form-data") != nil
     count = 0
