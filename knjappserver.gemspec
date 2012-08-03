@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{knjappserver}
-  s.version = "0.0.29"
+  s.version = "0.0.30"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Kasper Johansen"]
-  s.date = %q{2012-07-20}
+  s.date = %q{2012-08-03}
   s.description = %q{Which supports a lot of undocumented stuff.}
   s.email = %q{k@spernj.org}
   s.executables = ["check_running.rb", "knjappserver_start.rb"]
@@ -73,6 +73,7 @@ Gem::Specification.new do |s|
     "lib/pages/benchmark_threadded_content.rhtml",
     "lib/pages/debug_database_connections.rhtml",
     "lib/pages/debug_http_sessions.rhtml",
+    "lib/pages/debug_memory_usage.rhtml",
     "lib/pages/error_notfound.rhtml",
     "lib/pages/logs_latest.rhtml",
     "lib/pages/logs_show.rhtml",
@@ -106,6 +107,7 @@ Gem::Specification.new do |s|
       s.add_runtime_dependency(%q<tsafe>, [">= 0"])
       s.add_runtime_dependency(%q<datet>, [">= 0"])
       s.add_runtime_dependency(%q<http2>, [">= 0"])
+      s.add_runtime_dependency(%q<php4r>, [">= 0"])
       s.add_development_dependency(%q<json>, [">= 0"])
       s.add_development_dependency(%q<rspec>, ["~> 2.3.0"])
       s.add_development_dependency(%q<bundler>, [">= 1.0.0"])
@@ -118,6 +120,7 @@ Gem::Specification.new do |s|
       s.add_dependency(%q<tsafe>, [">= 0"])
       s.add_dependency(%q<datet>, [">= 0"])
       s.add_dependency(%q<http2>, [">= 0"])
+      s.add_dependency(%q<php4r>, [">= 0"])
       s.add_dependency(%q<json>, [">= 0"])
       s.add_dependency(%q<rspec>, ["~> 2.3.0"])
       s.add_dependency(%q<bundler>, [">= 1.0.0"])
@@ -131,6 +134,7 @@ Gem::Specification.new do |s|
     s.add_dependency(%q<tsafe>, [">= 0"])
     s.add_dependency(%q<datet>, [">= 0"])
     s.add_dependency(%q<http2>, [">= 0"])
+    s.add_dependency(%q<php4r>, [">= 0"])
     s.add_dependency(%q<json>, [">= 0"])
     s.add_dependency(%q<rspec>, ["~> 2.3.0"])
     s.add_dependency(%q<bundler>, [">= 1.0.0"])
