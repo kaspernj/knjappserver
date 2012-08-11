@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby1.9.1
+#!/usr/bin/env ruby
 
 Dir.chdir(File.dirname(__FILE__))
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby1.9.1
+#!/usr/bin/env ruby
 
 #This scripts start an appserver, executes a HTTP-request and terminates.
 #Good for programming appserver-supported projects without running an appserver all the time,

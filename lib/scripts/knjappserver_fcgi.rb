@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby1.9.1
+#!/usr/bin/env ruby
 
 #This scripts start an appserver, executes a HTTP-request for every FCGI-request and terminates when FCGI terminates.
 #Good for programming appserver-supported projects that doesnt need threadding without running an appserver all the time.

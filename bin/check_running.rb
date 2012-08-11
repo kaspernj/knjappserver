@@ -1,4 +1,4 @@
-#!/usr/bin/env ruby1.9.1
+#!/usr/bin/env ruby
 
 # This script checks if the knjappserver is running - if not it forks and start it.
 require "rubygems"
