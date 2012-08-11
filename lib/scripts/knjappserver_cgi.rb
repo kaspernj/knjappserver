@@ -18,6 +18,7 @@ class Cgi_is_retarded
   end
   
   def cgi
+    require "cgi"
     @cgi = CGI.new if !@cgi
     return @cgi
   end

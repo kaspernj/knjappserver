@@ -302,8 +302,12 @@ class Knjappserver
 	
 	#Returns the HTML for a table with logs from a given object.
 	def logs_table(obj, args = {})
-		links = @ob.list(:Log_link, {"object_class" => obj.class.name, "object_id" => obj.id, "limit" => 500, "orderby" => [["id", "desc"]]})
-		
+		if args[:out]
+      html = args[:out]
+    else
+      html = $stdout
+    end
+    
 		html = ""
 		
 		html << "<table class=\"list knjappserver_log_table\">"
@@ -319,7 +323,9 @@ class Knjappserver
 		html << "</thead>"
 		html << "<tbody>"
 		
-		links.each do |link|
+		count = 0
+		@ob.list(:Log_link, {"object_class" => obj.class.name, "object_id" => obj.id, "limit" => 500, "orderby" => [["id", "desc"]]}) do |link|
+      count += 1
       log = link.log
       
 			msg_lines = log.text.split("\n")
@@ -346,7 +352,7 @@ class Knjappserver
 			html << "</tr>"
 		end
 		
-		if links.empty?
+		if count <= 0
 			html << "<tr>"
 			html << "<td colspan=\"2\" class=\"error\">No logs were found for that object.</td>"
 			html << "</tr>"
@@ -355,7 +361,7 @@ class Knjappserver
 		html << "</tbody>"
 		html << "</table>"
 		
-		return html
+		return nil
 	end
 	
 	#Removes all logs for objects that have been deleted.
