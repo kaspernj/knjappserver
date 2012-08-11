@@ -97,12 +97,12 @@ class Knjappserver
           html << "#{Knj::Web.html(line)}<br />"
         end
         
-        html << "<br /><b>Post:</b><br /><pre>#{Knj::Php.print_r(_post, true)}</pre>" if _post
-        html << "<br /><b>Get:</b><br /><pre>#{Knj::Php.print_r(_get, true)}</pre>" if _get
-        html << "<br /><b>Server:</b><br /><pre>#{Knj::Php.print_r(_server, true).html}</pre>" if _server
-        html << "<br /><b>Cookie:</b><br /><pre>#{Knj::Php.print_r(_cookie, true).html}</pre>" if _meta
-        html << "<br /><b>Session:</b><br /><pre>#{Knj::Php.print_r(_session, true).html}</pre>" if _session
-        html << "<br /><b>Session hash:</b><br /><pre>#{Knj::Php.print_r(_session_hash, true).html}</pre>" if _session_hash
+        html << "<br /><b>Post:</b><br /><pre>#{Php4r.print_r(_post, true)}</pre>" if _post
+        html << "<br /><b>Get:</b><br /><pre>#{Php4r.print_r(_get, true)}</pre>" if _get
+        html << "<br /><b>Server:</b><br /><pre>#{Php4r.print_r(_server, true).html}</pre>" if _server
+        html << "<br /><b>Cookie:</b><br /><pre>#{Php4r.print_r(_cookie, true).html}</pre>" if _meta
+        html << "<br /><b>Session:</b><br /><pre>#{Php4r.print_r(_session, true).html}</pre>" if _session
+        html << "<br /><b>Session hash:</b><br /><pre>#{Php4r.print_r(_session_hash, true).html}</pre>" if _session_hash
         
         error_hash = @error_emails_pending[backtrace_hash]
         error_hash[:last_time] = Time.new
@@ -122,7 +122,7 @@ class Knjappserver
   
   #Prints a detailed overview of the object in the terminal from where the appserver was started. This can be used for debugging.
   def dprint(obj)
-    STDOUT.print Knj::Php.print_r(obj, true)
+    STDOUT.print Php4r.print_r(obj, true)
   end
   
   #Prints a string with a single file-line-backtrace prepended which is useful for debugging.

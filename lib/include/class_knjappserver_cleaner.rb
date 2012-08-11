@@ -7,6 +7,11 @@ class Knjappserver
     self.timeout(:time => @config[:cleaner_timeout], &self.method(:clean_sessions))
 	end
 	
+	def clean
+    self.clean_sessions
+    self.clean_autorestart
+	end
+	
 	def clean_autorestart
     begin
       if @config[:autorestart]
@@ -19,7 +24,7 @@ class Knjappserver
         sleep time
         
         if @config.has_key?(:restart_when_used_memory) and !@should_restart
-          mbs_used = (Knj::Php.memory_get_usage / 1024) / 1024
+          mbs_used = (Php4r.memory_get_usage / 1024) / 1024
           STDOUT.print "Restart when over #{@config[:restart_when_used_memory]}mb\n" if @config[:debug]
           STDOUT.print "Used: #{mbs_used}mb\n" if @config[:debug]
           

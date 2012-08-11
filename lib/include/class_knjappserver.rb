@@ -45,7 +45,7 @@ class Knjappserver
     
     
     #Require gems.
-    gems = %w[datet]
+    gems = %w[datet php4r]
     gems.each do |gem|
       puts "Loading gem: '#{gem}'." if @debug
       require gem
@@ -161,13 +161,15 @@ class Knjappserver
     
     if !@config.key?(:dbrev) or @config[:dbrev]
       print "Updating database.\n" if @debug
-      require "knj/knjdb/revision.rb"
       
       dbschemapath = "#{File.dirname(__FILE__)}/../files/database_schema.rb"
       raise "'#{dbschemapath}' did not exist." if !File.exists?(dbschemapath)
       require dbschemapath
       raise "No schema-variable was spawned." if !Knjappserver::DATABASE_SCHEMA
-      Knj::Db::Revision.new.init_db("schema" => Knjappserver::DATABASE_SCHEMA, "db" => @db)
+      dbrev_args = {"schema" => Knjappserver::DATABASE_SCHEMA, "db" => @db}
+      dbrev_args.merge!(@config[:dbrev_args]) if @config.key?(:dbrev_args)
+      Knj::Db::Revision.new.init_db(dbrev_args)
+      dbrev_args = nil
     end
     
     

@@ -74,7 +74,7 @@ FCGI.each_cgi do |cgi|
     headers = {}
     cgi.env_table.each do |key, val|
       if key[0, 5] == "HTTP_" and key != "HTTP_KNJAPPSERVER_CGI_CONFIG"
-        key = Knj::Php.ucwords(key[5, key.length].gsub("_", " ")).gsub(" ", "-")
+        key = Php4r.ucwords(key[5, key.length].gsub("_", " ")).gsub(" ", "-")
         headers[key] = val
       end
     end
@@ -92,7 +92,7 @@ FCGI.each_cgi do |cgi|
     
     #cgi.print "Content-Type: text/html\r\n"
     #cgi.print "\r\n"
-    #cgi.print Knj::Php.print_r(cgi.params, true)
+    #cgi.print Php4r.print_r(cgi.params, true)
     
     if cgi.request_method == "POST" and cgi.content_type.to_s.downcase.index("multipart/form-data") != nil
       count = 0

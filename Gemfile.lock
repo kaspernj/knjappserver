@@ -22,6 +22,9 @@ GEM
       mime-types (~> 1.16)
       treetop (~> 1.4.8)
     mime-types (1.19)
+    php4r (0.0.0)
+      datet
+      http2
     polyglot (0.3.3)
     rake (0.9.2.2)
     rspec (2.3.0)
@@ -51,6 +54,7 @@ DEPENDENCIES
   json
   knjrbfw
   mail
+  php4r
   rspec (~> 2.3.0)
   sqlite3
   tsafe
